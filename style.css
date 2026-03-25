@@ -1,0 +1,248 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap');
+
+/* TRANSICIONES GLOBALES */
+.vista { transition: opacity 0.3s ease; }
+#panel-comentarios, #panel-favoritos, #panel-concordancia, #panel-busqueda {
+    transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.4, 1);
+}
+
+/* ========== MODO DÍA: ESTILO BIBLIOTECA CLÁSICA ========== */
+body {
+    background-color: #fcfaf7; 
+    color: #2c2c2c;
+}
+
+header h1 {
+    text-shadow: 0.5px 0.5px 0px rgba(0,0,0,0.05);
+}
+
+header button, header label {
+    letter-spacing: -0.01em;
+}
+
+header {
+    border-bottom: 2px solid #e2d7c1 !important;
+}
+
+/* --- Título Principal --- */
+h2.text-3xl.text-center {
+    color: #2d3748 !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.05em;
+    opacity: 1 !important;
+}
+
+/* Botones de Libros */
+#contenedor-libros button {
+    background-color: #ffffff;
+    border: 1px solid #eaddca;
+    color: #4a4a4a;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+#contenedor-libros button:hover {
+    border-color: #b8860b;
+    background-color: #fdf8ed;
+    color: #b8860b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(184, 134, 11, 0.12);
+}
+
+/* ========== VISTA CAPÍTULOS ========== */
+#contenedor-capitulos button {
+    color: #ffffff !important; 
+    background-color: #2d3748; 
+    font-weight: 700;
+    font-size: 1.1rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#contenedor-capitulos button:hover {
+    background-color: #b8860b !important;
+    transform: scale(1.05);
+}
+
+/* Títulos de Testamentos */
+.titulo-testamento {
+    color: #b8860b;
+    border-bottom: 2px solid #b8860b;
+    display: inline-block;
+    padding-bottom: 4px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+}
+
+/* ========== MODO OSCURO ========== */
+body.dark {
+    background-color: #0d0f12;
+    color: #e2e8f0;
+}
+
+.dark header {
+    background-color: #1a1d23;
+    border-bottom: 2px solid #2d3748;
+}
+
+body.dark h2.text-3xl.text-center {
+    color: #e2e8f0 !important;
+}
+
+.dark #contenedor-libros button {
+    background-color: #1a1d23;
+    border-color: #2d3748;
+    color: #cbd5e0;
+}
+
+/* ========== MEJORA DE LEGIBILIDAD EN EL HEADER ========== */
+/* Modo Día */
+header h1 { color: #1a202c !important; }
+header h1 span { color: #4a5568 !important; font-weight: 500; }
+header button, header label, header .text-gray-500 {
+    color: #2d3748 !important;
+    font-weight: 600;
+}
+
+/* Modo Oscuro */
+.dark header h1 { color: #f7fafc !important; }
+.dark header h1 span { color: #a0aec0 !important; }
+.dark header button, .dark header label, .dark header .text-gray-500 { 
+    color: #e2e8f0 !important; 
+}
+
+/* ========== AJUSTE BARRA DE BÚSQUEDA ========== */
+/* Modo Día: Fondo claro para que no desentone */
+#busqueda-input {
+    background-color: #ffffff !important;
+    border: 1px solid #e2d7c1 !important;
+    color: #2d3748 !important;
+}
+
+#busqueda-input:focus {
+    border-color: #b8860b !important;
+    box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.15);
+}
+
+header .fa-search {
+    color: #b8860b !important; /* Lupa en dorado */
+}
+
+/* Modo Oscuro: Integración con el header oscuro */
+.dark #busqueda-input {
+    background-color: #242933 !important;
+    border-color: #4a5568 !important;
+    color: #e2e8f0 !important;
+}
+
+.dark header .fa-search {
+    color: #d4af37 !important;
+}
+
+/* ========== EFECTO GLOW PARA BÚSQUEDA ========== */
+@keyframes glow-fade {
+    0% { 
+        background-color: rgba(184, 134, 11, 0.4); 
+        box-shadow: 0 0 20px rgba(184, 134, 11, 0.6);
+        transform: scale(1.02);
+    }
+    100% { 
+        background-color: transparent; 
+        box-shadow: 0 0 0 rgba(184, 134, 11, 0);
+        transform: scale(1);
+    }
+}
+
+.highlight-glow {
+    animation: glow-fade 3s ease-out;
+    border-radius: 8px;
+    padding: 4px;
+    z-index: 10;
+    position: relative;
+}
+
+/* ========== PANELES LATERALES OPACOS ========== */
+
+/* Estilo general para todos los paneles laterales */
+#panel-comentarios, 
+#panel-favoritos, 
+#panel-concordancia, 
+#panel-busqueda {
+    background-color: #fcfaf7 !important; /* Color igual al fondo del body en modo día */
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1); /* Sombra para dar profundidad */
+    opacity: 1 !important;
+    z-index: 50; /* Aseguramos que esté por encima de todo */
+}
+
+/* Ajuste para Modo Oscuro */
+.dark #panel-comentarios, 
+.dark #panel-favoritos, 
+.dark #panel-concordancia, 
+.dark #panel-busqueda {
+    background-color: #1a1d23 !important; /* Gris oscuro sólido para modo noche */
+    border-left: 1px solid #2d3748;
+}
+
+/* Opcional: Si el contenedor interno tiene scroll y sigue viéndose transparente */
+#contenido-busqueda, 
+#contenido-concordancia, 
+#lista-favoritos {
+    background-color: inherit;
+}
+
+/* Animación para el modal */
+#modal-confirmacion:not(.hidden) {
+    display: flex;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.dark #modal-confirmacion .bg-red-500 {
+    background-color: #991b1b; /* Un rojo más sobrio para el modo oscuro */
+}
+
+/* Animación de sacudida (Shake) */
+@keyframes shake-horizontal {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+.animacion-alerta {
+  /* Aplicamos la animación por 0.4s */
+  animation: shake-horizontal 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/* --- EFECTO HOVER EN BOTÓN DE ELIMINAR --- */
+
+#btn-confirmar-borrado:hover {
+    /* Sacudida rápida al pasar el mouse */
+    animation: shake-horizontal 0.3s ease-in-out;
+    background-color: #be123c !important; /* Un rojo un poco más profundo para el hover */
+    cursor: pointer;
+}
+
+/* Opcional: que el botón de cancelar también reaccione con suavidad */
+button[onclick="cerrarModalConfirmacion()"]:hover {
+    color: #1a1d23 !important;
+    transform: translateY(-1px);
+}
+.dark button[onclick="cerrarModalConfirmacion()"]:hover {
+    color: #ffffff !important;
+}
+
+#toast-confirmacion i {
+    color: #fdf8ed;
+}
+
+.dark #toast-confirmacion .bg-[#b8860b] {
+    background-color: #926a08; /* Un dorado un poco más profundo para el modo oscuro */
+}

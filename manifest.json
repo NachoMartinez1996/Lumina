@@ -1,0 +1,21 @@
+{
+  "name": "Lumina - La Tradición Iluminando la Palabra",
+  "short_name": "Lumina",
+  "description": "Explora la Biblia y la Catena Aurea con la luz de la Tradición.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fcfaf7",
+  "theme_color": "#b8860b",
+  "icons": [
+    {
+      "src": "icono-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icono-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
