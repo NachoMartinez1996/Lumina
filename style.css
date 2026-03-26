@@ -6,10 +6,10 @@
     transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.4, 1);
 }
 
-/* ========== MODO DÍA: ESTILO BIBLIOTECA CLÁSICA ========== */
+/* ========== MODO DÍA: ESTILO BIBLIOTECA CLÁSICA (INVERSO DEL MODO OSCURO) ========== */
 body {
-    background-color: #fcfaf7; 
-    color: #2c2c2c;
+    background-color: #f2f0ed;  /* inverso de #0d0f12 */
+    color: #1d170f;             /* inverso de #e2e8f0 */
 }
 
 header h1 {
@@ -21,12 +21,12 @@ header button, header label {
 }
 
 header {
-    border-bottom: 2px solid #e2d7c1 !important;
+    border-bottom: 2px solid #d2c8b7 !important; /* inverso de #2d3748 */
 }
 
 /* --- Título Principal --- */
 h2.text-3xl.text-center {
-    color: #2d3748 !important;
+    color: #1d170f !important;   /* inverso de #e2e8f0 */
     font-weight: 700 !important;
     letter-spacing: 0.05em;
     opacity: 1 !important;
@@ -34,9 +34,9 @@ h2.text-3xl.text-center {
 
 /* Botones de Libros */
 #contenedor-libros button {
-    background-color: #ffffff;
-    border: 1px solid #eaddca;
-    color: #4a4a4a;
+    background-color: #e5e2dc;   /* inverso de #1a1d23 */
+    border: 1px solid #d2c8b7;   /* inverso de #2d3748 */
+    color: #342a1f;              /* inverso de #cbd5e0 */
     box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     border-radius: 12px;
     transition: all 0.2s ease;
@@ -52,8 +52,8 @@ h2.text-3xl.text-center {
 
 /* ========== VISTA CAPÍTULOS ========== */
 #contenedor-capitulos button {
-    color: #ffffff !important; 
-    background-color: #2d3748; 
+    color: #ffffff !important;
+    background-color: #2d3748;
     font-weight: 700;
     font-size: 1.1rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -99,26 +99,26 @@ body.dark h2.text-3xl.text-center {
 
 /* ========== MEJORA DE LEGIBILIDAD EN EL HEADER ========== */
 /* Modo Día */
-header h1 { color: #1a202c !important; }
+header h1 { color: #1a202c !important; }   /* No es inverso de oscuro, pero se mantiene por coherencia tipográfica */
 header h1 span { color: #4a5568 !important; font-weight: 500; }
 header button, header label, header .text-gray-500 {
-    color: #2d3748 !important;
+    color: #1d170f !important;   /* inverso de #e2e8f0 */
     font-weight: 600;
 }
 
 /* Modo Oscuro */
 .dark header h1 { color: #f7fafc !important; }
 .dark header h1 span { color: #a0aec0 !important; }
-.dark header button, .dark header label, .dark header .text-gray-500 { 
-    color: #e2e8f0 !important; 
+.dark header button, .dark header label, .dark header .text-gray-500 {
+    color: #e2e8f0 !important;
 }
 
 /* ========== AJUSTE BARRA DE BÚSQUEDA ========== */
-/* Modo Día: Fondo claro para que no desentone */
+/* Modo Día */
 #busqueda-input {
-    background-color: #ffffff !important;
-    border: 1px solid #e2d7c1 !important;
-    color: #2d3748 !important;
+    background-color: #dbd6cc !important; /* inverso de #242933 */
+    border: 1px solid #b5aa97 !important; /* inverso de #4a5568 */
+    color: #1d170f !important;            /* inverso de #e2e8f0 */
 }
 
 #busqueda-input:focus {
@@ -127,10 +127,10 @@ header button, header label, header .text-gray-500 {
 }
 
 header .fa-search {
-    color: #b8860b !important; /* Lupa en dorado */
+    color: #2b50c8 !important; /* inverso de #d4af37 */
 }
 
-/* Modo Oscuro: Integración con el header oscuro */
+/* Modo Oscuro */
 .dark #busqueda-input {
     background-color: #242933 !important;
     border-color: #4a5568 !important;
@@ -143,13 +143,13 @@ header .fa-search {
 
 /* ========== EFECTO GLOW PARA BÚSQUEDA ========== */
 @keyframes glow-fade {
-    0% { 
-        background-color: rgba(184, 134, 11, 0.4); 
+    0% {
+        background-color: rgba(184, 134, 11, 0.4);
         box-shadow: 0 0 20px rgba(184, 134, 11, 0.6);
         transform: scale(1.02);
     }
-    100% { 
-        background-color: transparent; 
+    100% {
+        background-color: transparent;
         box-shadow: 0 0 0 rgba(184, 134, 11, 0);
         transform: scale(1);
     }
@@ -166,28 +166,28 @@ header .fa-search {
 /* ========== PANELES LATERALES OPACOS ========== */
 
 /* Estilo general para todos los paneles laterales */
-#panel-comentarios, 
-#panel-favoritos, 
-#panel-concordancia, 
+#panel-comentarios,
+#panel-favoritos,
+#panel-concordancia,
 #panel-busqueda {
-    background-color: #fcfaf7 !important; /* Color igual al fondo del body en modo día */
-    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1); /* Sombra para dar profundidad */
+    background-color: #e5e2dc !important; /* inverso de #1a1d23 */
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
     opacity: 1 !important;
-    z-index: 50; /* Aseguramos que esté por encima de todo */
+    z-index: 50;
 }
 
 /* Ajuste para Modo Oscuro */
-.dark #panel-comentarios, 
-.dark #panel-favoritos, 
-.dark #panel-concordancia, 
+.dark #panel-comentarios,
+.dark #panel-favoritos,
+.dark #panel-concordancia,
 .dark #panel-busqueda {
-    background-color: #1a1d23 !important; /* Gris oscuro sólido para modo noche */
+    background-color: #1a1d23 !important;
     border-left: 1px solid #2d3748;
 }
 
 /* Opcional: Si el contenedor interno tiene scroll y sigue viéndose transparente */
-#contenido-busqueda, 
-#contenido-concordancia, 
+#contenido-busqueda,
+#contenido-concordancia,
 #lista-favoritos {
     background-color: inherit;
 }
@@ -204,7 +204,7 @@ header .fa-search {
 }
 
 .dark #modal-confirmacion .bg-red-500 {
-    background-color: #991b1b; /* Un rojo más sobrio para el modo oscuro */
+    background-color: #991b1b;
 }
 
 /* Animación de sacudida (Shake) */
@@ -217,16 +217,14 @@ header .fa-search {
 }
 
 .animacion-alerta {
-  /* Aplicamos la animación por 0.4s */
   animation: shake-horizontal 0.4s cubic-bezier(.36,.07,.19,.97) both;
 }
 
 /* --- EFECTO HOVER EN BOTÓN DE ELIMINAR --- */
 
 #btn-confirmar-borrado:hover {
-    /* Sacudida rápida al pasar el mouse */
     animation: shake-horizontal 0.3s ease-in-out;
-    background-color: #be123c !important; /* Un rojo un poco más profundo para el hover */
+    background-color: #be123c !important;
     cursor: pointer;
 }
 
@@ -244,5 +242,33 @@ button[onclick="cerrarModalConfirmacion()"]:hover {
 }
 
 .dark #toast-confirmacion .bg-[#b8860b] {
-    background-color: #926a08; /* Un dorado un poco más profundo para el modo oscuro */
+    background-color: #926a08;
+}
+
+.favorito-activo {
+    color: #b8860b !important;
+    transform: scale(1.2);
+    transition: all 0.2s ease;
+}
+
+.animacion-fav {
+    animation: pop-fav 0.3s ease;
+}
+
+@keyframes pop-fav {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.4); }
+    100% { transform: scale(1.2); }
+}
+
+.estrella-fav-comentario.activa i,
+.estrella-fav.activa {
+    color: #b8860b;
+    text-shadow: 0 0 6px rgba(184, 134, 11, 0.4);
+}
+
+.estrella-fav-comentario.activa i,
+.estrella-fav.activa {
+    color: #b8860b;
+    text-shadow: 0 0 6px rgba(184, 134, 11, 0.4);
 }
