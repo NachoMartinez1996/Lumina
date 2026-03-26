@@ -1,4 +1,3 @@
-// =============================================================
 // 1. CANON BÍBLICO COMPLETO (según la lista del Vaticano)
 // =============================================================
 const canonBiblico = {
@@ -596,7 +595,23 @@ function toggleFavoritoVersiculo(libro, capitulo, versiculo) {
     if (favoritos.has(key)) favoritos.delete(key);
     else favoritos.add(key);
     guardarFavoritos();
-    actualizarEstrella(libro, capitulo, versiculo);
+actualizarEstrella(libro, capitulo, versiculo);
+
+// ✨ FEEDBACK VISUAL
+const star = document.getElementById(`star_${libro}_${capitulo}_${versiculo}`);
+
+if (star) {
+    if (favoritos.has(`versiculo:${libro}_${capitulo}_${versiculo}`)) {
+        star.classList.add('animacion-fav');
+        lanzarToast("Versículo guardado ⭐");
+    } else {
+        lanzarToast("Versículo quitado");
+    }
+
+    setTimeout(() => {
+        star.classList.remove('animacion-fav');
+    }, 300);
+}
     if (document.getElementById('panel-favoritos').classList.contains('translate-x-full') === false) mostrarPanelFavoritos();
 }
 function toggleFavoritoComentario(libro, capitulo, versiculo, tipo, idx) {
@@ -606,10 +621,26 @@ function toggleFavoritoComentario(libro, capitulo, versiculo, tipo, idx) {
     guardarFavoritos();
     const starId = `star_com_${libro}_${capitulo}_${versiculo}_${tipo}_${idx}`;
     const starElem = document.getElementById(starId);
-    if (starElem) {
-        if (favoritos.has(key)) starElem.classList.add('activa');
-        else starElem.classList.remove('activa');
+if (starElem) {
+    if (favoritos.has(key)) {
+        starElem.classList.add('activa');
+
+        // ✨ FEEDBACK VISUAL
+        starElem.classList.add('animacion-fav');
+        lanzarToast("Guardado en favoritos ⭐");
+
+    } else {
+        starElem.classList.remove('activa');
+
+        // ✨ FEEDBACK VISUAL
+        lanzarToast("Quitado de favoritos");
     }
+
+    // limpiar animación
+    setTimeout(() => {
+        starElem.classList.remove('animacion-fav');
+    }, 300);
+}
     if (document.getElementById('panel-favoritos').classList.contains('translate-x-full') === false) mostrarPanelFavoritos();
 }
 function esFavoritoVersiculo(libro, capitulo, versiculo) {
@@ -764,12 +795,13 @@ async function compartirTexto(texto, titulo) {
     }
 }
 function compartirVersiculo(libro, capitulo, versiculo, texto) {
-    const contenido = `${libro} ${capitulo}, ${versiculo}\n\n${texto}\n\n— Compartido desde Lumina`;
+    const contenido = `${texto}\n\n— Compartido desde Lumina`;
     compartirTexto(contenido, `Versículo: ${libro} ${capitulo}, ${versiculo}`);
 }
+
 function compartirComentario(libro, capitulo, versiculo, autor, texto) {
-    const contenido = `Comentario de ${autor} sobre ${libro} ${capitulo}, ${versiculo}:\n\n${texto}\n\n— Lumina`;
-    compartirTexto(contenido, `Comentario de ${autor}`);
+    const contenido = `${texto}\n\n— Compartido desde Lumina`;
+    compartirTexto(contenido, `Comentario de ${autor} sobre ${libro} ${capitulo}, ${versiculo}`);
 }
 
 // --------------------------------------------------------------
@@ -870,7 +902,7 @@ function abrirPrefacio(libro) {
                 <button id="star_com_${libro}_0_0_tradicion_${idx}" onclick="toggleFavoritoComentario('${libro}', 0, 0, 'tradicion', ${idx})" class="estrella-fav-comentario ${esFav ? 'activa' : ''} transition"><i class="fas fa-star"></i></button>
             </div>
             <p class="text-gray-700 dark:text-gray-300 text-sm mt-2">${escapeHtml(c.texto)}</p>
-            <button onclick="compartirComentario('${libro}', 0, 0, '${escapeHtml(c.autor)}', '${escapeHtml(c.texto)}')" class="mt-2 text-xs text-oro hover:underline flex items-center gap-1"><i class="fas fa-share-alt"></i> Compartir</button>
+            <button onclick="compartirComentario('${libro}', 0, 0, '${escapeHtml(c.autor)}', '${escapeHtml(c.texto)}')" class="mt-2 text-xs text-oro hover:underline flex items-center gap-1"><i class="fas fa-share-alt"></i></button>
         </div>
     `}).join(''));
     document.getElementById('contenido-panel-tradicion').innerHTML = panelHtml;
@@ -1099,4 +1131,4 @@ window.onload = async () => {
             clearInterval(observer);
         }
     }, 500);
-};
+};"
