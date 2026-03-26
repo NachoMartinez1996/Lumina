@@ -30,23 +30,23 @@
 
 <header class="px-6 py-4 flex-shrink-0 z-20 transition-colors duration-300">
     <div class="max-w-7xl mx-auto flex flex-wrap md:flex-nowrap items-center justify-between gap-3">
-        <div class="flex items-center gap-3 flex-shrink-0">
+        <button type="button" onclick="irAlInicio()" aria-label="Ir al inicio" class="brand-home flex items-center gap-3 flex-shrink-0 text-left cursor-pointer group">
             <i class="fas fa-feather-alt text-oro text-2xl"></i>
             <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-gray-950 dark:text-gray-100">
                 Lumina <span class="text-sm font-sans font-normal text-gray-700 dark:text-gray-400 ml-1">La Tradición Iluminando la Palabra</span>
             </h1>
-        </div>
+        </button>
         <div class="flex items-center gap-4 flex-shrink-0">
             <div class="relative hidden sm:block">
                 <input type="text" id="busqueda-input" placeholder="Buscar versículos..." class="pl-9 pr-4 py-2 rounded-full border border-gray-400 bg-white text-sm w-48 focus:w-64 transition-all focus:outline-none focus:ring-2 focus:ring-oro dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 text-gray-900">
                 <i class="fas fa-search absolute left-3 top-3 text-gray-600 dark:text-gray-500"></i>
             </div>
             
-            <button id="btn-favoritos" class="text-sm font-sans text-gray-900 dark:text-gray-200 hover:text-oro font-semibold transition-colors flex items-center gap-1">
+            <button type="button" id="btn-favoritos" class="text-sm font-sans text-gray-900 dark:text-gray-200 hover:text-oro font-semibold transition-colors flex items-center gap-1">
                 <i class="fas fa-star"></i> Favoritos
             </button>
             
-            <button id="btn-buscar-movil" class="sm:hidden text-gray-900 dark:text-gray-200 hover:text-oro">
+            <button type="button" id="btn-buscar-movil" class="sm:hidden text-gray-900 dark:text-gray-200 hover:text-oro">
                 <i class="fas fa-search text-lg"></i>
             </button>
             
@@ -58,7 +58,7 @@
                 </label>
             </div>
             
-            <button id="toggle-darkmode" class="text-gray-900 dark:text-gray-200 hover:text-oro transition-colors">
+            <button type="button" id="toggle-darkmode" class="text-gray-900 dark:text-gray-200 hover:text-oro transition-colors">
                 <i class="fas fa-moon dark:fa-sun text-lg"></i>
             </button>
             
@@ -87,7 +87,7 @@
         <main id="vista-capitulos" class="vista flex-1 overflow-y-auto p-6 md:p-12 hidden absolute inset-0 z-20 transition-colors duration-300">
             <div class="max-w-4xl mx-auto">
                 <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
-                    <button onclick="mostrarVista('vista-libros')" class="text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-sans text-sm font-bold transition-colors flex items-center gap-1">
+                <button type="button" onclick="mostrarVista('vista-libros')" class="text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-sans text-sm font-bold transition-colors flex items-center gap-1">
                         <i class="fas fa-arrow-left text-xs"></i> VOLVER A LOS LIBROS
                     </button>
                     <div class="w-64">
@@ -109,7 +109,7 @@
         <main id="vista-lectura" class="vista flex-1 overflow-y-auto p-6 md:p-12 hidden absolute inset-0 z-10 transition-colors duration-300">
             <div class="max-w-3xl mx-auto">
                 <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
-                    <button onclick="mostrarVista('vista-capitulos')" class="text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-sans text-sm font-bold transition-colors flex items-center gap-1">
+                <button type="button" onclick="mostrarVista('vista-capitulos')" class="text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-sans text-sm font-bold transition-colors flex items-center gap-1">
                         <i class="fas fa-arrow-left text-xs"></i> VOLVER A LOS CAPÍTULOS
                     </button>
                     <div class="w-64">
@@ -123,21 +123,20 @@
                 </div>
                 <h2 id="titulo-lectura" class="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-1 titulo-libro">Libro</h2>
                 <div class="flex items-center gap-4 mb-8">
-    <h3 id="subtitulo-capitulo-1" class="text-xl text-oro font-sans uppercase tracking-widest mb-0">Capítulo</h3>
-    <button onclick="leerCapituloEntero()" class="text-gray-400 hover:text-oro transition-all flex items-center gap-2 text-sm font-bold bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full" title="Leer todo el capítulo">
+    <h3 id="subtitulo-capitulo" class="text-xl text-oro font-sans uppercase tracking-widest mb-0">Capítulo</h3>
+    <button type="button" onclick="leerCapituloEntero()" class="btn-leer-capitulo transition-all flex items-center gap-2 text-sm font-bold px-3 py-1 rounded-full" title="Leer todo el capítulo">
         <i class="fas fa-volume-up"></i> ESCUCHAR CAPÍTULO
     </button>
 </div>
-                <h3 id="subtitulo-capitulo-2" class="text-xl mb-8 text-oro font-sans uppercase tracking-widest">Capítulo</h3>
                 <div id="contenedor-versiculos" class="space-y-4"></div>
                 <div class="text-center text-gray-400 dark:text-gray-500 text-sm py-8 mt-8 border-t border-gray-200 dark:border-gray-700">Ignacio Ariel Martinez. Rosario (Argentina) 2026</div>
             </div>
         </main>
 
-        <!-- PANELES LATERALES (idénticos al original) -->
+        <!-- PANELES LATERALES -->
         <aside id="panel-busqueda" class="w-[90%] sm:w-[420px] shadow-2xl h-full overflow-y-auto transform translate-x-full fixed right-0 top-0 border-l border-gray-200 dark:border-gray-700 z-50 transition-all duration-300">
             <div class="p-6 md:p-8 relative">
-                <button onclick="cerrarPanel('panel-busqueda')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <button type="button" onclick="cerrarPanel('panel-busqueda')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
                 <h2 class="text-2xl font-bold mb-2 text-oro font-sans tracking-wide mt-2 pr-6">Resultados de búsqueda</h2>
@@ -148,19 +147,21 @@
 
         <aside id="panel-comentarios" class="w-[90%] sm:w-[420px] shadow-2xl h-full overflow-y-auto transform translate-x-full fixed right-0 top-0 border-l border-gray-200 dark:border-gray-700 z-50 transition-all duration-300">
             <div class="p-6 md:p-8 relative">
-                <button onclick="cerrarPanel('panel-comentarios')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <button type="button" onclick="cerrarPanel('panel-comentarios')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
-                <h2 class="text-2xl font-bold mb-2 text-oro font-sans tracking-wide mt-2 pr-6" id="titulo-panel-versiculo">Referencia</h2>
+                <h2 class="panel-sticky-title text-2xl font-bold mb-2 text-oro font-sans tracking-wide mt-2 pr-6" id="titulo-panel-versiculo">Referencia</h2>
                 <div class="h-0.5 w-12 bg-oro mb-4"></div>
                 <div class="flex border-b border-gray-200 dark:border-gray-700 mb-4">
-                    <button id="tab-tradicion" class="py-2 px-4 font-medium text-sm text-oro border-b-2 border-oro">Tradición</button>
-                    <button id="tab-personales" class="py-2 px-4 font-medium text-sm text-gray-500 dark:text-gray-400 hover:text-oro">Mis notas</button>
+                    <button type="button" id="tab-tradicion" class="py-2 px-4 font-medium text-sm text-oro border-b-2 border-oro">Tradición</button>
+                    <button type="button" id="tab-personales" class="py-2 px-4 font-medium text-sm text-gray-500 dark:text-gray-400 hover:text-oro">Mis notas</button>
                 </div>
                 <div id="contenido-panel-tradicion" class="space-y-6"></div>
                 <div id="contenido-panel-personales" class="space-y-4 hidden">
-                    <textarea id="nota-personal" rows="4" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200" placeholder="Escribe aquí tu comentario personal..."></textarea>
-                    <button id="guardar-nota" class="bg-oro text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition">Guardar nota</button>
+                    <div class="notas-composer space-y-3">
+                        <textarea id="nota-personal" rows="4" class="nota-personal-area w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200" placeholder="Escribe aquí tu comentario personal..."></textarea>
+                        <button type="button" id="guardar-nota" class="bg-oro text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition">Guardar nota</button>
+                    </div>
                     <div id="lista-notas-personales" class="space-y-3 mt-4"></div>
                 </div>
             </div>
@@ -168,10 +169,10 @@
 
         <aside id="panel-favoritos" class="w-[90%] sm:w-[420px] shadow-2xl h-full overflow-y-auto transform translate-x-full fixed right-0 top-0 border-l border-gray-200 dark:border-gray-700 z-50 transition-all duration-300">
             <div class="p-6 md:p-8 relative">
-                <button onclick="cerrarPanel('panel-favoritos')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <button type="button" onclick="cerrarPanel('panel-favoritos')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
-                <h2 class="text-2xl font-bold mb-2 text-oro font-sans tracking-wide mt-2 pr-6">★ Mis favoritos</h2>
+                <h2 class="panel-sticky-title text-2xl font-bold mb-2 text-oro font-sans tracking-wide mt-2 pr-6">★ Mis favoritos</h2>
                 <div class="h-0.5 w-12 bg-oro mb-6"></div>
                 <div id="lista-favoritos" class="space-y-3"></div>
             </div>
@@ -179,7 +180,7 @@
 
         <aside id="panel-concordancia" class="w-[90%] sm:w-[420px] shadow-2xl h-full overflow-y-auto transform translate-x-full fixed right-0 top-0 border-l border-gray-200 dark:border-gray-700 z-50 transition-all duration-300">
             <div class="p-6 md:p-8 relative">
-                <button onclick="cerrarPanel('panel-concordancia')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <button type="button" onclick="cerrarPanel('panel-concordancia')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
                 <h2 class="text-2xl font-bold mb-2 text-oro font-sans tracking-wide mt-2 pr-6" id="titulo-concordancia">Concordancia</h2>
@@ -193,10 +194,10 @@
         <h3 class="text-xl font-bold text-oro mb-2">¿Eliminar nota?</h3>
         <p class="text-gray-600 dark:text-gray-400 text-sm mb-6">Esta acción no se puede deshacer. La nota desaparecerá de este versículo.</p>
         <div class="flex gap-3 justify-end">
-            <button onclick="cerrarModalConfirmacion()" class="px-4 py-2 text-gray-500 hover:text-gray-700 dark:hover:text-white transition-colors font-semibold">
+            <button type="button" onclick="cerrarModalConfirmacion()" class="px-4 py-2 text-gray-500 hover:text-gray-700 dark:hover:text-white transition-colors font-semibold">
                 Cancelar
             </button>
-            <button id="btn-confirmar-borrado" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-transform active:scale-95">
+            <button type="button" id="btn-confirmar-borrado" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-transform active:scale-95">
                 Eliminar
             </button>
         </div>
