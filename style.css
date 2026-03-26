@@ -10,6 +10,13 @@
 body {
     background-color: #f2f0ed;  /* inverso de #0d0f12 */
     color: #1d170f;             /* inverso de #e2e8f0 */
+    --lumina-paper: #fcfaf7;
+    --lumina-paper-soft: #f6eddc;
+    --lumina-ink: #231b13;
+    --lumina-muted: #7b6a58;
+    --lumina-border: #dfd2bd;
+    --lumina-accent: #b8860b;
+    --lumina-shadow: 0 6px 18px rgba(78, 60, 33, 0.05);
 }
 
 header h1 {
@@ -30,6 +37,14 @@ h2.text-3xl.text-center {
     font-weight: 700 !important;
     letter-spacing: 0.05em;
     opacity: 1 !important;
+}
+
+body:not(.dark) #titulo-libro-capitulos,
+body:not(.dark) #titulo-lectura,
+body:not(.dark) .titulo-libro {
+    color: #1f1710 !important;
+    border-bottom-color: #d8ccb7 !important;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 /* Botones de Libros */
@@ -261,14 +276,229 @@ button[onclick="cerrarModalConfirmacion()"]:hover {
     100% { transform: scale(1.2); }
 }
 
-.estrella-fav-comentario.activa i,
-.estrella-fav.activa {
-    color: #b8860b;
-    text-shadow: 0 0 6px rgba(184, 134, 11, 0.4);
+.estrella-fav {
+    color: #5f5447;
+    cursor: pointer;
+    font-size: 1.2rem;
+    line-height: 1;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.estrella-fav:hover {
+    color: #8a6a17;
+}
+
+.dark .estrella-fav {
+    color: #cbd5e0;
 }
 
 .estrella-fav-comentario.activa i,
 .estrella-fav.activa {
     color: #b8860b;
     text-shadow: 0 0 6px rgba(184, 134, 11, 0.4);
+}
+
+body:not(.dark) #panel-comentarios,
+body:not(.dark) #panel-favoritos,
+body:not(.dark) #panel-concordancia,
+body:not(.dark) #panel-busqueda {
+    background: linear-gradient(180deg, #ece6dc 0%, #e5e2dc 100%) !important;
+}
+
+body:not(.dark) .verse-card,
+body:not(.dark) #lista-favoritos > div,
+body:not(.dark) #contenido-busqueda .resultado-busqueda-item,
+body:not(.dark) #contenido-concordancia > div,
+body:not(.dark) #contenido-panel-tradicion > .mb-5,
+body:not(.dark) .cita-versiculo-panel,
+body:not(.dark) .favorito-item-versiculo,
+body:not(.dark) .nota-personal-area,
+body:not(.dark) #selector-rapido-capitulos,
+body:not(.dark) #selector-rapido-lectura,
+body:not(.dark) #contenedor-capitulos button,
+body:not(.dark) .prefacio-btn,
+body:not(.dark) #nota-personal {
+    background-color: #fcfaf7 !important;
+    color: #231b13 !important;
+    border-color: #dfd2bd !important;
+    box-shadow: 0 6px 18px rgba(78, 60, 33, 0.05) !important;
+}
+
+body:not(.dark) .verse-card {
+    border: 1px solid #dfd2bd;
+    border-left: 4px solid #b8860b;
+}
+
+body:not(.dark) .verse-card .texto-biblico,
+body:not(.dark) .verse-card p,
+body:not(.dark) #contenido-panel-tradicion p,
+body:not(.dark) #lista-favoritos .text-gray-700,
+body:not(.dark) #lista-favoritos .dark\:text-gray-300,
+body:not(.dark) #lista-favoritos p,
+body:not(.dark) #lista-favoritos span:not(.text-oro),
+body:not(.dark) #lista-favoritos div,
+body:not(.dark) #contenido-busqueda .resultado-busqueda-item *,
+body:not(.dark) #contenido-concordancia > div *,
+body:not(.dark) .cita-versiculo-panel p,
+body:not(.dark) #contenido-panel-tradicion > .mb-5 p {
+    color: #231b13 !important;
+    font-weight: 600;
+}
+
+body:not(.dark) .verse-card .bg-amber-50 {
+    background-color: #efe4cf !important;
+}
+
+body:not(.dark) #lista-favoritos > div,
+body:not(.dark) .favorito-item-versiculo,
+body:not(.dark) .cita-versiculo-panel,
+body:not(.dark) #contenido-busqueda .resultado-busqueda-item,
+body:not(.dark) #contenido-concordancia > div,
+body:not(.dark) #contenido-panel-tradicion > .mb-5 {
+    border-left: 4px solid #b8860b !important;
+}
+
+body:not(.dark) #lista-favoritos > div:hover,
+body:not(.dark) #contenido-busqueda .resultado-busqueda-item:hover,
+body:not(.dark) #contenido-concordancia > div:hover,
+body:not(.dark) #contenedor-capitulos button:hover,
+body:not(.dark) .prefacio-btn:hover {
+    background-color: #f6eddc !important;
+    border-color: #b8860b !important;
+}
+
+body:not(.dark) #contenido-busqueda .resultado-busqueda-item > div {
+    background-color: transparent !important;
+}
+
+body:not(.dark) #contenido-busqueda .resultado-busqueda-item .text-oro,
+body:not(.dark) #lista-favoritos .text-oro,
+body:not(.dark) #lista-favoritos .fa-bible,
+body:not(.dark) #lista-favoritos .fa-comment {
+    color: #b8860b !important;
+}
+
+body:not(.dark) #nota-personal::placeholder,
+body:not(.dark) .nota-personal-area::placeholder {
+    color: #7b6a58 !important;
+    font-weight: 500;
+}
+
+body:not(.dark) #selector-rapido-capitulos:focus,
+body:not(.dark) #selector-rapido-lectura:focus,
+body:not(.dark) .nota-personal-area:focus,
+body:not(.dark) #nota-personal:focus {
+    border-color: #b8860b !important;
+    box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.12) !important;
+    outline: none;
+}
+
+body:not(.dark) #selector-rapido-capitulos,
+body:not(.dark) #selector-rapido-lectura,
+body:not(.dark) #contenedor-capitulos button,
+body:not(.dark) .prefacio-btn {
+    font-weight: 600;
+}
+
+body:not(.dark) .cita-versiculo-panel p,
+body:not(.dark) #contenido-panel-tradicion > .mb-5 p {
+    font-size: 1.08rem;
+    line-height: 1.75;
+}
+
+.btn-audio-versiculo {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid transparent;
+}
+
+.btn-audio-versiculo:hover {
+    background-color: rgba(184, 134, 11, 0.12);
+}
+
+.btn-audio-versiculo.reproduciendo {
+    color: #b8860b !important;
+    background-color: rgba(184, 134, 11, 0.16);
+    box-shadow: 0 0 0 1px rgba(184, 134, 11, 0.18);
+}
+
+.dark .btn-audio-versiculo:hover {
+    background-color: rgba(212, 175, 55, 0.12);
+}
+
+body:not(.dark) .btn-audio-versiculo {
+    background-color: var(--lumina-paper);
+    border-color: var(--lumina-border);
+    color: var(--lumina-accent) !important;
+    box-shadow: var(--lumina-shadow);
+}
+
+body:not(.dark) .btn-audio-versiculo:hover {
+    background-color: var(--lumina-paper-soft);
+    border-color: var(--lumina-accent);
+    color: #8a6200 !important;
+}
+
+.btn-audio-versiculo .audio-icon {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.btn-audio-versiculo .audio-label {
+    font-size: 0.65rem;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+
+body:not(.dark) .btn-audio-versiculo .audio-label {
+    color: var(--lumina-accent);
+}
+
+.dark .btn-audio-versiculo .audio-label {
+    color: #e5e7eb;
+}
+
+.btn-leer-capitulo {
+    border: 1px solid var(--lumina-border);
+    background-color: var(--lumina-paper);
+    color: var(--lumina-ink) !important;
+    box-shadow: var(--lumina-shadow);
+}
+
+.btn-leer-capitulo:hover {
+    background-color: var(--lumina-paper-soft);
+    border-color: var(--lumina-accent);
+    color: #8a6200 !important;
+}
+
+.dark .btn-leer-capitulo {
+    background-color: #1f2937;
+    border-color: #4b5563;
+    color: #e5e7eb !important;
+    box-shadow: none;
+}
+
+.dark .btn-leer-capitulo:hover {
+    background-color: #374151;
+    border-color: #d4af37;
+    color: #f9fafb !important;
+}
+
+/* ========== CENTRADO GLOBAL DE TESTAMENTOS ========== */
+#contenedor-libros > div {
+    width: 100% !important;
+}
+
+#contenedor-libros > div > h3 {
+    width: 100% !important;
+    text-align: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
 }
