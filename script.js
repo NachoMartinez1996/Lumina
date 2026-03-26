@@ -463,10 +463,20 @@ function obtenerComentarios(libro, capitulo, versiculo) {
 // --------------------------------------------------------------
 let notasPersonales = {};
 let favoritos = new Set();
+let leidos = new Set();
 
 function cargarNotasPersonales() {
     const stored = localStorage.getItem("lumina_notas");
     if (stored) notasPersonales = JSON.parse(stored);
+}
+
+function cargarLeidos() {
+    const stored = localStorage.getItem("lumina_leidos");
+    if (stored) leidos = new Set(JSON.parse(stored));
+}
+
+function guardarLeidos() {
+    localStorage.setItem("lumina_leidos", JSON.stringify(Array.from(leidos)));
 }
 function guardarNota(libro, capitulo, versiculo, texto) {
     const key = `${libro}_${capitulo}_${versiculo}`;
@@ -676,13 +686,13 @@ function mostrarPanelFavoritos() {
             let textoVersiculo = bibleContent[libro]?.[capitulo]?.[versiculo];
             if (!textoVersiculo) continue;
             let item = document.createElement('div');
-            item.className = "p-3 bg-amber-50 dark:bg-gray-700 rounded-lg border-l-4 border-oro cursor-pointer hover:bg-amber-100 dark:hover:bg-gray-600 transition mb-3";
+            item.className = "favorito-item favorito-item-versiculo p-3 bg-amber-50 dark:bg-gray-700 rounded-lg border-l-4 border-oro cursor-pointer hover:bg-amber-100 dark:hover:bg-gray-600 transition mb-3";
             item.innerHTML = `
                 <div class="flex items-center gap-2 mb-1">
                     <i class="fas fa-bible text-oro text-sm"></i>
                     <div class="font-bold text-oro text-sm">${libro} ${capitulo}, ${versiculo}</div>
                 </div>
-                <div class="text-gray-700 dark:text-gray-300 text-sm line-clamp-2">${escapeHtml(textoVersiculo)}</div>
+                <div class="favorito-texto text-gray-700 dark:text-gray-300 text-sm line-clamp-2">${escapeHtml(textoVersiculo)}</div>
             `;
             item.onclick = () => {
                 cerrarPanel('panel-favoritos');
@@ -706,7 +716,7 @@ function mostrarPanelFavoritos() {
             }
             if (!comentarioObj) continue;
             let item = document.createElement('div');
-            item.className = "p-3 bg-amber-50 dark:bg-gray-700 rounded-lg border-l-4 border-oro cursor-pointer hover:bg-amber-100 dark:hover:bg-gray-600 transition mb-3";
+            item.className = "favorito-item p-3 bg-amber-50 dark:bg-gray-700 rounded-lg border-l-4 border-oro cursor-pointer hover:bg-amber-100 dark:hover:bg-gray-600 transition mb-3";
             item.innerHTML = `
                 <div class="flex items-center gap-2 mb-1">
                     <i class="fas fa-comment text-oro text-sm"></i>
@@ -769,11 +779,17 @@ function mostrarResultadosBusqueda(termino) {
     if (resultados.length === 0) {
         contenedor.innerHTML = `<div class="text-gray-400 italic text-center py-8">No se encontraron versículos que contengan "${escapeHtml(termino)}".</div>`;
     } else {
-        let html = `<div class="mb-3 text-sm text-gray-500 dark:text-gray-400">${resultados.length} resultado${resultados.length !== 1 ? 's' : ''}</div>`;
+        const esModoOscuro = document.body.classList.contains('dark');
+        const estiloTarjeta = esModoOscuro
+            ? ''
+            : 'style="background-color: var(--lumina-paper); color: var(--lumina-ink); border: 1px solid var(--lumina-border); border-left: 4px solid var(--lumina-accent); box-shadow: var(--lumina-shadow);"';
+        const estiloTitulo = esModoOscuro ? '' : 'style="color: var(--lumina-accent);"';
+        const estiloTexto = esModoOscuro ? '' : 'style="color: var(--lumina-ink);"';
+        let html = `<div class="resultado-busqueda-count mb-3 text-sm text-gray-500 dark:text-gray-400">${resultados.length} resultado${resultados.length !== 1 ? 's' : ''}</div>`;
         html += resultados.map(ref => `
-            <div class="p-3 bg-amber-50 dark:bg-gray-700 rounded-lg border-l-4 border-oro cursor-pointer hover:bg-amber-100 dark:hover:bg-gray-600 transition mb-3" onclick="irAVersiculo('${ref.libro}', ${ref.capitulo}, ${ref.versiculo})">
-                <div class="font-bold text-oro text-sm">${ref.libro} ${ref.capitulo}, ${ref.versiculo}</div>
-                <div class="text-gray-700 dark:text-gray-300 text-sm line-clamp-2">${escapeHtml(ref.texto)}</div>
+            <div class="resultado-busqueda-item p-3 bg-amber-50 dark:bg-gray-700 rounded-lg border-l-4 border-oro cursor-pointer hover:bg-amber-100 dark:hover:bg-gray-600 transition mb-3" ${estiloTarjeta} onclick="irAVersiculo('${ref.libro}', ${ref.capitulo}, ${ref.versiculo})">
+                <div class="font-bold text-oro text-sm" ${estiloTitulo}>${ref.libro} ${ref.capitulo}, ${ref.versiculo}</div>
+                <div class="text-gray-700 dark:text-gray-300 text-sm line-clamp-2" ${estiloTexto}>${escapeHtml(ref.texto)}</div>
             </div>
         `).join('');
         contenedor.innerHTML = html;
@@ -807,6 +823,121 @@ function compartirComentario(libro, capitulo, versiculo, autor, texto) {
 // --------------------------------------------------------------
 // 9. MODO OSCURO
 // --------------------------------------------------------------
+let vozActiva = null;
+let leyendoCapituloCompleto = false;
+
+function navegadorSoportaLectura() {
+    return 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+}
+
+function obtenerVozEspanol() {
+    if (!navegadorSoportaLectura()) return null;
+    const voces = window.speechSynthesis.getVoices();
+    return voces.find(voz => voz.lang && voz.lang.toLowerCase().startsWith('es')) || null;
+}
+
+function limpiarEstadoLectura() {
+    document.querySelectorAll('.btn-audio-versiculo').forEach(btn => {
+        btn.classList.remove('reproduciendo');
+        btn.setAttribute('aria-pressed', 'false');
+        btn.title = 'Escuchar versículo';
+        btn.innerHTML = '<span class="audio-icon" aria-hidden="true">&#128266;</span><span class="ml-1 audio-label">Audio</span>';
+    });
+}
+
+function detenerLectura() {
+    if (!navegadorSoportaLectura()) return;
+    leyendoCapituloCompleto = false;
+    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+        window.speechSynthesis.cancel();
+    }
+    vozActiva = null;
+    limpiarEstadoLectura();
+}
+
+function crearUtteranceLectura(texto) {
+    const utterance = new SpeechSynthesisUtterance(texto);
+    const voz = obtenerVozEspanol();
+    if (voz) utterance.voice = voz;
+    utterance.lang = voz?.lang || 'es-ES';
+    utterance.rate = 0.92;
+    utterance.pitch = 1;
+    return utterance;
+}
+
+function escucharVersiculo(libro, capitulo, versiculo, texto) {
+    if (!navegadorSoportaLectura()) {
+        alert('Tu navegador no admite lectura en voz alta.');
+        return;
+    }
+
+    const btn = document.getElementById(`audio_${libro}_${capitulo}_${versiculo}`);
+    const referencia = `${libro}, capítulo ${capitulo}, versículo ${versiculo}. ${texto}`;
+
+    if (vozActiva === btn && window.speechSynthesis.speaking) {
+        detenerLectura();
+        return;
+    }
+
+    detenerLectura();
+    const utterance = crearUtteranceLectura(referencia);
+    vozActiva = btn;
+
+    if (btn) {
+        btn.classList.add('reproduciendo');
+        btn.setAttribute('aria-pressed', 'true');
+        btn.title = 'Detener lectura';
+        btn.innerHTML = '<span class="audio-icon" aria-hidden="true">&#9209;</span><span class="ml-1 audio-label">Audio</span>';
+    }
+
+    utterance.onend = () => {
+        if (!leyendoCapituloCompleto) {
+            vozActiva = null;
+            limpiarEstadoLectura();
+        }
+    };
+
+    utterance.onerror = () => {
+        vozActiva = null;
+        limpiarEstadoLectura();
+    };
+
+    window.speechSynthesis.speak(utterance);
+}
+
+function leerCapituloEntero() {
+    if (!navegadorSoportaLectura()) {
+        alert('Tu navegador no admite lectura en voz alta.');
+        return;
+    }
+
+    const versiculosObj = bibleContent[libroActual]?.[capituloActual] || {};
+    const numerosVersiculos = Object.keys(versiculosObj).map(Number).sort((a, b) => a - b);
+    const textoCapitulo = numerosVersiculos
+        .filter(v => v >= 1)
+        .map(v => `Versículo ${v}. ${versiculosObj[v]}`)
+        .join(' ');
+
+    if (!textoCapitulo) return;
+
+    detenerLectura();
+    leyendoCapituloCompleto = true;
+
+    const utterance = crearUtteranceLectura(`${libroActual}, capítulo ${capituloActual}. ${textoCapitulo}`);
+    utterance.onend = () => {
+        leyendoCapituloCompleto = false;
+        vozActiva = null;
+        limpiarEstadoLectura();
+    };
+    utterance.onerror = () => {
+        leyendoCapituloCompleto = false;
+        vozActiva = null;
+        limpiarEstadoLectura();
+    };
+
+    window.speechSynthesis.speak(utterance);
+}
+
 function initDarkMode() {
     const darkMode = localStorage.getItem('lumina_darkmode') === 'true';
     if (darkMode) document.body.classList.add('dark');
@@ -825,6 +956,107 @@ function initDarkMode() {
 let libroActual = "";
 let capituloActual = 1;
 
+function claveLeidoVersiculo(libro, capitulo, versiculo) {
+    return `versiculo:${libro}_${capitulo}_${versiculo}`;
+}
+
+function obtenerTestamentoDeLibro(nombreLibro) {
+    for (const [testamento, libros] of Object.entries(canonBiblico)) {
+        if (libros.some(libro => libro.nombre === nombreLibro)) return testamento;
+    }
+    return null;
+}
+
+function obtenerVersiculosLeiblesCapitulo(libro, capitulo) {
+    const versiculos = bibleContent[libro]?.[capitulo] || {};
+    return Object.keys(versiculos)
+        .map(Number)
+        .filter(v => Number.isInteger(v) && v >= 1)
+        .sort((a, b) => a - b);
+}
+
+function esVersiculoLeido(libro, capitulo, versiculo) {
+    return leidos.has(claveLeidoVersiculo(libro, capitulo, versiculo));
+}
+
+function estaCapituloLeido(libro, capitulo) {
+    const versiculos = obtenerVersiculosLeiblesCapitulo(libro, capitulo);
+    return versiculos.length > 0 && versiculos.every(v => esVersiculoLeido(libro, capitulo, v));
+}
+
+function estaLibroLeido(libro) {
+    const capitulos = obtenerListaCapitulos(libro);
+    return capitulos.length > 0 && capitulos.every(capitulo => estaCapituloLeido(libro, capitulo));
+}
+
+function estaTestamentoLeido(testamento) {
+    const libros = canonBiblico[testamento] || [];
+    return libros.length > 0 && libros.every(libro => estaLibroLeido(libro.nombre));
+}
+
+function marcarCapituloLeido(libro, capitulo, marcado) {
+    const versiculos = obtenerVersiculosLeiblesCapitulo(libro, capitulo);
+    versiculos.forEach(versiculo => {
+        const clave = claveLeidoVersiculo(libro, capitulo, versiculo);
+        if (marcado) leidos.add(clave);
+        else leidos.delete(clave);
+    });
+}
+
+function marcarLibroLeido(libro, marcado) {
+    obtenerListaCapitulos(libro).forEach(capitulo => marcarCapituloLeido(libro, capitulo, marcado));
+}
+
+function marcarTestamentoLeido(testamento, marcado) {
+    (canonBiblico[testamento] || []).forEach(libro => marcarLibroLeido(libro.nombre, marcado));
+}
+
+function iconoLeidoHtml() {
+    return `<i class="fas fa-check-circle" aria-hidden="true"></i>`;
+}
+
+function actualizarBotonLeido(id, activo, etiquetaActiva, etiquetaInactiva) {
+    const boton = document.getElementById(id);
+    if (!boton) return;
+    boton.classList.toggle('activo', activo);
+    boton.setAttribute('aria-pressed', activo ? 'true' : 'false');
+    boton.title = activo ? etiquetaActiva : etiquetaInactiva;
+}
+
+function toggleLeidoVersiculo(libro, capitulo, versiculo) {
+    const clave = claveLeidoVersiculo(libro, capitulo, versiculo);
+    const marcado = !leidos.has(clave);
+    if (marcado) leidos.add(clave);
+    else leidos.delete(clave);
+    guardarLeidos();
+    actualizarBotonLeido(`read_${libro}_${capitulo}_${versiculo}`, marcado, 'Marcar como no leído', 'Marcar como leído');
+    lanzarToast(marcado ? 'Versículo marcado como leído' : 'Versículo marcado como no leído');
+}
+
+function toggleLeidoCapitulo(libro, capitulo) {
+    const marcado = !estaCapituloLeido(libro, capitulo);
+    marcarCapituloLeido(libro, capitulo, marcado);
+    guardarLeidos();
+    abrirCapitulos(libro, obtenerCantidadCapitulos(libro));
+    lanzarToast(marcado ? 'Capítulo marcado como leído' : 'Capítulo marcado como no leído');
+}
+
+function toggleLeidoLibro(libro) {
+    const marcado = !estaLibroLeido(libro);
+    marcarLibroLeido(libro, marcado);
+    guardarLeidos();
+    inicializarIndice();
+    lanzarToast(marcado ? 'Libro marcado como leído' : 'Libro marcado como no leído');
+}
+
+function toggleLeidoTestamento(testamento) {
+    const marcado = !estaTestamentoLeido(testamento);
+    marcarTestamentoLeido(testamento, marcado);
+    guardarLeidos();
+    inicializarIndice();
+    lanzarToast(marcado ? `${testamento} marcado como leído` : `${testamento} marcado como no leído`);
+}
+
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, function(m) {
@@ -840,9 +1072,10 @@ function inicializarIndice() {
     contenedor.innerHTML = '';
     for (const [testamento, libros] of Object.entries(canonBiblico)) {
         let divTestamento = document.createElement('div');
-        divTestamento.innerHTML = `<h3 class="text-xl font-bold mb-5 text-oro font-sans uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 pb-2">${testamento}</h3>`;
+        divTestamento.className = "flex flex-col items-center w-full";
+        divTestamento.innerHTML = `<h3 class="text-xl font-bold mb-5 text-oro font-sans uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 pb-2 w-full text-center mx-auto">${testamento}</h3>`;
         let gridLibros = document.createElement('div');
-        gridLibros.className = "grid grid-cols-2 gap-2";
+        gridLibros.className = "grid grid-cols-2 gap-2 w-full";
         libros.forEach(libro => {
             const btn = document.createElement('button');
             btn.textContent = libro.nombre;
@@ -939,6 +1172,7 @@ function abrirLectura(capitulo) {
     document.getElementById('subtitulo-capitulo').innerHTML = `Capítulo ${capitulo}`;
     const contenedor = document.getElementById('contenedor-versiculos');
     contenedor.innerHTML = '';
+    detenerLectura();
 
     const versiculosObj = bibleContent[libroActual]?.[capitulo] || {};
     const numerosVersiculos = Object.keys(versiculosObj).map(Number).sort((a,b)=>a-b);
@@ -977,6 +1211,7 @@ function abrirLectura(capitulo) {
                             </div>
                             <div class="flex gap-2">
                                 <span id="star_${libroActual}_${capitulo}_${v}" class="estrella-fav ${favorito ? 'activa' : ''}" onclick="event.stopPropagation(); toggleFavoritoVersiculo('${libroActual}', ${capitulo}, ${v}); return false;">${favorito ? '★' : '☆'}</span>
+                                <button id="audio_${libroActual}_${capitulo}_${v}" class="btn-audio-versiculo text-gray-400 hover:text-oro transition" onclick="event.stopPropagation(); escucharVersiculo('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)" title="Escuchar versículo" aria-label="Escuchar versículo ${v}" aria-pressed="false"><span class="audio-icon" aria-hidden="true">&#128266;</span><span class="ml-1 audio-label">Audio</span></button>
                                 <button onclick="event.stopPropagation(); compartirVersiculo('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)" class="text-gray-400 hover:text-oro transition"><i class="fas fa-share-alt"></i></button>
                             </div>
                         </div>
@@ -1014,7 +1249,7 @@ function abrirPanel(libro, capitulo, versiculo, textoVersiculo) {
     
     document.getElementById('titulo-panel-versiculo').innerHTML = tituloRef;
 
-    let tradicionHtml = `<div class="mb-5 p-4 bg-amber-50/40 dark:bg-gray-700 rounded-lg border-l-4 border-oro"><p class="text-sm font-serif italic text-gray-700 dark:text-gray-300">“${escapeHtml(textoVersiculo)}”</p></div><div class="text-xs font-sans text-gray-400 uppercase tracking-wider mb-3"><i class="fas fa-feather-alt"></i> Tradición de los Padres y Doctores</div>`;
+    let tradicionHtml = `<div class="cita-versiculo-panel mb-5 p-4 bg-amber-50/40 dark:bg-gray-700 rounded-lg border-l-4 border-oro"><p class="cita-versiculo-texto text-sm font-serif italic text-gray-700 dark:text-gray-300">“${escapeHtml(textoVersiculo)}”</p></div><div class="text-xs font-sans text-gray-400 uppercase tracking-wider mb-3"><i class="fas fa-feather-alt"></i> Tradición de los Padres y Doctores</div>`;
     
     if (comentarios.length === 0) {
         tradicionHtml += `<div class="text-gray-400 italic font-sans text-center py-10">✨ Aún no se han cargado comentarios de la Tradición para este pasaje.<br> Próximamente desde tu archivo Excel.</div>`;
@@ -1083,6 +1318,7 @@ function cerrarPanel(id) {
 window.onload = async () => {
     cargarFavoritos();
     cargarNotasPersonales();
+    cargarLeidos();
     inicializarIndice();
     poblarSelectoresRapidos();
     mostrarVista('vista-libros');
