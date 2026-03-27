@@ -663,7 +663,7 @@ const TITULOS_CELEBRACION_BIBLIA = [
 const MENSAJES_CELEBRACION_BIBLIA = [
     "¡Misión cumplida! Has caminado de la mano de la Tradición desde el Génesis hasta el Amén final. Ahora, dejá que la Palabra baje de la pantalla al corazón. Reiniciá tu lectura, invocá al Espíritu y dejate sorprender: Dios siempre tiene algo nuevo que decirte en el mismo versículo de siempre.",
     "La Palabra de Dios es un océano: has cruzado la superficie, ahora te toca bucear. No leas para terminar, leé para escuchar. Te invitamos a reiniciar este camino sin prisa, invocando al Espíritu para que cada versículo que hoy te es familiar, mañana te hable como si fuera la primera vez. La meta no es el libro, es el Encuentro.",
-    "¡Has recorrido toda la Escritura! Pero recuerda: 'Desconocer la Escritura es desconocer a Cristo'. Que este final sea solo un nuevo comienzo. Te invitamos a volver al primer verso, ahora con un corazón más ancho, dejando que el Espíritu Santo sople vida sobre cada palabra que ya conocés, para que te transforme en lo que leés."
+    "¡Has recorrido toda la Escritura! Pero recuerda: \"Desconocer la Escritura es desconocer a Cristo\". Que este final sea solo un nuevo comienzo. Te invitamos a volver al primer verso, ahora con un corazón más ancho, dejando que el Espíritu Santo sople vida sobre cada palabra que ya conocés, para que te transforme en lo que leés."
 ];
 
 function cargarNotasPersonales() {
@@ -2147,7 +2147,7 @@ function poblarSelectoresRapidos() {
     const todosLibros = obtenerTodosLosLibros();
     const selectorCap = document.getElementById('selector-rapido-capitulos');
     const selectorLect = document.getElementById('selector-rapido-lectura');
-    const opcionesHtml = '<option value="">-- Elige un libro --</option>' + todosLibros.map(libro => `<option value="${libro.nombre}">${libro.nombre}</option>`).join('');
+    const opcionesHtml = '<option value="">-- Cambiar de libro --</option>' + todosLibros.map(libro => `<option value="${libro.nombre}">${libro.nombre}</option>`).join('');
     selectorCap.innerHTML = opcionesHtml;
     selectorLect.innerHTML = opcionesHtml;
     selectorCap.addEventListener('change', (e) => {
@@ -2258,22 +2258,6 @@ function abrirLectura(capitulo) {
     const contenedor = document.getElementById('contenedor-versiculos');
     contenedor.innerHTML = '';
     detenerLectura();
-
-    // Agregar botones de navegación (ANTERIOR)
-    const todosLibros = obtenerTodosLosLibros();
-    const indiceLibroActual = todosLibros.findIndex(l => l.nombre === libroActual);
-    const esGenesis1 = libroActual === 'Génesis' && capitulo === 1;
-    
-    if (!esGenesis1) {
-        const botonesNavInicio = document.createElement('div');
-        botonesNavInicio.className = 'flex justify-center gap-3 mb-6';
-        botonesNavInicio.innerHTML = `
-            <button onclick="irAlCapituloAnterior()" class="btn-nav-lectura px-4 py-2 bg-oro/10 hover:bg-oro/20 text-oro border border-oro/20 rounded-lg font-sans text-sm font-bold transition flex items-center gap-2">
-                <i class="fas fa-chevron-left"></i> Anterior
-            </button>
-        `;
-        contenedor.appendChild(botonesNavInicio);
-    }
 
     const versiculosObj = bibleContent[libroActual]?.[capitulo] || {};
     const numerosVersiculos = Object.keys(versiculosObj).map(Number).sort((a,b)=>a-b);
@@ -2446,7 +2430,7 @@ function abrirLectura(capitulo) {
 
     const todosLibros = obtenerTodosLosLibros();
     const indiceLibroActual = todosLibros.findIndex(l => l.nombre === libroActual);
-    const esGenesis1 = libroActual === 'GÃ©nesis' && capitulo === 1;
+    const esGenesis1 = libroActual === 'Génesis' && capitulo === 1;
     
     if (!esGenesis1) {
         const botonesNavInicio = document.createElement('div');
@@ -2858,7 +2842,7 @@ function verificarBienvenida() {
     }
 }
 
-function mostrarEstadoOfflineDisponible() {
+/* function mostrarEstadoOfflineDisponible() { 
     const badge = document.getElementById('estado-offline');
     if (!badge) return;
     badge.classList.remove('hidden');
@@ -2881,12 +2865,18 @@ async function registrarServiceWorker() {
         console.error('No se pudo registrar el Service Worker:', error);
         return false;
     }
-}
+} */
 
 // --------------------------------------------------------------
 // 11. INICIO
 // --------------------------------------------------------------
 window.onload = async () => {
+    if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    registrations.forEach(reg => reg.unregister());
+    console.log('Service Workers desregistrados');
+  });
+}
     cargarFavoritos();
     cargarNotasPersonales();
     cargarLeidos();
@@ -2947,7 +2937,7 @@ window.onload = async () => {
         }
     });
 
-    registrarServiceWorker();
+// registrarServiceWorker();  // COMENTADO para eliminar Service Worker
 
     // Listener para voces en móviles (pueden cargarse de forma asíncrona)
     if (navegadorSoportaLectura()) {
@@ -2963,7 +2953,7 @@ function compartirLumina() {
   if (navigator.share) {
     navigator.share({
       title: 'Lumina - La Tradición Iluminando la Palabra',
-      text: 'Estoy leyendo la Biblia con los comentarios de los Padres de la Iglesia. ¡Te invito a descubrir Lumina!',
+      text: 'Estoy leyendo el Evangelio con los comentarios de los Padres de la Iglesia. ¡Te invito a descubrir Lumina!',
       url: 'https://nachomartinez1996.github.io/Lumina/' // Reemplazá con tu enlace real
     })
     .then(() => console.log('Gracias por compartir la Luz'))
