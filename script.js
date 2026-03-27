@@ -2407,7 +2407,7 @@ function abrirCapitulos(nombreLibro, cantidadCapitulos) {
 function abrirLectura(capitulo) {
     capituloActual = capitulo;
     document.getElementById('titulo-lectura').innerText = libroActual;
-    document.getElementById('subtitulo-capitulo').innerHTML = `CapÃ­tulo ${capitulo}`;
+    document.getElementById('subtitulo-capitulo').innerHTML = `Capí­tulo ${capitulo}`;
     const contenedor = document.getElementById('contenedor-versiculos');
     contenedor.innerHTML = '';
     detenerLectura();
@@ -2509,8 +2509,8 @@ function abrirLectura(capitulo) {
                             </div>
                             <div class="flex gap-2 items-center flex-shrink-0">
                                 <span id="star_${libroActual}_${capitulo}_${v}" class="estrella-fav ${favorito ? 'activa' : ''} cursor-pointer text-gray-400 hover:text-oro transition" onclick="event.stopPropagation(); toggleFavoritoVersiculo('${libroActual}', ${capitulo}, ${v}); return false;" title="Agregar a favoritos">${favorito ? '&#9733;' : '&#9734;'}</span>
-                                <button id="audio_${libroActual}_${capitulo}_${v}" class="btn-audio-versiculo text-gray-400 hover:text-oro transition p-1" onclick="event.stopPropagation(); escucharVersiculo('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`, this)" title="Escuchar versÃ­culo" aria-label="Escuchar versÃ­culo ${v}" aria-pressed="false"><i class="fas fa-volume-up text-sm"></i></button>
-                                <button onclick="event.stopPropagation(); compartirVersiculo('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)" class="text-gray-400 hover:text-oro transition p-1" title="Compartir versÃ­culo"><i class="fas fa-share-alt"></i></button>
+                                <button id="audio_${libroActual}_${capitulo}_${v}" class="btn-audio-versiculo text-gray-400 hover:text-oro transition p-1" onclick="event.stopPropagation(); escucharVersiculo('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`, this)" title="Escuchar versí­culo" aria-label="Escuchar versí­culo ${v}" aria-pressed="false"><i class="fas fa-volume-up text-sm"></i></button>
+                                <button onclick="event.stopPropagation(); compartirVersiculo('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)" class="text-gray-400 hover:text-oro transition p-1" title="Compartir versí­culo"><i class="fas fa-share-alt"></i></button>
                                 <button id="read_${libroActual}_${capitulo}_${v}" class="btn-leido-versiculo text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition p-1 ${leido ? 'activo text-emerald-600 dark:text-emerald-400' : ''}" onclick="event.stopPropagation(); toggleLeidoVersiculo('${libroActual}', ${capitulo}, ${v}); return false;" title="${leido ? 'Marcar como no leído' : 'Marcar como leído'}" aria-label="${leido ? 'Marcar como no leído' : 'Marcar como leído'} ${v}" aria-pressed="${leido ? 'true' : 'false'}"><i class="fas ${leido ? 'fa-check-circle' : 'fa-circle'} icono-leido text-sm"></i></button>
                             </div>
                         </div>
