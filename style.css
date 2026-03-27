@@ -1629,6 +1629,10 @@ body:not(.dark) #estado-offline {
     font-size: 0.9rem;
 }
 
+/*
+Comentarios compartir Lumina
+*/
+
 @media (max-width: 640px) {
     #estado-offline {
         padding: 0.45rem 0.55rem;
@@ -1682,11 +1686,12 @@ body:not(.dark) #estado-offline {
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
 }
 
+/* Al hacer hover, el botón se eleva ligeramente y el brillo se intensifica un poco más */
 .btn-compartir:hover {
   transform: translateY(-4px) scale(1.02);
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 10px rgba(212, 175, 55, 0.3);
   background-color: rgba(212, 175, 55, 0.25); /* Se rellena un poco más al hover */
-}
+} */
 
 /* --- CORRECCIÓN DEL ÍCONO --- */
 /* Forzamos a que cualquier ícono (fas) dentro de .btn-compartir */
@@ -1714,3 +1719,7 @@ body:not(.dark) #estado-offline {
     letter-spacing: 0.5px;
     font-weight: 700;
 }
+
+/*
+Fin Comentarios compartir Lumina
+*/
