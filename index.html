@@ -131,7 +131,7 @@
             </div>
         </main>
 
-        <!-- VISTA LECTURA (MODIFICADA: la barra de progreso ahora está DENTRO del scroll) -->
+        <!-- VISTA LECTURA (MODIFICADA: la barra de progreso dentro del scroll, el botón de marcar capítulo después de los versículos) -->
         <main id="vista-lectura" class="vista flex-1 overflow-hidden p-6 md:p-12 hidden absolute inset-0 z-10 transition-colors duration-300">
             <div class="max-w-3xl mx-auto h-full min-h-0 flex flex-col">
                 <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
@@ -153,15 +153,17 @@
                         </button>
                     </div>
                 </div>
-                <!-- Zona de scroll: ahora incluye la barra de progreso y después los versículos -->
+                <!-- Zona de scroll: barra de progreso arriba, versículos, luego botón de marcar y siguiente -->
                 <div id="scroll-versiculos" class="flex-1 min-h-0 overflow-y-auto pr-1">
                     <div id="cabecera-progreso-lectura" class="flex-none mb-5"></div>
                     <div id="contenedor-versiculos" class="space-y-4"></div>
+                    <!-- Nuevo contenedor para los botones de acción del capítulo -->
+                    <div id="capitulo-footer" class="mt-8 flex flex-col sm:flex-row justify-end gap-3 items-center border-t border-gray-200 dark:border-gray-700 pt-6"></div>
                 </div>
             </div>
         </main>
 
-        <!-- PANELES LATERALES -->
+        <!-- PANELES LATERALES (sin cambios) -->
         <div id="overlay-panel-lumina" class="hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]" onclick="cerrarPanelLumina()"></div>
         <aside id="panel-lumina" class="panel-lumina w-[92%] sm:w-[440px] h-full overflow-hidden transform -translate-x-full fixed left-0 top-0 border-r border-gray-200 dark:border-gray-700 z-50 transition-all duration-300 flex flex-col">
             <div class="panel-lumina-header sticky top-0 z-20 p-4 md:p-4 border-b border-gray-200 dark:border-gray-700 relative">
@@ -456,5 +458,88 @@
         <span class="font-medium"></span>
     </div>
 </div>
+
+<script>
+    // Script para reorganizar los botones después de que la página cargue
+    document.addEventListener('DOMContentLoaded', function() {
+        // Función que busca el botón de marcar capítulo y lo mueve al pie
+        function moverBotonMarcar() {
+            const footer = document.getElementById('capitulo-footer');
+            if (!footer) return;
+
+            // Buscar botón de marcar capítulo (puede tener distintas clases o textos)
+            let botonMarcar = null;
+            const posiblesBotones = document.querySelectorAll('#cabecera-progreso-lectura button');
+            for (let btn of posiblesBotones) {
+                const texto = btn.innerText.toLowerCase();
+                if (texto.includes('marcar') || texto.includes('leído') || texto.includes('no leído') || btn.classList.contains('btn-marcar-capitulo')) {
+                    botonMarcar = btn;
+                    break;
+                }
+            }
+            if (!botonMarcar) {
+                // Si no se encuentra en cabecera, buscar en toda la vista
+                const vista = document.getElementById('vista-lectura');
+                if (vista) {
+                    const todosBotones = vista.querySelectorAll('button');
+                    for (let btn of todosBotones) {
+                        const texto = btn.innerText.toLowerCase();
+                        if (texto.includes('marcar') || texto.includes('leído') || texto.includes('no leído')) {
+                            botonMarcar = btn;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Mover el botón al footer si existe y no está ya dentro
+            if (botonMarcar && botonMarcar.parentElement !== footer) {
+                // Limpiar footer de posibles duplicados
+                const yaEnFooter = footer.querySelector('button');
+                if (yaEnFooter && yaEnFooter === botonMarcar) return;
+                footer.appendChild(botonMarcar);
+                // Añadir clases de estilo para alineación
+                botonMarcar.classList.add('order-1', 'sm:order-1');
+            }
+
+            // Ahora buscar el botón "Siguiente" (puede estar en otro lugar)
+            let botonSiguiente = null;
+            const posiblesSiguientes = document.querySelectorAll('#scroll-versiculos button, #contenedor-versiculos button, body button');
+            for (let btn of posiblesSiguientes) {
+                const texto = btn.innerText.toLowerCase();
+                if (texto.includes('siguiente') || texto.includes('siguiente capítulo') || btn.classList.contains('btn-siguiente')) {
+                    botonSiguiente = btn;
+                    break;
+                }
+            }
+
+            // Si el siguiente ya está en el footer, no moverlo de nuevo
+            if (botonSiguiente && botonSiguiente.parentElement !== footer) {
+                footer.appendChild(botonSiguiente);
+                botonSiguiente.classList.add('order-2', 'sm:order-2');
+            }
+
+            // Si no hay botón siguiente, crear un contenedor invisible para que el script lo llene después
+            if (!botonSiguiente && !footer.querySelector('.placeholder-siguiente')) {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'placeholder-siguiente hidden';
+                footer.appendChild(placeholder);
+            }
+        }
+
+        // Ejecutar al inicio y también después de posibles cambios dinámicos (como carga de capítulo)
+        moverBotonMarcar();
+        
+        // Usar MutationObserver para detectar cambios en la cabecera o en el contenedor de versículos
+        const observer = new MutationObserver(function(mutations) {
+            moverBotonMarcar();
+        });
+        const targetNode = document.getElementById('vista-lectura');
+        if (targetNode) {
+            observer.observe(targetNode, { childList: true, subtree: true });
+        }
+    });
+</script>
+
 </body>
 </html>
