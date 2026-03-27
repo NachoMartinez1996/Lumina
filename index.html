@@ -64,11 +64,6 @@
             <button type="button" id="toggle-darkmode" class="text-gray-900 dark:text-gray-200 hover:text-oro transition-colors">
                 <i class="fas fa-moon dark:fa-sun text-lg"></i>
             </button>
-            <div id="estado-offline" class="hidden items-center gap-2 text-xs font-sans font-semibold px-3 py-1 rounded-full border border-green-200 bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">
-                <i class="fas fa-wifi"></i>
-                <span>Modo sin conexión disponible</span>
-            </div>
-            
             <div class="text-sm font-sans text-gray-700 italic hidden sm:block dark:text-gray-400 font-medium">
                 <i class="fas fa-scroll mr-1"></i> Versículo → comentarios
             </div>
@@ -100,9 +95,6 @@
             <div class="max-w-4xl mx-auto h-full min-h-0 flex flex-col">
                 <div class="capitulos-header-sticky mb-6">
                     <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
-                    <button type="button" onclick="mostrarVista('vista-libros')" class="text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-sans text-sm font-bold transition-colors flex items-center gap-1">
-                            <i class="fas fa-arrow-left text-xs"></i> VOLVER A LOS LIBROS
-                        </button>
                         <div class="w-64">
                             <select id="selector-rapido-capitulos" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 font-sans text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-oro focus:border-oro transition outline-none shadow-sm">
                                 <option value="">Cambiar de libro</option>
@@ -214,7 +206,7 @@
                     <div id="lumina-seccion-conceptos" class="hidden" data-lumina-contenido>
                         <p>&iquest;Nuevo en la lectura b&iacute;blica? Ac&aacute; un glosario providencial para caminar con <em>Lumina</em>.</p>
                         <ul class="panel-lumina-glosario">
-                            <li><strong>Catena Aurea:</strong> Es una "cadena de oro". Una obra donde Santo Tom&aacute;s de Aquino entrelaz&oacute; las ense&ntilde;anzas de los Padres para que podamos leer el Evangelio acompa&ntilde;ados por los mejores gu&iacute;as de la historia.</li>
+                            <li><strong>Catena Aurea:</strong> Es una "cadena de oro". Un obra donde santo Tom&aacute;s de Aquino entrelaz&oacute; las ense&ntilde;anzas de los Padres para que podamos leer el Evangelio acompa&ntilde;ados por los mejores gu&iacute;as de la historia.</li>
                             <li><strong>Cf:</strong> Significa "confr&oacute;ntese" o "comparar con", una invitaci&oacute;n a ver la armon&iacute;a entre dos pasajes.</li>
                             <li><strong>Concordancias:</strong> Son los puentes entre vers&iacute;culos. Si un texto te remite a otro, <em>Lumina</em> te permite viajar entre ellos para descubrir c&oacute;mo la Escritura se explica a s&iacute; misma.</li>
                             <li><strong>Padres de la Iglesia:</strong> Son los grandes maestros y pastores de los primeros siglos. Sus comentarios en <em>Lumina</em> no son solo opiniones: son la <span class="tradicion-viva">Tradici&oacute;n viva</span> que ha custodiado el sentido del Evangelio desde el principio.</li>
@@ -391,7 +383,6 @@
     <div class="modal-bienvenida-card w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border border-oro/30 shadow-2xl bg-[#fcfaf7] dark:bg-[#1a1d23]" onclick="event.stopPropagation()">
         <div class="flex items-start justify-between gap-4 px-6 pt-6 md:px-10 md:pt-10">
             <div>
-                <p class="text-xs uppercase tracking-[0.3em] text-oro font-semibold mb-3">Bienvenida</p>
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">¡¡Bienvenid@ a Lumina!!</h2>
                 <h3 class="text-lg md:text-xl font-sans text-gray-600 dark:text-gray-400 mt-2">La Tradición Iluminando la Palabra</h3>
             </div>
@@ -425,7 +416,7 @@
         <span class="footer-firma">Ignacio Ariel Martinez. Rosario (Argentina). 2026</span>
         <button type="button" onclick="compartirLumina()" class="btn-compartir inline-flex items-center gap-2 px-4 py-2 rounded-full border border-oro/20 bg-oro/10 text-oro font-semibold transition hover:bg-oro/20 hover:border-oro/30">
             <i class="fas fa-share-alt" aria-hidden="true"></i>
-            <span>¿Querés multiplicar la Luz? Compartí Lumina.</span>
+            <span>¿Querés multiplicar la luz? Compartí Lumina.</span>
         </button>
     </div>
 </footer>
