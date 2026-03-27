@@ -1644,3 +1644,73 @@ body:not(.dark) #estado-offline {
         font-size: 1rem;
     }
 }
+/* Adaptado para .btn-compartir */
+.btn-compartir {
+  position: relative;
+  overflow: hidden; /* Obligatorio para que el brillo no se salga */
+}
+
+.btn-compartir::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -100%;
+  width: 50px;
+  height: 200%;
+  background: rgba(212, 175, 55, 0.4); /* Reflejo dorado suave */
+  transform: rotate(35deg);
+  transition: none;
+}
+
+.btn-compartir:hover::after {
+  left: 150%;
+  transition: all 0.8s ease-in-out;
+}
+
+@keyframes aura-luz {
+  0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); }
+  70% { box-shadow: 0 0 0 12px rgba(212, 175, 55, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); }
+}
+
+.btn-compartir {
+  animation: aura-luz 2.5s infinite;
+  border-color: rgba(212, 175, 55, 0.3); /* Un poquito más de fuerza al borde */
+}
+
+.btn-compartir {
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+}
+
+.btn-compartir:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5), 0 0 10px rgba(212, 175, 55, 0.3);
+  background-color: rgba(212, 175, 55, 0.25); /* Se rellena un poco más al hover */
+}
+
+/* --- CORRECCIÓN DEL ÍCONO --- */
+/* Forzamos a que cualquier ícono (fas) dentro de .btn-compartir */
+/* mantenga su propia tipografía de íconos. */
+.btn-compartir i.fas {
+    font-family: 'Font Awesome 5 Free' !important; /* Asegura que el ícono no se rompa */
+    font-weight: 900; /* Requerido para iconos solidos */
+    opacity: 1; /* Para que brille a full */
+    /* El color lo hereda del botón .text-oro de Tailwind */
+}
+
+/* --- ESTILOS DE AUTOR PARA EL TEXTO --- */
+/* Aplicamos el estilo de libro antiguo SÓLO al span del texto */
+/* que tiene cursiva, NO al ícono. */
+.btn-compartir span i {
+    font-family: 'Georgia', serif;
+    opacity: 0.9;
+    /* color: inherit;  Para que mantenga el color oro suave de Tailwind */
+}
+
+/* Aplicamos el dorado encendido SÓLO al span del texto */
+/* que tiene negrita. */
+.btn-compartir span b {
+    color: #FFD700; /* Oro intenso */
+    letter-spacing: 0.5px;
+    font-weight: 700;
+}
