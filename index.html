@@ -31,15 +31,29 @@
 
 <header class="px-6 py-4 flex-shrink-0 z-20 transition-colors duration-300">
     <div class="max-w-7xl mx-auto flex flex-wrap md:flex-nowrap items-center justify-between gap-3">
-        <button type="button" onclick="togglePanelLumina()" aria-label="Abrir men&uacute; Lumina" class="btn-menu-lumina inline-flex items-center justify-center w-11 h-11 rounded-full border border-oro/20 bg-white/80 dark:bg-gray-900/70 text-gray-800 dark:text-gray-100 shadow-sm hover:border-oro/40 hover:text-oro transition-all">
-            <span class="text-lg leading-none" aria-hidden="true">💡</span>
-        </button>
-        <button type="button" onclick="irAlInicio()" aria-label="Ir al inicio" class="brand-home flex items-center gap-3 flex-shrink-0 text-left cursor-pointer group">
-            <i class="fas fa-feather-alt text-oro text-2xl"></i>
-            <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-gray-950 dark:text-gray-100">
-                Lumina <span class="text-sm font-sans font-normal text-gray-700 dark:text-gray-400 ml-1">La Tradición Iluminando la Palabra</span>
-            </h1>
-        </button>
+
+        <!-- BLOQUE IZQUIERDO (lamparita + logo juntos) -->
+        <div class="flex items-center gap-3 flex-shrink-0">
+
+            <button type="button" onclick="togglePanelLumina()" aria-label="Abrir menú Lumina"
+                class="btn-menu-lumina inline-flex items-center justify-center w-9 h-9 rounded-full border border-oro/20 bg-white/80 dark:bg-gray-900/70 text-gray-800 dark:text-gray-100 shadow-sm hover:border-oro/40 hover:text-oro transition-all">
+                <span class="text-base leading-none" aria-hidden="true">💡</span>
+            </button>
+
+            <button type="button" onclick="irAlInicio()" aria-label="Ir al inicio"
+                class="brand-home flex items-center gap-3 text-left cursor-pointer group">
+                <i class="fas fa-feather-alt text-oro text-2xl"></i>
+                <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-gray-950 dark:text-gray-100">
+                    Lumina 
+                    <span class="text-sm font-sans font-normal text-gray-700 dark:text-gray-400 ml-1">
+                        La Tradición Iluminando la Palabra
+                    </span>
+                </h1>
+            </button>
+
+        </div>
+
+        <!-- DERECHA (intacto) -->
         <div class="flex items-center gap-4 flex-shrink-0">
             <div class="relative hidden sm:block">
                 <input type="text" id="busqueda-input" placeholder="Buscar versículos..." class="pl-9 pr-4 py-2 rounded-full border border-gray-400 bg-white text-sm w-48 focus:w-64 transition-all focus:outline-none focus:ring-2 focus:ring-oro dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 text-gray-900">
@@ -65,11 +79,13 @@
             <button type="button" id="toggle-darkmode" class="text-gray-900 dark:text-gray-200 hover:text-oro transition-colors">
                 <i class="fas fa-moon dark:fa-sun text-lg"></i>
             </button>
+            
             <div class="text-sm font-sans text-gray-700 italic hidden sm:block dark:text-gray-400 font-medium">
                 <i class="fas fa-scroll mr-1"></i> Versículo → comentarios
             </div>
         </div>
     </div>
+
     <div id="buscador-movil" class="mt-3 hidden sm:hidden">
         <input type="text" id="busqueda-input-movil" placeholder="Buscar versículos..." class="w-full p-2 rounded-xl border border-gray-400 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-oro dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200">
     </div>
@@ -82,7 +98,7 @@
             <div class="max-w-6xl mx-auto">
                 <div class="mb-4 md:mb-5">
                     <div class="flex items-center gap-3 text-xs uppercase tracking-[0.35em] text-oro font-semibold mb-2">
-                        <span>Tu camino de lectura</span>
+                        <span>Tu Valle del Peregrino</span>
                         <span class="linea-lectura-portada h-px flex-1 bg-gradient-to-r from-oro/60 to-transparent"></span>
                     </div>
                 </div>
@@ -174,25 +190,27 @@
                 <div class="acerca-de-container panel-lumina-contenido">
                     <div id="lumina-seccion-sobre" class="hidden" data-lumina-contenido>
                     <blockquote>
-                        "La tecnolog&iacute;a, al igual que la filosof&iacute;a, puede y debe ser sierva de la teolog&iacute;a."
+                        "La tecnolog&iacute;a, al igual que la filosof&iacute;a, también puede ser sierva de la teolog&iacute;a."
                     </blockquote>
-                    <p>Inspirados en esta premisa, <em>Lumina</em> nace como un puente necesario. Durante mucho tiempo, el acceso a herramientas digitales profundas de estudio b&iacute;blico ha estado reservado para quienes dominan el ingl&eacute;s o dependen de traducciones autom&aacute;ticas que a menudo pierden la riqueza del original.</p>
+                    <p>Inspirado en esta premisa, <em>Lumina</em> nace como un puente necesario. Durante mucho tiempo, el acceso a herramientas digitales profundas de estudio b&iacute;blico ha estado reservado para quienes dominan el ingl&eacute;s o dependen de traducciones autom&aacute;ticas que a menudo pierden la riqueza del original.</p>
                     <p><em>Lumina</em> es nativa en nuestra lengua. Es una respuesta a la necesidad de los hispanohablantes de contar con una plataforma donde la Sagrada Escritura no se lea de forma aislada, sino en el coraz&oacute;n mismo de la Iglesia.</p>
                     <h3>&iquest;Qu&eacute; hace &uacute;nica a esta experiencia?</h3>
                     <p>Lo que ten&eacute;s frente a vos no es solo un lector digital; es un ecosistema de estudio integrado:</p>
                     <ul>
-                        <li><strong>La Catena Aurea en tu idioma:</strong> Le&eacute; los Evangelios junto a los comentarios de los Padres de la Iglesia, recopilados por Santo Tom&aacute;s de Aquino, de forma fluida y directa.</li>
-                        <li><strong>Concordancias Din&aacute;micas:</strong> Hac&eacute; clic en palabras clave y descubr&iacute; c&oacute;mo ese concepto resuena en otros libros, permitiendo que la Biblia se explique por s&iacute; misma.</li>
-                        <li><strong>Di&aacute;logo con el Texto:</strong> Pod&eacute;s guardar favoritos y escribir notas personales, creando un diario de fe que te acompa&ntilde;e siempre.</li>
-                        <li><strong>B&uacute;squeda de Precisi&oacute;n:</strong> Un motor pensado para encontrar la palabra exacta, respetando la terminolog&iacute;a precisa que la teolog&iacute;a y la ex&eacute;gesis demandan.</li>
-                    </ul>
+<li><strong>Búsqueda Fideligna:</strong> Un motor diseñado para hallar la palabra justa, custodiando el rigor terminológico que la teología y la exégesis demandan.</li>
+<li><strong>Concordancias Dinámicas:</strong> Hacé clic en palabras clave y descubrí cómo ese concepto resuena en otros libros, permitiendo que la Biblia se explique por sí misma.</li>
+<li><strong>Diálogo con el Texto:</strong> No seas un lector pasivo. Podés guardar tus favoritos y escribir tus propias notas personales, creando un diario de fe que te acompañe siempre.</li>
+<li><strong>El Valle del Peregrino:</strong> No camines solo. <em>Lumina</em> registra cada paso de tu lectura, desde un pequeño versículo hasta la totalidad de los libros. Dejate sorprender por la Palabra mientras avanzás: cada meta alcanzada es un motivo de celebración en este mapa personal de tu fe.</li>
+<li><strong>La Catena Aurea en tu idioma:</strong> Leé los Evangelios junto a los comentarios de los Padres de la Iglesia (recopilados por Santo Tomás de Aquino) de forma fluida y directa.</li>
+<li><strong>La Palabra Proclamada:</strong> Escuchá en voz alta versículos, capítulos enteros y los comentarios de los Padres. Una función ideal para la meditación o para recuperar la antigua tradición de la fe que entra por el oído.</li>
+</ul>
                     <p>La Biblia no es nueva, pero la forma en que la explor&aacute;s hoy s&iacute; puede serlo. Te invitamos a navegar estas p&aacute;ginas donde la fe y la raz&oacute;n se encuentran en cada vers&iacute;culo.</p>
                     </div>
 
                     <div id="lumina-seccion-quien" class="hidden" data-lumina-contenido>
                         <p><strong>Ignacio Martinez</strong> es un rosarino que encuentra en la intersecci&oacute;n de caminos aparentemente distintos, la fe, la ciencia y el c&oacute;digo, un lenguaje com&uacute;n. Su vida transcurre entre las aulas como profesor de Ciencias Sagradas y matem&aacute;ticas, las calles de Rosario como gu&iacute;a hist&oacute;rico, y el teclado como programador y guionista.</p>
-                        <p><em>Lumina</em> no es solo una aplicaci&oacute;n; es el resultado de una vocaci&oacute;n por la s&iacute;ntesis. Como escritor y dise&ntilde;ador narrativo, entiende que las Sagradas Escrituras son el relato m&aacute;s profundo de la humanidad. Como docente y cooperador salesiano, busca que ese mensaje sea accesible, claro y razonado. Y como alguien que disfruta resolviendo la Conjetura de Collatz o un buen Sudoku, cree que la l&oacute;gica y la fe no son rivales, sino aliadas que ayudan a leer la realidad con mayor nitidez.</p>
-                        <p>Cuando no est&aacute; ajustando el c&oacute;digo de este proyecto o investigando la historia de su ciudad, probablemente se lo encuentre compartiendo tiempo con su perro Benji, practicando alg&uacute;n truco de magia o explorando mundos en un juego de rol.</p>
+                        <p><em>Lumina</em> no es solo una aplicaci&oacute;n; es el resultado de una vocaci&oacute;n por la s&iacute;ntesis. Como escritor y dise&ntilde;ador narrativo, comprende que las Sagradas Escrituras son el relato m&aacute;s profundo de la humanidad. Como docente y cooperador salesiano, busca que ese mensaje sea accesible, claro y razonado. Y como alguien que disfruta resolviendo la Conjetura de Collatz o un buen Sudoku, cree que la l&oacute;gica y la fe no son rivales, sino aliadas que ayudan a leer la realidad con mayor nitidez.</p>
+                        <p>Cuando no est&aacute; ajustando el c&oacute;digo de este proyecto o investigando la historia de su ciudad, probablemente se lo encuentre compartiendo tiempo con su perro Benji, practicando alg&uacute;n juego de magia o explorando mundos en un juego de rol.</p>
                         <blockquote>
                             <strong>Lumina es mi forma de devolver lo que he recibido</strong>: una invitaci&oacute;n a leer la Palabra con profundidad, a cuestionar con respeto y a caminar con la curiosidad de quien sabe que siempre hay una luz nueva por descubrir.
                         </blockquote>
@@ -205,13 +223,13 @@
                     </div>
 
                     <div id="lumina-seccion-conceptos" class="hidden" data-lumina-contenido>
-                        <p>&iquest;Nuevo en la lectura b&iacute;blica? Ac&aacute; un glosario providencial para caminar con <em>Lumina</em>.</p>
+                        <p>&iquest;Nuev@ en la lectura b&iacute;blica? Ac&aacute; un glosario providencial para caminar con <em>Lumina</em>.</p>
                         <ul class="panel-lumina-glosario">
-                            <li><strong>Catena Aurea:</strong> Es una "cadena de oro". Un obra donde santo Tom&aacute;s de Aquino entrelaz&oacute; las ense&ntilde;anzas de los Padres para que podamos leer el Evangelio acompa&ntilde;ados por los mejores gu&iacute;as de la historia.</li>
+                            <li><strong>Catena Aurea:</strong> Es una "cadena de oro". Una obra donde Santo Tom&aacute;s de Aquino entrelaz&oacute; las ense&ntilde;anzas de los Padres para que podamos leer el Evangelio acompa&ntilde;ados por los mejores gu&iacute;as de la historia.</li>
                             <li><strong>Cf:</strong> Significa "confr&oacute;ntese" o "comparar con", una invitaci&oacute;n a ver la armon&iacute;a entre dos pasajes.</li>
                             <li><strong>Concordancias:</strong> Son los puentes entre vers&iacute;culos. Si un texto te remite a otro, <em>Lumina</em> te permite viajar entre ellos para descubrir c&oacute;mo la Escritura se explica a s&iacute; misma.</li>
                             <li><strong>Padres de la Iglesia:</strong> Son los grandes maestros y pastores de los primeros siglos. Sus comentarios en <em>Lumina</em> no son solo opiniones: son la <span class="tradicion-viva">Tradici&oacute;n viva</span> que ha custodiado el sentido del Evangelio desde el principio.</li>
-                        </ul>
+                       </ul>
                     </div>
 
                     <div id="lumina-seccion-colaborar" class="hidden" data-lumina-contenido>
@@ -228,7 +246,7 @@
                         </div>
                         <p><strong>Feedback y Contacto:</strong> Si encontr&aacute;s un error, ten&eacute;s una sugerencia o simplemente quer&eacute;s saludar, pod&eacute;s escribirme a <a href="mailto:ignaciomartinez21@hotmail.com" class="panel-lumina-link-texto">ignaciomartinez21@hotmail.com</a></p>
                         <blockquote>
-                            "Cada aporte es un truco de magia que permite que <em>Lumina</em> siga brillando. &iexcl;Gracias por ser parte de esta expedici&oacute;n!"
+                            "Cada aporte es un efecto mágico que permite que <em>Lumina</em> siga brillando. &iexcl;Gracias por ser parte de esta expedici&oacute;n!"
                         </blockquote>
                     </div>
 
@@ -250,7 +268,7 @@
                             <li><strong>Cf:</strong> Significa "confr&oacute;ntese" o "comparar con", una invitaci&oacute;n a ver la armon&iacute;a entre dos pasajes.</li>
                             <li><strong>Concordancias:</strong> Son los puentes entre vers&iacute;culos. Si un texto te remite a otro, <em>Lumina</em> te permite viajar entre ellos para descubrir c&oacute;mo la Escritura se explica a s&iacute; misma.</li>
                             <li><strong>Padres de la Iglesia:</strong> Son los grandes maestros y pastores de los primeros siglos. Sus comentarios en <em>Lumina</em> no son solo opiniones: son la <span class="tradicion-viva">Tradici&oacute;n viva</span> que ha custodiado el sentido del Evangelio desde el principio.</li>
-                        </ul>
+                       </ul>
                     </div>
                 </div>
             </div>
@@ -357,7 +375,7 @@
             </div>
             <div class="mt-8 flex flex-col sm:flex-row gap-3 sm:justify-end">
                 <button type="button" onclick="abrirConfirmacionReinicioBiblia()" class="px-5 py-3 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 font-sans font-bold transition hover:bg-amber-500/20">
-                    Volver a empezar (Reiniciar progreso)
+                    Volver a empezar <br>(Reiniciar progreso)
                 </button>
                 <button type="button" onclick="cerrarCelebracionBibliaCompleta()" class="px-5 py-3 rounded-full border border-gray-300 dark:border-gray-600 bg-white/70 dark:bg-gray-800/70 text-gray-700 dark:text-gray-200 font-sans font-bold transition hover:bg-white dark:hover:bg-gray-700">
                     Seguir contemplando
@@ -381,32 +399,35 @@
     </div>
 </div>
 <div id="modal-bienvenida" class="fixed inset-0 z-[120] hidden items-center justify-center bg-black/60 backdrop-blur-md px-4 py-8" onclick="cerrarModalBienvenida()">
-    <div class="modal-bienvenida-card w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border border-oro/30 shadow-2xl bg-[#fcfaf7] dark:bg-[#1a1d23]" onclick="event.stopPropagation()">
-        <div class="flex items-start justify-between gap-4 px-6 pt-6 md:px-10 md:pt-10">
-            <div>
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">¡¡Bienvenid@ a Lumina!!</h2>
-                <h3 class="text-lg md:text-xl font-sans text-gray-600 dark:text-gray-400 mt-2">La Tradición Iluminando la Palabra</h3>
-            </div>
-            <button type="button" onclick="cerrarModalBienvenida()" class="flex-shrink-0 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="Cerrar bienvenida">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
+    <div class="modal-bienvenida-card relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border border-oro/30 shadow-2xl bg-[#fcfaf7] dark:bg-[#1a1d23]" onclick="event.stopPropagation()">
+
+        <!-- Encabezado centrado -->
+        <div class="text-center pt-8 md:pt-10 px-6 md:px-10">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">¡¡Bienvenid@ a Lumina!!</h2>
+            <h3 class="text-lg md:text-xl font-sans text-gray-600 dark:text-gray-400 mt-2">La Tradición Iluminando la Palabra</h3>
         </div>
+
+        <!-- Contenido principal -->
         <div class="px-6 md:px-10 pb-8 md:pb-10 pt-6 space-y-6 acerca-de-container">
-            <blockquote>
-                "La tecnología, al igual que la filosofía, puede y debe ser sierva de la teología."
+            <blockquote class="text-center italic">
+                "La tecnología, al igual que la filosofía, también puede ser sierva de la teología."
             </blockquote>
-            <p>Inspirados en esta premisa, Lumina nace como un puente necesario. Durante mucho tiempo, el acceso a herramientas digitales profundas de estudio bíblico ha estado reservado para quienes dominan el inglés o dependen de traducciones automáticas que a menudo pierden la riqueza del original.</p>
+            <p>Inspirado en esta premisa, Lumina nace como un puente necesario. Durante mucho tiempo, el acceso a herramientas digitales profundas de estudio bíblico ha estado reservado para quienes dominan el inglés o dependen de traducciones automáticas que a menudo pierden la riqueza del original.</p>
             <p>Lumina es nativa en nuestra lengua. Es una respuesta a la necesidad de los hispanohablantes de contar con una plataforma donde la Sagrada Escritura no se lea de forma aislada, sino en el corazón mismo de la Iglesia.</p>
             <h3>¿Qué hace única a esta experiencia?</h3>
             <p>Lo que tenés frente a vos no es solo un lector digital; es un ecosistema de estudio integrado:</p>
             <ul>
-                <li><strong>La Catena Aurea en tu idioma:</strong> Leé los Evangelios junto a los comentarios de los Padres de la Iglesia (recopilados por Santo Tomás de Aquino) de forma fluida y directa.</li>
-                <li><strong>Concordancias Dinámicas:</strong> Hacé clic en palabras clave y descubrí cómo ese concepto resuena en otros libros, permitiendo que la Biblia se explique por sí misma.</li>
-                <li><strong>Diálogo con el Texto:</strong> No seas un lector pasivo. Podés guardar tus favoritos y escribir tus propias notas personales, creando un diario de fe que te acompañe siempre.</li>
-                <li><strong>Búsqueda de Precisión:</strong> Un motor diseñado para encontrar la palabra exacta, respetando la terminología precisa que la teología y la exégesis demandan.</li>
-            </ul>
+<li><strong>Búsqueda Fideligna:</strong> Un motor diseñado para hallar la palabra justa, custodiando el rigor terminológico que la teología y la exégesis demandan.</li>
+<li><strong>Concordancias Dinámicas:</strong> Hacé clic en palabras clave y descubrí cómo ese concepto resuena en otros libros, permitiendo que la Biblia se explique por sí misma.</li>
+<li><strong>Diálogo con el Texto:</strong> No seas un lector pasivo. Podés guardar tus favoritos y escribir tus propias notas personales, creando un diario de fe que te acompañe siempre.</li>
+<li><strong>El Valle del Peregrino:</strong> No camines solo. <em>Lumina</em> registra cada paso de tu lectura, desde un pequeño versículo hasta la totalidad de los libros. Dejate sorprender por la Palabra mientras avanzás: cada meta alcanzada es un motivo de celebración en este mapa personal de tu fe.</li>
+<li><strong>La Catena Aurea en tu idioma:</strong> Leé los Evangelios junto a los comentarios de los Padres de la Iglesia (recopilados por Santo Tomás de Aquino) de forma fluida y directa.</li>
+<li><strong>La Palabra Proclamada:</strong> Escuchá en voz alta versículos, capítulos enteros y los comentarios de los Padres. Una función ideal para la meditación o para recuperar la antigua tradición de la fe que entra por el oído.</li>
+</ul>
             <p>La Biblia no es nueva, pero la forma en que la explorás hoy, sí puede serlo. Te invitamos a navegar estas páginas donde la fe y la razón se encuentran en cada versículo.</p>
         </div>
+
+        <!-- Botón de cierre alineado a la derecha -->
         <div class="px-6 md:px-10 pb-6 md:pb-8 flex justify-end">
             <button type="button" onclick="cerrarModalBienvenida()" class="bg-oro text-white px-5 py-2 rounded-full font-semibold hover:bg-amber-700 transition">Empezar a explorar</button>
         </div>
@@ -417,7 +438,7 @@
         <span class="footer-firma">Ignacio Ariel Martinez. Rosario (Argentina). 2026</span>
         <button type="button" onclick="compartirLumina()" class="btn-compartir inline-flex items-center gap-2 px-4 py-2 rounded-full border border-oro/20 bg-oro/10 text-oro font-semibold transition hover:bg-oro/20 hover:border-oro/30">
             <i class="fas fa-share-alt" aria-hidden="true"></i>
-            <span>¿Querés multiplicar la luz? Compartí Lumina.</span>
+            <span>¿Querés multiplicar la Luz? Compartí Lumina.</span>
         </button>
     </div>
 </footer>
