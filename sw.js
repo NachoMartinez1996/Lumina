@@ -1,4 +1,5 @@
-const NOMBRE_CAJA = 'lumina-cache-v1';
+const NOMBRE_CAJA = 'lumina-cache-v2.1';
+const APP_SHELL = './index.html';
 
 const archivosParaGuardar = [
   './',
@@ -42,10 +43,16 @@ self.addEventListener('activate', evento => {
 });
 
 self.addEventListener('fetch', evento => {
+  if (evento.request.mode === 'navigate') {
+    evento.respondWith(
+      fetch(evento.request).catch(() => caches.match(APP_SHELL))
+    );
+    return;
+  }
+
   evento.respondWith(
-    caches.match(evento.request)
-      .then(respuestaCache => {
-        return respuestaCache || fetch(evento.request);
-      })
+    caches.match(evento.request).then(respuestaCache => {
+      return respuestaCache || fetch(evento.request);
+    })
   );
 });
