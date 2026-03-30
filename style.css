@@ -1257,6 +1257,105 @@ body.dark.biblia-completa-activa .lectura-header-sticky {
     position: relative;
     z-index: 1;
 }
+
+/* ========== VERSÍCULO EN REPRODUCCIÓN ========== */
+.verse-card-leyendo {
+    background: linear-gradient(135deg, rgba(255, 248, 230, 0.95), rgba(255, 243, 205, 0.88)) !important;
+    border-left: 6px solid #b8860b !important;
+    box-shadow: 
+        0 8px 24px rgba(184, 134, 11, 0.22),
+        inset 0 0 12px rgba(255, 248, 230, 0.6),
+        0 0 20px rgba(184, 134, 11, 0.15) !important;
+    animation: versiculo-destaque 0.5s ease-out;
+    transform: scale(1.01);
+    border-radius: 0.75rem;
+}
+
+body.dark .verse-card-leyendo {
+    background: linear-gradient(135deg, rgba(30, 25, 13, 0.98), rgba(45, 38, 18, 0.92)) !important;
+    border-left-color: #f5d68a !important;
+    box-shadow: 
+        0 8px 28px rgba(0, 0, 0, 0.32),
+        inset 0 0 14px rgba(250, 204, 21, 0.25),
+        0 0 24px rgba(250, 204, 21, 0.18) !important;
+}
+
+@keyframes versiculo-destaque {
+    0% {
+        opacity: 0.7;
+        transform: scale(0.98);
+        box-shadow: 0 0 0 rgba(184, 134, 11, 0):
+    }
+    50% {
+        box-shadow: 
+            0 12px 32px rgba(184, 134, 11, 0.28),
+            inset 0 0 16px rgba(255, 248, 230, 0.75),
+            0 0 30px rgba(184, 134, 11, 0.22);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1.01);
+        box-shadow: 
+            0 8px 24px rgba(184, 134, 11, 0.22),
+            inset 0 0 12px rgba(255, 248, 230, 0.6),
+            0 0 20px rgba(184, 134, 11, 0.15);
+    }
+}
+
+body.dark @keyframes versiculo-destaque {
+    0% {
+        opacity: 0.7;
+        transform: scale(0.98);
+        box-shadow: 0 0 0 rgba(250, 204, 21, 0);
+    }
+    50% {
+        box-shadow: 
+            0 12px 36px rgba(0, 0, 0, 0.42),
+            inset 0 0 18px rgba(250, 204, 21, 0.32),
+            0 0 32px rgba(250, 204, 21, 0.25);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1.01);
+        box-shadow: 
+            0 8px 28px rgba(0, 0, 0, 0.32),
+            inset 0 0 14px rgba(250, 204, 21, 0.25),
+            0 0 24px rgba(250, 204, 21, 0.18);
+    }
+}
+
+/* Efecto de pulso durante la lectura */
+.verse-card-leyendo .texto-biblico {
+    color: #1f1710 !important;
+    font-weight: 600;
+    animation: pulso-texto 0.8s ease-in-out infinite;
+}
+
+body.dark .verse-card-leyendo .texto-biblico {
+    color: #fef3c7 !important;
+}
+
+@keyframes pulso-texto {
+    0%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 0 rgba(184, 134, 11, 0);
+    }
+    50% {
+        opacity: 0.95;
+        text-shadow: 0 0 8px rgba(184, 134, 11, 0.2);
+    }
+}
+
+body.dark @keyframes pulso-texto {
+    0%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 0 rgba(250, 204, 21, 0);
+    }
+    50% {
+        opacity: 0.95;
+        text-shadow: 0 0 10px rgba(250, 204, 21, 0.25);
+    }
+}
 blockquote {
   border-left: 4px solid #d4af37; /* Un tono dorado sutil */
   padding-left: 15px;
@@ -1720,3 +1819,78 @@ Comentarios compartir Lumina
 /*
 Fin Comentarios compartir Lumina
 */
+
+/* ========== SISTEMA DE RESALTADO PALABRA POR PALABRA ========== */
+.palabra-resaltada {
+    background: linear-gradient(120deg, rgba(255, 214, 102, 0.4), rgba(255, 236, 205, 0.6));
+    padding: 0.1em 0.25em;
+    border-radius: 0.35em;
+    position: relative;
+    font-weight: 600;
+    box-shadow: 0 0 12px rgba(184, 134, 11, 0.32), inset 0 0 8px rgba(255, 248, 230, 0.45);
+    animation: palabra-brillo 0.4s ease-out;
+    color: #1f1710 !important;
+    transition: all 0.15s ease;
+}
+
+body.dark .palabra-resaltada {
+    background: linear-gradient(120deg, rgba(250, 204, 21, 0.38), rgba(212, 175, 55, 0.52));
+    box-shadow: 0 0 16px rgba(250, 204, 21, 0.42), inset 0 0 10px rgba(255, 255, 200, 0.35);
+    color: #fef3c7 !important;
+}
+
+@keyframes palabra-brillo {
+    0% {
+        box-shadow: 0 0 0 rgba(184, 134, 11, 0), inset 0 0 0 rgba(255, 248, 230, 0);
+        background: rgba(255, 214, 102, 0.1);
+        transform: scale(0.98);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(184, 134, 11, 0.48), inset 0 0 12px rgba(255, 248, 230, 0.65);
+        background: linear-gradient(120deg, rgba(255, 214, 102, 0.5), rgba(255, 236, 205, 0.7));
+        transform: scale(1.02);
+    }
+    100% {
+        box-shadow: 0 0 12px rgba(184, 134, 11, 0.32), inset 0 0 8px rgba(255, 248, 230, 0.45);
+        background: linear-gradient(120deg, rgba(255, 214, 102, 0.4), rgba(255, 236, 205, 0.6));
+        transform: scale(1);
+    }
+}
+
+body.dark @keyframes palabra-brillo {
+    0% {
+        box-shadow: 0 0 0 rgba(250, 204, 21, 0), inset 0 0 0 rgba(255, 255, 200, 0);
+        background: rgba(250, 204, 21, 0.1);
+        transform: scale(0.98);
+    }
+    50% {
+        box-shadow: 0 0 24px rgba(250, 204, 21, 0.56), inset 0 0 14px rgba(255, 255, 200, 0.48);
+        background: linear-gradient(120deg, rgba(250, 204, 21, 0.45), rgba(212, 175, 55, 0.62));
+        transform: scale(1.02);
+    }
+    100% {
+        box-shadow: 0 0 16px rgba(250, 204, 21, 0.42), inset 0 0 10px rgba(255, 255, 200, 0.35);
+        background: linear-gradient(120deg, rgba(250, 204, 21, 0.38), rgba(212, 175, 55, 0.52));
+        transform: scale(1);
+    }
+}
+
+/* Efecto de luz suave para paneles laterales */
+#panel-comentarios .palabra-resaltada,
+#panel-favoritos .palabra-resaltada,
+#contenido-panel-personales .palabra-resaltada {
+    background: linear-gradient(120deg, rgba(255, 214, 102, 0.35), rgba(255, 236, 205, 0.48));
+    box-shadow: 0 0 10px rgba(184, 134, 11, 0.28), inset 0 0 6px rgba(255, 248, 230, 0.35);
+}
+
+body.dark #panel-comentarios .palabra-resaltada,
+body.dark #panel-favoritos .palabra-resaltada,
+body.dark #contenido-panel-personales .palabra-resaltada {
+    background: linear-gradient(120deg, rgba(250, 204, 21, 0.32), rgba(212, 175, 55, 0.44));
+    box-shadow: 0 0 14px rgba(250, 204, 21, 0.36), inset 0 0 8px rgba(255, 255, 200, 0.28);
+}
+
+/* Asegurar que el texto sea legible durante el resaltado */
+.palabra-resaltada * {
+    color: inherit !important;
+}
