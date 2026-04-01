@@ -1,4 +1,4 @@
-const NOMBRE_CAJA = 'lumina-cache-v2.1';
+const NOMBRE_CAJA = 'lumina-cache-v2.3';
 const APP_SHELL = './index.html';
 
 const archivosParaGuardar = [
@@ -9,7 +9,8 @@ const archivosParaGuardar = [
   './manifest.json',
   './Biblia_Catolica_Completa.json',
   './Catena_Aurea_Completa.json',
-  './paperflip.wav'
+  './paperflip.wav',
+  './lumina.css'
 ];
 
 self.addEventListener('install', evento => {
@@ -22,6 +23,12 @@ self.addEventListener('install', evento => {
       })
       .catch(error => console.error('Error al cachear archivos:', error))
   );
+});
+
+self.addEventListener('message', evento => {
+  if (evento.data && evento.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('activate', evento => {
@@ -45,13 +52,13 @@ self.addEventListener('activate', evento => {
 self.addEventListener('fetch', evento => {
   if (evento.request.mode === 'navigate') {
     evento.respondWith(
-      fetch(evento.request).catch(() => caches.match(APP_SHELL))
+      fetch(evento.request).catch(() => caches.match(APP_SHELL, { ignoreSearch: true }))
     );
     return;
   }
 
   evento.respondWith(
-    caches.match(evento.request).then(respuestaCache => {
+    caches.match(evento.request, { ignoreSearch: true }).then(respuestaCache => {
       return respuestaCache || fetch(evento.request);
     })
   );
