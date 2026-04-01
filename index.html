@@ -1,54 +1,39 @@
 <!DOCTYPE html>
-<html lang="es-Ar">
+<html lang="es-ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Lumina - La Tradición Iluminando la Palabra</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪶</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍃</text></svg>">
    <link rel="manifest" href="manifest.json">
-   <link rel="stylesheet" href="style.css?v=2">
-   <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        oro: '#b8860b',
-                        oroClaro: '#d4af37'
-                    },
-                    fontFamily: {
-                        serif: ['Cormorant Garamond', 'Georgia', 'serif'],
-                        sans: ['Inter', 'Segoe UI', 'system-ui', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
+   <link rel="stylesheet" href="lumina.css?v=1">
+   <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body class="font-sans antialiased h-screen overflow-hidden flex flex-col">
 
 <header class="px-6 py-4 flex-shrink-0 z-20 transition-colors duration-300">
     <div class="max-w-7xl mx-auto flex flex-wrap md:flex-nowrap items-center justify-between gap-3">
 
-        <!-- BLOQUE IZQUIERDO (lamparita + logo juntos) -->
+        <!-- BLOQUE IZQUIERDO (hoja abre menú + logo vuelve al inicio) -->
         <div class="flex items-center gap-3 flex-shrink-0">
+            <div class="flex items-center gap-3 text-left">
+                <button type="button" onclick="togglePanelLumina()" aria-label="Abrir menú Lumina"
+                    class="btn-menu-lumina btn-menu-lumina-hoja inline-flex items-center justify-center text-oro transition-all"
+                    title="Abrir menú Lumina">
+                    <i class="fas fa-feather-alt text-2xl" aria-hidden="true"></i>
+                </button>
 
-            <button type="button" onclick="togglePanelLumina()" aria-label="Abrir menú Lumina"
-                class="btn-menu-lumina inline-flex items-center justify-center w-9 h-9 rounded-full border border-oro/20 bg-white/80 dark:bg-gray-900/70 text-gray-800 dark:text-gray-100 shadow-sm hover:border-oro/40 hover:text-oro transition-all">
-                <span class="text-base leading-none" aria-hidden="true">💡</span>
-            </button>
-
-            <button type="button" onclick="irAlInicio()" aria-label="Ir al inicio"
-                class="brand-home flex items-center gap-3 text-left cursor-pointer group">
-                <i class="fas fa-feather-alt text-oro text-2xl"></i>
+                <button type="button" onclick="irAlInicio()" aria-label="Ir al inicio"
+                    class="brand-home flex items-center gap-3 text-left cursor-pointer group">
                 <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-gray-950 dark:text-gray-100">
                     Lumina 
                     <span class="text-sm font-sans font-normal text-gray-700 dark:text-gray-400 ml-1">
                         La Tradición Iluminando la Palabra
                     </span>
                 </h1>
-            </button>
+                </button>
+            </div>
 
         </div>
 
@@ -86,12 +71,6 @@
             <span>Modo sin conexión disponible</span>
 
         </div>
-            
-            <div class="text-sm font-sans text-gray-700 italic hidden sm:block dark:text-gray-400 font-medium">
-                <i class="fas fa-scroll mr-1"></i> Versículo → comentarios
-            </div>
-        </div>
-    </div>
 
     <div id="buscador-movil" class="mt-3 hidden sm:hidden">
         <input type="text" id="busqueda-input-movil" placeholder="Buscar versículos..." class="w-full p-2 rounded-xl border border-gray-400 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-oro dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200">
@@ -180,21 +159,25 @@
             </div>
             <div class="flex-1 overflow-y-auto p-6 md:p-8 pt-6">
                 <div class="panel-lumina-nav mb-6">
+                        <button type="button" class="panel-lumina-link" data-lumina-seccion="conceptos" onclick="mostrarSeccionPanelLumina('conceptos')">
+                        <span aria-hidden="true">🔦</span>
+                        <span>Conceptos para el Camino</span>
+                    </button>
                     <button type="button" class="panel-lumina-link" data-lumina-seccion="sobre" onclick="mostrarSeccionPanelLumina('sobre')">
-                        <span aria-hidden="true">✨</span>
+                        <span aria-hidden="true">🕯️</span>
                         <span>Sobre Lumina</span>
                     </button>
                     <button type="button" class="panel-lumina-link" data-lumina-seccion="quien" onclick="mostrarSeccionPanelLumina('quien')">
                         <span aria-hidden="true">🧙‍♂️</span>
-<span>¿Quién soy?</span>
-                    </button>
-                    <button type="button" class="panel-lumina-link" data-lumina-seccion="conceptos" onclick="mostrarSeccionPanelLumina('conceptos')">
-                        <span aria-hidden="true">🔦</span>
-                        <span>Conceptos para el Camino</span>
+                    <span>¿Quién soy?</span>
                     </button>
                     <button type="button" class="panel-lumina-link" data-lumina-seccion="colaborar" onclick="mostrarSeccionPanelLumina('colaborar')">
-                        <span aria-hidden="true">??</span>
+                        <span aria-hidden="true">🤝</span>
                         <span>Deseo colaborar</span>
+                    </button>
+                    <button type="button" class="panel-lumina-link" data-lumina-seccion="ajustes" onclick="mostrarSeccionPanelLumina('ajustes')">
+                        <span aria-hidden="true">☁️</span>
+                        <span>Ajustes y Resguardo</span>
                     </button>
                 </div>
                 <div class="acerca-de-container panel-lumina-contenido">
@@ -213,7 +196,7 @@
 <li><strong>El Valle del Peregrino:</strong> No camines solo. <em>Lumina</em> registra cada paso de tu lectura, desde un pequeño versículo hasta la totalidad de los libros. Dejate sorprender por la Palabra mientras avanzás: cada meta alcanzada es un motivo de celebración en este mapa personal de tu fe.</li>
 <li><strong>La Catena Aurea en tu idioma:</strong> Leé los Evangelios junto a los comentarios de los Padres de la Iglesia (recopilados por Santo Tomás de Aquino) de forma fluida y directa.</li>
 <li><strong>La Palabra Proclamada:</strong> Escuchá en voz alta versículos, capítulos enteros y los comentarios de los Padres. Una función ideal para la meditación o para recuperar la antigua tradición de la fe que entra por el oído.</li>
-</ul
+</ul>
                   <p>La Biblia no es nueva, pero la forma en que la explorás hoy sí puede serlo. Te invito a navegar estas páginas donde la fe y la razón se encuentran en cada versículo.</p>
                 </div>
 
@@ -225,10 +208,10 @@
                             <strong>Lumina es mi forma de devolver lo que he recibido</strong>: una invitación a leer la Palabra con profundidad, a cuestionar con respeto y a caminar con la curiosidad de quien sabe que siempre hay una luz nueva por descubrir.
                         </blockquote>
                         <div class="panel-lumina-bloque">
-                            <button type="button" class="panel-lumina-cta">
+                            <a href="https://linktr.ee/nachomartinez" target="_blank" rel="noopener noreferrer" class="panel-lumina-cta inline-flex">
                                 <span class="panel-lumina-cta-icon" aria-hidden="true">🧙‍♂️</span>
-                                <span>Próximamente</span>
-                            </button>
+                                <span>linktr.ee/nachomartinez</span>
+                            </a>
                         </div>
                     </div>
 
@@ -248,7 +231,7 @@
                         <ul class="panel-lumina-glosario">
                             <li><strong>Acompañamiento en oración:</strong> Es el motor principal. Te agradezco que incluyas este proyecto y a quienes trabajamos en él en tus intenciones.</li>
                             <li><strong>Difusión:</strong> Compartí <em>Lumina</em> con tu comunidad, grupo de estudio o amigos. Que la Palabra llegue a más pantallas es la mejor recompensa.</li>
-                            <li><strong>Colaboración económica (Solo Argentina):</strong> Si sentís el impulso de colaborar para sostener los costos de servidores y desarrollo, podés realizar una donación por Mercado Pago al alias:</li>
+                            <li><strong>Colaboración económica (Solo Argentina):</strong> Si sentís el impulso de colaborar para sostener los costos de desarrollo, podés realizar una donación por Mercado Pago al alias:</li>
                         </ul>
                         <div class="panel-lumina-dato">
                             <span class="panel-lumina-dato-label">Alias</span>
@@ -260,26 +243,47 @@
                         </blockquote>
                     </div>
 
-                    <div class="panel-lumina-bloque hidden">
-                        <button type="button" class="panel-lumina-cta">
-                            <span class="panel-lumina-cta-icon" aria-hidden="true">🧙‍♂️💡</span>
-                            <span>¿Quién soy?</span>
-                        </button>
-                    </div>
+<div id="lumina-seccion-ajustes" class="hidden" data-lumina-contenido>
+    <h3>Tu privacidad es sagrada</h3>
+    <p>En <em>Lumina</em> creemos que tu camino espiritual y tus reflexiones son personales. Por eso, hemos decidido no utilizar registros de usuarios ni almacenar tus datos en la nube.</p>
+    <p>Todo lo que escribís, tus versículos favoritos y tu progreso de lectura se guardan exclusivamente en tu dispositivo a través de un método de almacenamiento local (<i>Local Storage</i>). Esto significa que nadie más que vos tiene acceso a tu diario espiritual; pero también significa que, si cambiás de equipo o borrás la caché de tu navegador, esos datos podrían perderse.</p>
+    <p>Para que siempre tengas el control total, te ofrecemos estas herramientas de autogestión:</p>
 
-                    <div class="panel-lumina-bloque hidden">
-                        <div class="flex items-center gap-2 mb-3">
-                            <span class="text-lg" aria-hidden="true">🔦</span>
-                            <h3 class="mb-0">Conceptos para el Camino</h3>
-                        </div>
-                        <p class="text-sm">¿Nuevo en la lectura bíblica? Acá un glosario providencial para caminar con <em>Lumina</em>.</p>
-                        <ul class="panel-lumina-glosario">
-                            <li><strong>Catena Aurea:</strong> Es una "cadena de oro". Una obra donde Santo Tomás de Aquino entrelazó las enseñanzas de los Padres para que podamos leer el Evangelio acompañados por los mejores guías de la historia.</li>
-                            <li><strong>Cf:</strong> Significa "confróntese" o "comparar con", una invitación a ver la armonía entre dos pasajes.</li>
-                            <li><strong>Concordancias:</strong> Son los puentes entre versículos. Si un texto te remite a otro, <em>Lumina</em> te permite viajar entre ellos para descubrir cómo la Escritura se explica a sí misma.</li>
-                            <li><strong>Padres de la Iglesia:</strong> Son los grandes maestros y pastores de los primeros siglos. Sus comentarios en <em>Lumina</em> no son solo opiniones: son la <span class="tradicion-viva">Tradición viva</span> que ha custodiado el sentido del Evangelio desde el principio.</li>
-                       </ul>
-                    </div>
+    <div class="panel-lumina-herramientas">
+        <button type="button" class="panel-lumina-cta panel-lumina-cta-stack" onclick="exportarDatosLumina()">
+            <span class="panel-lumina-cta-icon" aria-hidden="true">💾</span>
+            <span class="panel-lumina-cta-copy">
+                <strong>Exportar mis datos</strong>
+                <span>Creá una copia de seguridad de tus notas y favoritos en un archivo que podés guardar donde quieras.</span>
+            </span>
+        </button>
+
+        <button type="button" class="panel-lumina-cta panel-lumina-cta-stack" onclick="abrirSelectorImportacionLumina()">
+            <span class="panel-lumina-cta-icon" aria-hidden="true">📂</span>
+            <span class="panel-lumina-cta-copy">
+                <strong>Restaurar datos</strong>
+                <span>Cargá una copia previa para recuperar tu información en este o en otro dispositivo.</span>
+            </span>
+        </button>
+
+        <button type="button" class="panel-lumina-cta panel-lumina-cta-stack" onclick="limpiarCacheLumina()">
+            <span class="panel-lumina-cta-icon" aria-hidden="true">🧹</span>
+            <span class="panel-lumina-cta-copy">
+                <strong>Limpiar caché</strong>
+                <span>Refrescá la aplicación para asegurarte de estar usando la versión más reciente. No borra tus notas, solo actualiza el sistema.</span>
+            </span>
+        </button>
+
+        <button type="button" class="panel-lumina-cta panel-lumina-cta-stack panel-lumina-cta-alerta" onclick="abrirConfirmacionResetLumina()">
+            <span class="panel-lumina-cta-icon" aria-hidden="true">⚠️</span>
+            <span class="panel-lumina-cta-copy">
+                <strong>Restablecer Lumina</strong>
+                <span>Borrá todo el contenido local para empezar desde cero. <b>Solo usalo si ya hiciste una copia de seguridad.</b></span>
+            </span>
+        </button>
+    </div>
+    <input type="file" id="archivoBackup" accept="application/json,.json" class="hidden" onchange="importarProgreso(event)">
+</div>
                 </div>
             </div>
         </aside>
@@ -315,7 +319,7 @@
                     <div id="contenido-panel-tradicion" class="space-y-6"></div>
                     <div id="contenido-panel-personales" class="space-y-4 hidden">
                         <div class="notas-composer space-y-3">
-                            <textarea id="nota-personal" rows="4" class="nota-personal-area w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200" placeholder="Escribe aquí tu comentario personal..."></textarea>
+                            <textarea id="nota-personal" rows="4" class="nota-personal-area w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200" placeholder="Escribe aqué tu comentario personal..."></textarea>
                             <button type="button" id="guardar-nota" class="bg-oro text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition">Guardar nota</button>
                         </div>
                         <div id="lista-notas-personales" class="space-y-3 mt-4"></div>
@@ -328,7 +332,7 @@
             <div class="panel-favoritos-header sticky top-0 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-4 md:px-5 md:py-5">
                 <div class="flex items-start justify-between gap-3">
                     <div>
-                        <h2 class="panel-sticky-title text-2xl font-bold mb-1 text-oro font-sans tracking-wide mt-0 pr-6">★ Mis favoritos</h2>
+                        <h2 class="panel-sticky-title text-2xl font-bold mb-1 text-oro font-sans tracking-wide mt-0 pr-6">? Mis favoritos</h2>
                         <div class="h-0.5 w-12 bg-oro mb-0"></div>
                     </div>
                     <button type="button" onclick="cerrarPanel('panel-favoritos')" class="flex-shrink-0 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors z-30">
@@ -418,6 +422,20 @@
         </div>
     </div>
 </div>
+<div id="modal-confirmacion-reset-lumina" class="fixed inset-0 z-[101] hidden flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div class="bg-[#fcfaf7] dark:bg-[#1a1d23] p-6 rounded-xl border-2 border-oro max-w-sm w-full mx-4 shadow-2xl transform transition-all">
+        <h3 class="text-xl font-bold text-oro mb-2">¿Restablecer Lumina?</h3>
+        <p class="text-gray-600 dark:text-gray-400 text-sm mb-6">Esta acción no se puede deshacer. Se borrarán tus notas, favoritos, progreso, preferencias y el contenido local de Lumina en este dispositivo.</p>
+        <div class="flex gap-3 justify-end">
+            <button type="button" onclick="cerrarModalConfirmacionResetLumina()" class="px-4 py-2 text-gray-500 hover:text-gray-700 dark:hover:text-white transition-colors font-semibold">
+                Cancelar
+            </button>
+            <button type="button" id="btn-confirmar-reset-lumina" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-transform active:scale-95">
+                Restablecer
+            </button>
+        </div>
+    </div>
+</div>
 <div id="modal-confirmacion-biblia" class="fixed inset-0 z-[120] hidden items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-8">
     <div class="bg-[#fcfaf7] dark:bg-[#1a1d23] p-6 rounded-xl border-2 border-oro max-w-md w-full mx-4 shadow-2xl transform transition-all">
         <h3 class="text-xl font-bold text-oro mb-2">¿Estás seguro?</h3>
@@ -437,7 +455,7 @@
 
         <!-- Encabezado centrado -->
         <div class="text-center pt-8 md:pt-10 px-6 md:px-10">
-            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">¡¡Bienvenid@ a Lumina!!</h2>
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">¡Bienvenid@ a Lumina!!</h2>
             <h3 class="text-lg md:text-xl font-sans text-gray-600 dark:text-gray-400 mt-2">La Tradición Iluminando la Palabra</h3>
         </div>
 
@@ -572,4 +590,4 @@
     });
 </script>
 </body>
-</html>
+ </html>
