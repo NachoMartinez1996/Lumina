@@ -1,4 +1,4 @@
-const NOMBRE_CAJA = 'lumina-cache-v2.3';
+const NOMBRE_CAJA = 'lumina-cache-v2.5';
 const APP_SHELL = './index.html';
 
 const archivosParaGuardar = [
@@ -6,10 +6,16 @@ const archivosParaGuardar = [
   './index.html',
   './style.css',
   './script.js',
+  './favicon.ico',
+  './apple-touch-icon.png',
+  './android-chrome-192x192.png',
+  './android-chrome-512x512.png',
   './manifest.json',
   './Biblia_Catolica_Completa.json',
   './Catena_Aurea_Completa.json',
   './paperflip.wav',
+  './Crown_of_the_Altar.mp3',
+  './Morning_in_the_Oratory.mp3',
   './lumina.css'
 ];
 

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es-Ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Lumina - La Tradición Iluminando la Palabra</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪶</text></svg>">
+   <link rel="manifest" href="manifest.json">
+   <link rel="stylesheet" href="style.css?v=2">
+   <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        oro: '#b8860b',
+                        oroClaro: '#d4af37'
+                    },
+                    fontFamily: {
+                        serif: ['Cormorant Garamond', 'Georgia', 'serif'],
+                        sans: ['Inter', 'Segoe UI', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-sans antialiased h-screen overflow-hidden flex flex-col">
+<header class="px-6 py-4 flex-shrink-0 z-20 transition-colors duration-300">
+    <div class="max-w-7xl mx-auto flex flex-wrap md:flex-nowrap items-center justify-between gap-3">
+        <button type="button" onclick="togglePanelLumina()" aria-label="Abrir men&uacute; Lumina" class="btn-menu-lumina inline-flex items-center justify-center w-11 h-11 rounded-full border border-oro/20 bg-white/80 dark:bg-gray-900/70 text-gray-800 dark:text-gray-100 shadow-sm hover:border-oro/40 hover:text-oro transition-all">
+            <span class="text-lg leading-none" aria-hidden="true">💡</span>
+        </button>
+        <button type="button" onclick="irAlInicio()" aria-label="Ir al inicio" class="brand-home flex items-center gap-3 flex-shrink-0 text-left cursor-pointer group">
+            <i class="fas fa-feather-alt text-oro text-2xl"></i>
+            <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-gray-950 dark:text-gray-100">
+                Lumina <span class="text-sm font-sans font-normal text-gray-700 dark:text-gray-400 ml-1">La Tradición Iluminando la Palabra</span>
+            </h1>
+        </button>
+        <div class="flex items-center gap-4 flex-shrink-0">
+            <div class="relative hidden sm:block">
+                <input type="text" id="busqueda-input" placeholder="Buscar versículos..." class="pl-9 pr-4 py-2 rounded-full border border-gray-400 bg-white text-sm w-48 focus:w-64 transition-all focus:outline-none focus:ring-2 focus:ring-oro dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 text-gray-900">
+                <i class="fas fa-search absolute left-3 top-3 text-gray-600 dark:text-gray-500"></i>
+            </div>
+            
+            <button type="button" id="btn-favoritos" class="text-sm font-sans text-gray-900 dark:text-gray-200 hover:text-oro font-semibold transition-colors flex items-center gap-1">
+                <i class="fas fa-star"></i> Favoritos
+            </button>
+            
+            <button type="button" id="btn-buscar-movil" class="sm:hidden text-gray-900 dark:text-gray-200 hover:text-oro">
+                <i class="fas fa-search text-lg"></i>
+            </button>
+            
+            <div class="flex items-center gap-2">
+                <label class="text-sm font-sans text-gray-900 dark:text-gray-200 font-semibold">Concordancias</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="toggle-concordancia">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <button type="button" id="toggle-darkmode" class="text-gray-900 dark:text-gray-200 hover:text-oro transition-colors">
+                <i class="fas fa-moon dark:fa-sun text-lg"></i>
+            </button>
+            <div id="estado-offline" class="hidden items-center gap-2 text-xs font-sans font-semibold px-3 py-1 rounded-full border border-green-200 bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">
+                <i class="fas fa-wifi"></i>
+                <span>Modo sin conexión disponible</span>
+            </div>
+            
+            <div class="text-sm font-sans text-gray-700 italic hidden sm:block dark:text-gray-400 font-medium">
+                <i class="fas fa-scroll mr-1"></i> Versículo → comentarios
+            </div>
+        </div>
+    </div>
+    <div id="buscador-movil" class="mt-3 hidden sm:hidden">
+        <input type="text" id="busqueda-input-movil" placeholder="Buscar versículos..." class="w-full p-2 rounded-xl border border-gray-400 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-oro dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200">
+    </div>
+</header>
+
+    <div class="flex-1 flex overflow-hidden relative">
+        
+        <!-- VISTA LIBROS -->
+        <main id="vista-libros" class="vista flex-1 overflow-y-auto p-6 md:p-12 w-full absolute inset-0 z-30 transition-colors duration-300">
+            <div class="max-w-6xl mx-auto">
+                <div class="mb-4 md:mb-5">
+                    <div class="flex items-center gap-3 text-xs uppercase tracking-[0.35em] text-oro font-semibold mb-2">
+                        <span>Tu camino de lectura</span>
+                        <span class="linea-lectura-portada h-px flex-1 bg-gradient-to-r from-oro/60 to-transparent"></span>
+                    </div>
+                </div>
+                <div id="progreso-biblia-vista" class="progreso-biblia-vista mb-10 md:mb-12 rounded-3xl p-6 md:p-7"></div>
+                <div id="contenedor-libros" class="grid grid-cols-1 lg:grid-cols-2 gap-12"></div>
+            </div>
+        </main>
+
+        <!-- VISTA CAPÍTULOS -->
+        <main id="vista-capitulos" class="vista flex-1 overflow-hidden p-6 md:p-12 hidden absolute inset-0 z-20 transition-colors duration-300">
+            <div class="max-w-4xl mx-auto h-full min-h-0 flex flex-col">
+                <div class="capitulos-header-sticky mb-6">
+                    <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+                        <div class="w-64">
+                            <select id="selector-rapido-capitulos" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 font-sans text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-oro focus:border-oro transition outline-none shadow-sm">
+                                <option value="">-- Cambiar de libro --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <h2 id="titulo-libro-capitulos" class="text-4xl font-bold text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-3 titulo-libro flex-1">Libro</h2>
+                        <button type="button" onclick="leerLibroEntero(libroActual)" class="btn-leer-libro transition-all flex items-center gap-2 text-sm font-bold px-3 py-1 rounded-full" title="Escuchar todo el libro">
+                            <i class="fas fa-volume-up"></i> ESCUCHAR LIBRO
+                        </button>
+                    </div>
+                </div>
+                <div id="scroll-capitulos" class="flex-1 min-h-0 overflow-y-auto pr-1">
+                    <div id="contenedor-capitulos" class="grid grid-cols-5 md:grid-cols-10 gap-3"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- VISTA LECTURA -->
+        <main id="vista-lectura" class="vista flex-1 overflow-hidden p-6 md:p-12 hidden absolute inset-0 z-10 transition-colors duration-300">
+            <div class="max-w-3xl mx-auto h-full min-h-0 flex flex-col">
+                <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
+                <button type="button" onclick="mostrarVista('vista-capitulos')" class="text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-sans text-sm font-bold transition-colors flex items-center gap-1">
+                        <i class="fas fa-arrow-left text-xs"></i> VOLVER A LOS CAPÍTULOS
+                    </button>
+                    <div class="w-64">
+                        <select id="selector-rapido-lectura" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 font-sans text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-oro focus:border-oro transition outline-none shadow-sm">
+                            <option value="">-- Cambiar de libro --</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="lectura-header-sticky">
+                    <h2 id="titulo-lectura" class="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-1 titulo-libro">Libro</h2>
+                    <div class="flex items-center gap-4">
+                        <h3 id="subtitulo-capitulo" class="text-xl text-oro font-sans uppercase tracking-widest mb-0">Capítulo</h3>
+                        <button type="button" onclick="leerCapituloEntero()" class="btn-leer-capitulo transition-all flex items-center gap-2 text-sm font-bold px-3 py-1 rounded-full" title="Escuchar todo el capítulo">
+                            <i class="fas fa-volume-up"></i> ESCUCHAR CAPÍTULO
+                        </button>
+                    </div>
+                </div>
+                <div id="cabecera-progreso-lectura" class="flex-none"></div>
+                <div id="scroll-versiculos" class="flex-1 min-h-0 overflow-y-auto pr-1">
+                    <div id="contenedor-versiculos" class="space-y-4"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- PANELES LATERALES -->
+        <div id="overlay-panel-lumina" class="hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]" onclick="cerrarPanelLumina()"></div>
+        <aside id="panel-lumina" class="panel-lumina w-[92%] sm:w-[440px] h-full overflow-hidden transform -translate-x-full fixed left-0 top-0 border-r border-gray-200 dark:border-gray-700 z-50 transition-all duration-300 flex flex-col">
+            <div class="panel-lumina-header sticky top-0 z-20 p-4 md:p-4 border-b border-gray-200 dark:border-gray-700 relative">
+                <button type="button" onclick="cerrarPanelLumina()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="Cerrar panel Sobre Lumina">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6 md:p-8 pt-6">
+                <div class="panel-lumina-nav mb-6">
+                    <button type="button" class="panel-lumina-link" data-lumina-seccion="sobre" onclick="mostrarSeccionPanelLumina('sobre')">
+                        <span aria-hidden="true">✨</span>
+                        <span>Sobre Lumina</span>
+                    </button>
+                    <button type="button" class="panel-lumina-link" data-lumina-seccion="quien" onclick="mostrarSeccionPanelLumina('quien')">
+                        <span aria-hidden="true">🧙‍♂️</span>
+                        <span>&iquest;Qui&eacute;n soy?</span>
+                    </button>
+                    <button type="button" class="panel-lumina-link" data-lumina-seccion="conceptos" onclick="mostrarSeccionPanelLumina('conceptos')">
+                        <span aria-hidden="true">🔦</span>
+                        <span>Conceptos para el Camino</span>
+                    </button>
+                    <button type="button" class="panel-lumina-link" data-lumina-seccion="colaborar" onclick="mostrarSeccionPanelLumina('colaborar')">
+                        <span aria-hidden="true">??</span>
+                        <span>Deseo colaborar</span>
+                    </button>
+                </div>
+                <div class="acerca-de-container panel-lumina-contenido">
+                    <div id="lumina-seccion-sobre" class="hidden" data-lumina-contenido>
+                    <blockquote>
+                        "La tecnolog&iacute;a, al igual que la filosof&iacute;a, puede y debe ser sierva de la teolog&iacute;a."
+                    </blockquote>
+                    <p>Inspirado en esta premisa, <em>Lumina</em> nace como un puente necesario. Durante mucho tiempo, el acceso a herramientas digitales profundas de estudio b&iacute;blico ha estado reservado para quienes dominan el ingl&eacute;s o dependen de traducciones autom&aacute;ticas que a menudo pierden la riqueza del original.</p>
+                    <p><em>Lumina</em> es nativa en nuestra lengua. Es una respuesta a la necesidad de los hispanohablantes de contar con una plataforma donde la Sagrada Escritura no se lea de forma aislada, sino en el coraz&oacute;n mismo de la Iglesia.</p>
+                    <h3>&iquest;Qu&eacute; hace &uacute;nica a esta experiencia?</h3>
+                    <p>Lo que ten&eacute;s frente a vos no es solo un lector digital; es un ecosistema de estudio integrado:</p>
+                    <ul>
+                        <li><strong>La Catena Aurea en tu idioma:</strong> Le&eacute; los Evangelios junto a los comentarios de los Padres de la Iglesia, recopilados por santo Tom&aacute;s de Aquino, de forma fluida y directa.</li>
+                        <li><strong>Concordancias Din&aacute;micas:</strong> Hac&eacute; clic en palabras clave y descubr&iacute; c&oacute;mo ese concepto resuena en otros libros, permitiendo que la Biblia se explique por s&iacute; misma.</li>
+                        <li><strong>Di&aacute;logo con el Texto:</strong> Pod&eacute;s guardar favoritos y escribir notas personales, creando un diario de fe que te acompa&ntilde;e siempre.</li>
+                        <li><strong>B&uacute;squeda de Precisi&oacute;n:</strong> Un motor pensado para encontrar la palabra exacta, respetando la terminolog&iacute;a precisa que la teolog&iacute;a y la ex&eacute;gesis demandan.</li>
+                    </ul>
+                    <p>La Biblia no es nueva, pero la forma en que la explor&aacute;s hoy s&iacute; puede serlo. Te invitamos a navegar estas p&aacute;ginas donde la fe y la raz&oacute;n se encuentran en cada vers&iacute;culo.</p>
+                    </div>
+
+                    <div id="lumina-seccion-quien" class="hidden" data-lumina-contenido>
+                        <p><strong>Ignacio Martinez</strong> es un rosarino que encuentra en la intersecci&oacute;n de caminos aparentemente distintos, la fe, la ciencia y el c&oacute;digo, un lenguaje com&uacute;n. Su vida transcurre entre las aulas como profesor de Ciencias Sagradas y matem&aacute;ticas, las calles de Rosario como gu&iacute;a hist&oacute;rico, y el teclado como programador y guionista.</p>
+                        <p><em>Lumina</em> no es solo una aplicaci&oacute;n; es el resultado de una vocaci&oacute;n por la s&iacute;ntesis. Como escritor y dise&ntilde;ador narrativo, entiende que las Sagradas Escrituras son el relato m&aacute;s profundo de la humanidad. Como docente y Salesiano Cooperador, busca que ese mensaje sea accesible, claro y razonado. Y como alguien que disfruta resolviendo la Conjetura de Collatz o un buen Sudoku, cree que la l&oacute;gica y la fe no son rivales, sino aliadas que ayudan a leer la realidad con mayor nitidez.</p>
+                        <p>Cuando no est&aacute; ajustando el c&oacute;digo de este proyecto o investigando la historia de su ciudad, probablemente se lo encuentre compartiendo tiempo con su perro Benji, practicando alg&uacute;n juego de magia o explorando mundos en un juego de rol.</p>
+                        <blockquote>
+                            <strong>Lumina es mi forma de devolver lo que he recibido</strong>: una invitaci&oacute;n a leer la Palabra con profundidad, a cuestionar con respeto y a caminar con la curiosidad de quien sabe que siempre hay una luz nueva por descubrir.
+                        </blockquote>
+                        <div class="panel-lumina-bloque">
+                            <button type="button" class="panel-lumina-cta">
+                                <span class="panel-lumina-cta-icon" aria-hidden="true">🧙‍♂️</span>
+                                <span>Pr&oacute;ximamente</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="lumina-seccion-conceptos" class="hidden" data-lumina-contenido>
+                        <p>&iquest;Nuevo en la lectura b&iacute;blica? Ac&aacute; un glosario providencial para caminar con <em>Lumina</em>.</p>
+                        <ul class="panel-lumina-glosario">
+                            <li><strong>Catena Aurea:</strong> Es una "cadena de oro". Una obra donde santo Tom&aacute;s de Aquino entrelaz&oacute; las ense&ntilde;anzas de los Padres para que podamos leer el Evangelio acompa&ntilde;ados por los mejores gu&iacute;as de la historia.</li>
+                            <li><strong>Cf:</strong> Significa "confr&oacute;ntese" o "comparar con", una invitaci&oacute;n a ver la armon&iacute;a entre dos pasajes.</li>
+                            <li><strong>Concordancias:</strong> Son los puentes entre vers&iacute;culos. Si un texto te remite a otro, <em>Lumina</em> te permite viajar entre ellos para descubrir c&oacute;mo la Escritura se explica a s&iacute; misma.</li>
+                            <li><strong>Padres de la Iglesia:</strong> Son los grandes maestros y pastores de los primeros siglos. Sus comentarios en <em>Lumina</em> no son solo opiniones: son la <span class="tradicion-viva">Tradici&oacute;n viva</span> que ha custodiado el sentido del Evangelio desde el principio.</li>
+                        </ul>
+                    </div>
+
+                    <div id="lumina-seccion-colaborar" class="hidden" data-lumina-contenido>
+                        <p><strong>&iquest;C&oacute;mo acompa&ntilde;ar el camino de <em>Lumina</em>?</strong></p>
+                        <p><em>Lumina</em> es un proyecto nacido del cruce entre la fe, la raz&oacute;n y la tecnolog&iacute;a, desarrollado con el deseo de ofrecer una experiencia profunda y accesible de las Sagradas Escrituras. Si este espacio te ha servido para tu estudio, oraci&oacute;n o curiosidad, existen varias formas de ayudar a que siga creciendo:</p>
+                        <ul class="panel-lumina-glosario">
+                            <li><strong>Acompa&ntilde;amiento en oraci&oacute;n:</strong> Es el motor principal. Te agradezco que incluyas este proyecto y a quienes trabajamos en &eacute;l en tus intenciones.</li>
+                            <li><strong>Difusi&oacute;n:</strong> Compart&iacute; <em>Lumina</em> con tu comunidad, grupo de estudio o amigos. Que la Palabra llegue a m&aacute;s corazones es la mejor recompensa.</li>
+                            <li><strong>Colaboraci&oacute;n econ&oacute;mica (Solo Argentina):</strong> Si sent&iacute;s el impulso de colaborar para sostener los costos de desarrollo, pod&eacute;s realizar una donaci&oacute;n por Mercado Pago al alias:</li>
+                        </ul>
+                        <div class="panel-lumina-dato">
+                            <span class="panel-lumina-dato-label">Alias</span>
+                            <strong>magonacho</strong>
+                        </div>
+                        <p><strong>Feedback y Contacto:</strong> Si encontr&aacute;s un error, ten&eacute;s una sugerencia o simplemente quer&eacute;s saludar, pod&eacute;s escribirme a <a href="mailto:ignaciomartinez21@hotmail.com" class="panel-lumina-link-texto">ignaciomartinez21@hotmail.com</a></p>
+                        <blockquote>
+                            "Cada aporte es un efecto de magia que permite que <em>Lumina</em> siga brillando. &iexcl;Gracias por ser parte de esta expedici&oacute;n!"
+                        </blockquote>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <aside id="panel-busqueda" class="w-[90%] sm:w-[420px] shadow-2xl h-full overflow-hidden transform translate-x-full fixed right-0 top-0 border-l border-gray-200 dark:border-gray-700 z-50 transition-all duration-300 flex flex-col">
+            <div class="panel-busqueda-header sticky top-0 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 md:p-8 relative">
+                <button type="button" onclick="cerrarPanel('panel-busqueda')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+                <h2 class="text-2xl font-bold mb-2 text-oro font-sans tracking-wide mt-2 pr-6">Resultados de búsqueda</h2>
+                <div id="contador-busqueda" class="text-sm text-gray-500 dark:text-gray-400 mb-4">0 resultados</div>
+                <div class="h-0.5 w-12 bg-oro mb-6"></div>
+            </div>
+            <div class="flex-1 overflow-y-auto">
+                <div id="contenido-busqueda" class="space-y-3 p-6 md:p-8 pt-0"></div>
+            </div>
+        </aside>
+
+        <aside id="panel-comentarios" class="w-[90%] sm:w-[420px] shadow-2xl h-full overflow-hidden transform translate-x-full fixed right-0 top-0 border-l border-gray-200 dark:border-gray-700 z-50 transition-all duration-300 flex flex-col">
+            <div class="panel-comentarios-header sticky top-0 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 md:p-8 relative">
+                <button type="button" onclick="cerrarPanel('panel-comentarios')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+                <h2 class="panel-sticky-title text-2xl font-bold mb-2 text-oro font-sans tracking-wide mt-2 pr-6" id="titulo-panel-versiculo">Referencia</h2>
+                <div class="h-0.5 w-12 bg-oro mb-4"></div>
+                <div id="cita-panel-sticky" class="mb-4"></div>
+                <div class="flex border-b border-gray-200 dark:border-gray-700">
+                    <button type="button" id="tab-tradicion" class="py-2 px-4 font-medium text-sm text-oro border-b-2 border-oro">Tradición</button>
+                    <button type="button" id="tab-personales" class="py-2 px-4 font-medium text-sm text-gray-500 dark:text-gray-400 hover:text-oro">Mis notas</button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto">
+                <div class="p-6 md:p-8">
+                    <div id="contenido-panel-tradicion" class="space-y-6"></div>
+                    <div id="contenido-panel-personales" class="space-y-4 hidden">
+                        <div class="notas-composer space-y-3">
+                            <textarea id="nota-personal" rows="4" class="nota-personal-area w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200" placeholder="Escribe aquí tu comentario personal..."></textarea>
+                            <button type="button" id="guardar-nota" class="bg-oro text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition">Guardar nota</button>
+                        </div>
+                        <div id="lista-notas-personales" class="space-y-3 mt-4"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <aside id="panel-favoritos" class="w-[90%] sm:w-[420px] shadow-2xl h-full overflow-hidden transform translate-x-full fixed right-0 top-0 border-l border-gray-200 dark:border-gray-700 z-50 transition-all duration-300 flex flex-col">
+            <div class="panel-favoritos-header sticky top-0 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-4 md:px-5 md:py-5">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <h2 class="panel-sticky-title text-2xl font-bold mb-1 text-oro font-sans tracking-wide mt-0 pr-6">★ Mis favoritos</h2>
+                        <div class="h-0.5 w-12 bg-oro mb-0"></div>
+                    </div>
+                    <button type="button" onclick="cerrarPanel('panel-favoritos')" class="flex-shrink-0 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors z-30">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto">
+                <div id="lista-favoritos" class="space-y-3 p-4 md:p-5 pt-0 pb-4"></div>
+            </div>
+        </aside>
+
+        <aside id="panel-concordancia" class="w-[90%] sm:w-[420px] shadow-2xl h-full overflow-y-auto transform translate-x-full fixed right-0 top-0 border-l border-gray-200 dark:border-gray-700 z-50 transition-all duration-300">
+            <div class="p-6 md:p-8 relative">
+                <button type="button" onclick="cerrarPanel('panel-concordancia')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+                <h2 class="text-2xl font-bold mb-2 text-oro font-sans tracking-wide mt-2 pr-6" id="titulo-concordancia">Concordancia</h2>
+                <div class="h-0.5 w-12 bg-oro mb-6"></div>
+                <div id="contenido-concordancia" class="space-y-3"></div>
+            </div>
+        </aside>
+    </div>
+<div id="modal-confirmacion" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div class="bg-[#fcfaf7] dark:bg-[#1a1d23] p-6 rounded-xl border-2 border-oro max-w-sm w-full mx-4 shadow-2xl transform transition-all">
+        <h3 class="text-xl font-bold text-oro mb-2">¿Eliminar nota?</h3>
+        <p class="text-gray-600 dark:text-gray-400 text-sm mb-6">Esta acción no se puede deshacer. La nota desaparecerá de este versículo.</p>
+        <div class="flex gap-3 justify-end">
+            <button type="button" onclick="cerrarModalConfirmacion()" class="px-4 py-2 text-gray-500 hover:text-gray-700 dark:hover:text-white transition-colors font-semibold">
+                Cancelar
+            </button>
+            <button type="button" id="btn-confirmar-borrado" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-transform active:scale-95">
+                Eliminar
+            </button>
+        </div>
+    </div>
+</div>
+<div id="modal-biblia-completa" class="fixed inset-0 z-[115] hidden items-center justify-center bg-black/55 backdrop-blur-md px-4 py-8">
+    <div class="relative w-full max-w-3xl overflow-hidden rounded-[2rem] border border-oro/30 bg-[#fcfaf7] dark:bg-[#1a1d23] shadow-2xl">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,214,102,0.35),transparent_52%),radial-gradient(circle_at_bottom,rgba(184,134,11,0.14),transparent_60%)]"></div>
+        <div class="relative px-6 py-8 md:px-10 md:py-10">
+            <div class="flex items-start justify-between gap-4 mb-6">
+                <div>
+                    <p class="text-xs uppercase tracking-[0.35em] text-oro font-semibold mb-3">Evento Lumina</p>
+                    <h3 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">¡Misión cumplida!</h3>
+                </div>
+                <button type="button" onclick="cerrarCelebracionBibliaCompleta()" class="flex-shrink-0 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-white/60 dark:hover:bg-gray-700/60 transition-colors" aria-label="Cerrar celebración">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="space-y-5 text-gray-700 dark:text-gray-300 text-base md:text-lg leading-relaxed">
+                <p>Has caminado de la mano de la Tradición desde el Génesis hasta el Amén final.</p>
+                <p>Ahora, dejá que la Palabra baje de la pantalla al corazón. Reiniciá tu lectura, invocá al Espíritu y dejate sorprender: Dios siempre tiene algo nuevo que decirte en el mismo versículo de siempre.</p>
+            </div>
+            <div class="mt-8 flex flex-col sm:flex-row gap-3 sm:justify-end">
+                <button type="button" onclick="abrirConfirmacionReinicioBiblia()" class="px-5 py-3 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 font-sans font-bold transition hover:bg-amber-500/20">
+                    Volver a empezar (Reiniciar progreso)
+                </button>
+                <button type="button" onclick="cerrarCelebracionBibliaCompleta()" class="px-5 py-3 rounded-full border border-gray-300 dark:border-gray-600 bg-white/70 dark:bg-gray-800/70 text-gray-700 dark:text-gray-200 font-sans font-bold transition hover:bg-white dark:hover:bg-gray-700">
+                    Seguir contemplando
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="modal-confirmacion-biblia" class="fixed inset-0 z-[120] hidden items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-8">
+    <div class="bg-[#fcfaf7] dark:bg-[#1a1d23] p-6 rounded-xl border-2 border-oro max-w-md w-full mx-4 shadow-2xl transform transition-all">
+        <h3 class="text-xl font-bold text-oro mb-2">¿Estás seguro?</h3>
+        <p class="text-gray-600 dark:text-gray-400 text-sm mb-6">Se borrarán todos tus checks de lectura.</p>
+        <div class="flex gap-3 justify-end">
+            <button type="button" onclick="cerrarConfirmacionReinicioBiblia()" class="px-4 py-2 text-gray-500 hover:text-gray-700 dark:hover:text-white transition-colors font-semibold">
+                Cancelar
+            </button>
+            <button type="button" onclick="reiniciarProgresoBiblia()" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-transform active:scale-95">
+                Reiniciar
+            </button>
+        </div>
+    </div>
+</div>
+<div id="modal-bienvenida" class="fixed inset-0 z-[120] hidden items-center justify-center bg-black/60 backdrop-blur-md px-4 py-8" onclick="cerrarModalBienvenida()">
+    <div class="modal-bienvenida-card w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border border-oro/30 shadow-2xl bg-[#fcfaf7] dark:bg-[#1a1d23]" onclick="event.stopPropagation()">
+        <div class="flex items-start justify-between gap-4 px-6 pt-6 md:px-10 md:pt-10">
+            <div>
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">¡¡Bienvenid@ a Lumina!!</h2>
+                <h3 class="text-lg md:text-xl font-sans text-gray-600 dark:text-gray-400 mt-2">La Tradición Iluminando la Palabra</h3>
+            </div>
+            <button type="button" onclick="cerrarModalBienvenida()" class="flex-shrink-0 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="Cerrar bienvenida">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="px-6 md:px-10 pb-8 md:pb-10 pt-6 space-y-6 acerca-de-container">
+            <blockquote>
+                "La tecnología, al igual que la filosofía, puede y debe ser sierva de la teología."
+            </blockquote>
+            <p>Inspirado en esta premisa, Lumina nace como un puente necesario. Durante mucho tiempo, el acceso a herramientas digitales profundas de estudio bíblico ha estado reservado para quienes dominan el inglés o dependen de traducciones automáticas que a menudo pierden la riqueza del original.</p>
+            <p>Lumina es nativa en nuestra lengua. Es una respuesta a la necesidad de los hispanohablantes de contar con una plataforma donde la Sagrada Escritura no se lea de forma aislada, sino en el corazón mismo de la Iglesia.</p>
+            <h3>¿Qué hace única a esta experiencia?</h3>
+            <p>Lo que tenés frente a vos no es solo un lector digital; es un ecosistema de estudio integrado:</p>
+            <ul>
+                <li><strong>La Catena Aurea en tu idioma:</strong> Leé los Evangelios junto a los comentarios de los Padres de la Iglesia (recopilados por santo Tomás de Aquino) de forma fluida y directa.</li>
+                <li><strong>Concordancias Dinámicas:</strong> Hacé clic en palabras clave y descubrí cómo ese concepto resuena en otros libros, permitiendo que la Biblia se explique por sí misma.</li>
+                <li><strong>Diálogo con el Texto:</strong> No seas un lector pasivo. Podés guardar tus favoritos y escribir tus propias notas personales, creando un diario de fe que te acompañe siempre.</li>
+                <li><strong>Búsqueda de Precisión:</strong> Un motor diseñado para encontrar la palabra exacta, respetando la terminología precisa que la teología y la exégesis demandan.</li>
+            </ul>
+            <p>La Biblia no es nueva, pero la forma en que la explorás hoy, sí puede serlo. Te invitamos a navegar estas páginas donde la fe y la razón se encuentran en cada versículo.</p>
+        </div>
+        <div class="px-6 md:px-10 pb-6 md:pb-8 flex justify-end">
+            <button type="button" onclick="cerrarModalBienvenida()" class="bg-oro text-white px-5 py-2 rounded-full font-semibold hover:bg-amber-700 transition">Empezar a explorar</button>
+        </div>
+    </div>
+</div>
+<footer class="app-footer flex-shrink-0 px-6 py-3 text-center text-sm backdrop-blur-md">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+        <span class="footer-firma">Ignacio Ariel Martinez. Rosario (Argentina). 2026</span>
+        <button type="button" onclick="compartirLumina()" class="btn-compartir inline-flex items-center gap-2 px-4 py-2 rounded-full border border-oro/20 bg-oro/10 text-oro font-semibold transition hover:bg-oro/20 hover:border-oro/30">
+            <i class="fas fa-share-alt" aria-hidden="true"></i>
+            <span>¿Querés multiplicar la luz? Compartí Lumina.</span>
+        </button>
+    </div>
+</footer>
+<audio id="sonido-guardar" src="paperflip.wav" preload="auto"></audio>
+    <script src="script.js"></script>
+    <div id="toast-confirmacion" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[110] hidden opacity-0 transition-opacity duration-500">
+    <div class="bg-[#b8860b] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border border-yellow-200/30">
+        <i class="fas fa-check-circle"></i>
+        <span class="font-medium"></span>
+    </div>
+</div>
+</body>
+</html>

@@ -1,4 +1,4 @@
-// 1. CANON BÍBLICO COMPLETO (según la lista del Vaticano)
+﻿// 1. CANON BÍBLICO COMPLETO (según la lista del Vaticano)
 // =============================================================
 const canonBiblico = {
     "Antiguo Testamento": [
@@ -83,6 +83,19 @@ const canonBiblico = {
     ]
 };
 
+const ORDEN_LIBROS_BIBLICOS = (() => {
+    const orden = new Map();
+    let indice = 0;
+
+    for (const testamento of Object.values(canonBiblico)) {
+        for (const libro of testamento) {
+            orden.set(libro.nombre, indice++);
+        }
+    }
+
+    return orden;
+})();
+
 function inicializarIndiceV2() {
     const contenedor = document.getElementById('contenedor-libros');
     if (!contenedor) return;
@@ -114,10 +127,16 @@ function inicializarIndiceV2() {
 
         libros.forEach(libro => {
             const fila = document.createElement('div');
+            const libroLeido = estaLibroLeido(libro.nombre);
             fila.className = 'flex items-stretch gap-2';
             fila.innerHTML = `
-                <button type="button" class="btn-libro-principal flex-1 text-left py-2 px-3 rounded text-lg transition-all hover:bg-yellow-50 dark:hover:bg-gray-800 hover:text-oro hover:border-l-4 hover:border-oro bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm">
+                <button type="button"
+                    class="btn-libro-principal flex-1 flex items-center justify-between gap-3 text-left py-2 px-3 rounded text-lg transition-all hover:bg-yellow-50 dark:hover:bg-gray-800 hover:text-oro hover:border-l-4 hover:border-oro bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm ${libroLeido ? 'libro-leido' : ''}"
+                    data-libro-principal="${libro.nombre}">
                     <span>${libro.nombre}</span>
+                    <span class="estado-libro-portada" aria-hidden="true">
+                        <i class="fas ${libroLeido ? 'fa-check-circle' : 'fa-book-open'} icono-estado-libro-portada"></i>
+                    </span>
                 </button>
             `;
             fila.querySelector('.btn-libro-principal').onclick = () => abrirCapitulos(libro.nombre, libro.caps);
@@ -219,7 +238,7 @@ function abrirCapitulosV2(nombreLibro, cantidadCapitulos) {
         const fila = document.createElement('div');
         fila.className = 'col-span-full flex items-stretch gap-2';
         fila.innerHTML = `
-            <button type="button" class="btn-capitulo-principal flex-1 py-3 rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-oro hover:text-oro transition-all font-sans font-bold text-base flex items-center justify-between px-3 group">
+            <button type="button" data-capitulo-principal="${cap}" class="btn-capitulo-principal flex-1 py-3 rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-oro hover:text-oro transition-all font-sans font-bold text-base flex items-center justify-between px-3 group">
                 <span>${cap}</span>
                 <span class="text-xs uppercase tracking-widest text-gray-400 dark:text-gray-500 group-hover:text-oro transition-colors">Abrir</span>
             </button>
@@ -443,7 +462,7 @@ async function cargarBibliaJSON() {
         data.forEach(item => {
             // PLANCHADO DE TILDES: Eliminamos acentos y pasamos a mayúsculas para igualar al diccionario
             let libroCrudo = item.Libro.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
-            
+
             // Mapeamos el nombre limpio al nombre canónico
             let libroNorm = mapaNombres[libroCrudo] || item.Libro;
             let capitulo = parseInt(item.Capitulo);
@@ -518,6 +537,7 @@ let palabrasImportantes = new Set([
     "cielo", "tierra", "sinaí", "sinai", "jerusalén", "jerusalem", "sión", "sion", "templo", "tabernáculo", "tabernaculo", "arca", "desierto", "pueblo", "horeb"
 ]);
 let concordanciaActiva = false;
+let llegadaBusquedaPendiente = null;
 
 // FUNCIÓN DE NORMALIZACIÓN (elimina acentos y convierte a minúsculas)
 function normalizarTexto(texto) {
@@ -531,7 +551,7 @@ function construirIndiceConcordancia() {
     indiceConcordancia = {};
     const palabrasNormalizadas = Array.from(palabrasImportantes);
     console.log("Palabras en el set (primeras 10 normalizadas):", palabrasNormalizadas.slice(0, 10));
-    
+
     for (let libro in bibleContent) {
         for (let cap in bibleContent[libro]) {
             for (let ver in bibleContent[libro][cap]) {
@@ -551,12 +571,12 @@ function construirIndiceConcordancia() {
             }
         }
     }
-    
+
     // Debug: mostrar qué palabras fueron encontradas
     console.log("Palabras concordancia encontradas:", Object.keys(indiceConcordancia).sort());
-    
+
     for (let palabra in indiceConcordancia) {
-        indiceConcordancia[palabra].sort((a,b) => {
+        indiceConcordancia[palabra].sort((a, b) => {
             if (a.libro !== b.libro) return a.libro.localeCompare(b.libro);
             if (a.capitulo !== b.capitulo) return a.capitulo - b.capitulo;
             return a.versiculo - b.versiculo;
@@ -592,6 +612,239 @@ function resaltarPalabras(texto) {
     return partes.join('');
 }
 
+function refrescarConcordanciaVistaActual() {
+    if (!estaVistaVisible('vista-lectura') || !libroActual || !capituloActual) return;
+
+    const versiculosObj = bibleContent[libroActual]?.[capituloActual] || {};
+
+    document.querySelectorAll('[data-versiculo-texto]').forEach(nodo => {
+        const versiculo = nodo.dataset.versiculoTexto;
+        const textoOriginal = versiculosObj?.[versiculo];
+        if (typeof textoOriginal !== 'string') return;
+        nodo.innerHTML = resaltarPalabras(textoOriginal);
+    });
+}
+
+function activarEfectoLlegadaElemento(elemento, claseAnimacion, hacerScroll = false) {
+    if (!elemento || !claseAnimacion) return;
+
+    elemento.classList.remove(claseAnimacion);
+    void elemento.offsetWidth;
+
+    if (hacerScroll) {
+        elemento.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+    }
+
+    elemento.classList.add(claseAnimacion);
+
+    setTimeout(() => {
+        elemento.classList.remove(claseAnimacion);
+    }, 2800);
+}
+
+function registrarLlegadaBusqueda(libro, capitulo, versiculo) {
+    llegadaBusquedaPendiente = {
+        libro,
+        capitulo: Number(capitulo),
+        versiculo: Number(versiculo),
+        tradicionAplicada: false,
+        personalAplicada: false
+    };
+}
+
+function obtenerLlegadaBusquedaPendiente(libro, capitulo, versiculo) {
+    if (!llegadaBusquedaPendiente) return null;
+
+    if (
+        llegadaBusquedaPendiente.libro !== libro ||
+        llegadaBusquedaPendiente.capitulo !== Number(capitulo) ||
+        llegadaBusquedaPendiente.versiculo !== Number(versiculo)
+    ) {
+        return null;
+    }
+
+    return llegadaBusquedaPendiente;
+}
+
+function limpiarLlegadaBusquedaPendienteSiCorresponde() {
+    if (!llegadaBusquedaPendiente) return;
+
+    if (llegadaBusquedaPendiente.tradicionAplicada && llegadaBusquedaPendiente.personalAplicada) {
+        llegadaBusquedaPendiente = null;
+    }
+}
+
+function aplicarLlegadaBusquedaPanel(libro, capitulo, versiculo, tipo) {
+    const llegada = obtenerLlegadaBusquedaPendiente(libro, capitulo, versiculo);
+    if (!llegada) return;
+
+    if (tipo === 'tradicion' && !llegada.tradicionAplicada) {
+        activarEfectoLlegadaElemento(
+            document.getElementById('contenido-panel-tradicion'),
+            'highlight-glow-comentario'
+        );
+        llegada.tradicionAplicada = true;
+    }
+
+    if (tipo === 'personal' && !llegada.personalAplicada) {
+        activarEfectoLlegadaElemento(
+            document.getElementById('contenido-panel-personales'),
+            'highlight-glow-nota'
+        );
+        llegada.personalAplicada = true;
+    }
+
+    limpiarLlegadaBusquedaPendienteSiCorresponde();
+}
+
+function resaltarAnotacionPanel(tipo, idx) {
+    if (!Number.isInteger(idx)) return;
+
+    const esComentario = tipo === 'tradicion';
+    const selector = esComentario
+        ? `#contenido-panel-tradicion [data-panel-comentario-idx="${idx}"]`
+        : `#lista-notas-personales [data-panel-nota-idx="${idx}"]`;
+    const contenedorFallback = esComentario
+        ? document.getElementById('contenido-panel-tradicion')
+        : document.getElementById('contenido-panel-personales');
+    const clase = esComentario ? 'highlight-glow-comentario' : 'highlight-glow-nota';
+    const elemento = document.querySelector(selector) || contenedorFallback;
+
+    activarEfectoLlegadaElemento(elemento, clase, true);
+}
+
+const PANELES_LATERALES_DERECHA = [
+    'panel-busqueda',
+    'panel-comentarios',
+    'panel-favoritos',
+    'panel-concordancia'
+];
+
+function esPanelLateralDerecha(id) {
+    return PANELES_LATERALES_DERECHA.includes(id);
+}
+
+function obtenerPanelLateralActivoDerecha() {
+    return PANELES_LATERALES_DERECHA
+        .map(id => document.getElementById(id))
+        .find(panel => panel && !panel.classList.contains('translate-x-full')) || null;
+}
+
+function actualizarOverlayPanelesDerecha() {
+    const overlay = document.getElementById('overlay-paneles-derecha');
+    if (!overlay) return;
+
+    const hayPanelActivo = !!obtenerPanelLateralActivoDerecha();
+    overlay.classList.toggle('hidden', !hayPanelActivo);
+    overlay.setAttribute('aria-hidden', hayPanelActivo ? 'false' : 'true');
+}
+
+function abrirPanelLateral(id) {
+    const panel = document.getElementById(id);
+    if (!panel) return;
+
+    PANELES_LATERALES_DERECHA.forEach(panelId => {
+        const panelActual = document.getElementById(panelId);
+        if (!panelActual || panelId === id) return;
+        panelActual.style.transform = '';
+        panelActual.classList.remove('panel-lateral-arrastrando');
+        panelActual.classList.add('translate-x-full');
+    });
+
+    cerrarPanelLumina();
+    panel.style.transform = '';
+    panel.classList.remove('panel-lateral-arrastrando');
+    panel.classList.remove('translate-x-full');
+    actualizarOverlayPanelesDerecha();
+}
+
+function cerrarPanelActivoLateral() {
+    const panelActivo = obtenerPanelLateralActivoDerecha();
+    if (panelActivo) {
+        cerrarPanel(panelActivo.id);
+    }
+}
+
+function inicializarGestosPanelesLaterales() {
+    document.querySelectorAll('[data-panel-lateral="derecha"]').forEach(panel => {
+        if (panel.dataset.gestosInicializados === 'true') return;
+        panel.dataset.gestosInicializados = 'true';
+
+        let inicioX = 0;
+        let inicioY = 0;
+        let deltaX = 0;
+        let arrastrando = false;
+        let gestoHorizontal = false;
+
+        const resetearPanel = () => {
+            panel.style.transform = '';
+            panel.classList.remove('panel-lateral-arrastrando');
+            deltaX = 0;
+            arrastrando = false;
+            gestoHorizontal = false;
+        };
+
+        panel.addEventListener('touchstart', event => {
+            if (panel.classList.contains('translate-x-full')) return;
+
+            const toque = event.touches[0];
+            inicioX = toque.clientX;
+            inicioY = toque.clientY;
+            deltaX = 0;
+            arrastrando = false;
+            gestoHorizontal = false;
+        }, { passive: true });
+
+        panel.addEventListener('touchmove', event => {
+            if (panel.classList.contains('translate-x-full')) return;
+
+            const toque = event.touches[0];
+            const desplazamientoX = toque.clientX - inicioX;
+            const desplazamientoY = toque.clientY - inicioY;
+
+            if (!arrastrando) {
+                if (Math.abs(desplazamientoX) < 10 && Math.abs(desplazamientoY) < 10) {
+                    return;
+                }
+
+                if (desplazamientoX <= 0 || Math.abs(desplazamientoX) <= Math.abs(desplazamientoY)) {
+                    gestoHorizontal = false;
+                    return;
+                }
+
+                arrastrando = true;
+                gestoHorizontal = true;
+                panel.classList.add('panel-lateral-arrastrando');
+            }
+
+            if (!gestoHorizontal) return;
+
+            deltaX = Math.max(0, desplazamientoX);
+            panel.style.transform = `translateX(${deltaX}px)`;
+            if (event.cancelable) event.preventDefault();
+        }, { passive: false });
+
+        const finalizarGesto = () => {
+            if (!arrastrando || !gestoHorizontal) {
+                resetearPanel();
+                return;
+            }
+
+            const umbralCierre = Math.min(140, panel.offsetWidth * 0.3);
+            if (deltaX >= umbralCierre) {
+                resetearPanel();
+                cerrarPanel(panel.id);
+                return;
+            }
+
+            resetearPanel();
+        };
+
+        panel.addEventListener('touchend', finalizarGesto);
+        panel.addEventListener('touchcancel', finalizarGesto);
+    });
+}
+
 function mostrarConcordancia(palabra) {
     let resultados = indiceConcordancia[palabra] || [];
     let panel = document.getElementById('panel-concordancia');
@@ -602,20 +855,26 @@ function mostrarConcordancia(palabra) {
         contenido.innerHTML = '<div class="text-gray-400 italic text-center py-8">No se encontraron versículos con esta palabra.</div>';
     } else {
         contenido.innerHTML = resultados.map(ref => `
-            <div class="p-3 bg-amber-50 dark:bg-gray-700 rounded-lg border-l-4 border-oro cursor-pointer hover:bg-amber-100 dark:hover:bg-gray-600 transition" onclick="irAVersiculo('${ref.libro}', ${ref.capitulo}, ${ref.versiculo})">
+            <div class="p-3 bg-amber-50 dark:bg-gray-700 rounded-lg border-l-4 border-oro cursor-pointer hover:bg-amber-100 dark:hover:bg-gray-600 transition" onclick="irAVersiculo('${ref.libro}', ${ref.capitulo}, ${ref.versiculo}, 'busqueda')">
                 <div class="font-bold text-oro text-sm">${ref.libro} ${ref.capitulo}, ${ref.versiculo}</div>
                 <div class="text-gray-700 dark:text-gray-300 text-sm line-clamp-2">${escapeHtml(ref.texto)}</div>
             </div>
         `).join('');
     }
-    panel.classList.remove('translate-x-full');
+    abrirPanelLateral('panel-concordancia');
 }
 
-function irAVersiculo(libro, capitulo, versiculo) {
+function irAVersiculo(libro, capitulo, versiculo, origen = '') {
     // Cerramos paneles laterales si están abiertos
     cerrarPanel('panel-concordancia');
     cerrarPanel('panel-busqueda');
     cerrarPanel('panel-favoritos');
+
+    if (origen === 'busqueda') {
+        registrarLlegadaBusqueda(libro, capitulo, versiculo);
+    } else {
+        llegadaBusquedaPendiente = null;
+    }
 
     let libroObj = null;
     for (let test of Object.values(canonBiblico)) {
@@ -626,23 +885,23 @@ function irAVersiculo(libro, capitulo, versiculo) {
     if (libroObj) {
         // 1. Cargamos la vista de capítulos del libro
         abrirCapitulos(libro, libroObj.caps);
-        
+
         setTimeout(() => {
             // 2. Cargamos la lectura del capítulo específico
             abrirLectura(capitulo);
-            
+
             setTimeout(() => {
                 // 3. Buscamos el elemento del versículo en el DOM
                 const targetId = `verse_${libro}_${capitulo}_${versiculo}`;
                 const target = document.getElementById(targetId);
-                
+
                 if (target) {
                     // 4. Scroll suave hacia el versículo
                     target.scrollIntoView({ behavior: "smooth", block: "center" });
-                    
+
                     // 5. Aplicamos el EFECTO GLOW
                     target.classList.add('highlight-glow');
-                    
+
                     // 6. Limpiamos la clase después de 3s (duración de la animación) 
                     // para que pueda volver a dispararse en el futuro
                     setTimeout(() => {
@@ -672,7 +931,7 @@ async function cargarComentariosJSON() {
 
             let libroMatch = ref.match(/Evangelio según san (Mateo|Marcos|Lucas|Juan)/i);
             if (!libroMatch) return;
-            
+
             let libro = libroMatch[1].charAt(0).toUpperCase() + libroMatch[1].slice(1).toLowerCase();
             if (libro === "Mateo") libro = "Evangelio según San Mateo";
             else if (libro === "Marcos") libro = "Evangelio según San Marcos";
@@ -680,7 +939,7 @@ async function cargarComentariosJSON() {
             else if (libro === "Juan") libro = "Evangelio según San Juan";
 
             let parte = ref.replace(libroMatch[0], '').trim();
-            
+
             if (parte.includes("(Prefacio)")) {
                 let key = `${libro}_prefacio`;
                 if (!comentariosDB[key]) comentariosDB[key] = [];
@@ -691,7 +950,7 @@ async function cargarComentariosJSON() {
                     let capitulo = parseInt(matchCapituloVersos[1]);
                     let versosStr = matchCapituloVersos[2];
                     let rango = versosStr.split('-').map(v => parseInt(v));
-                    
+
                     if (rango.length === 1 || rango[0] === rango[1]) {
                         let key = `${libro}_${capitulo}_${rango[0]}`;
                         if (!comentariosDB[key]) comentariosDB[key] = [];
@@ -734,10 +993,16 @@ function obtenerComentarios(libro, capitulo, versiculo) {
 // --------------------------------------------------------------
 let notasPersonales = {};
 let favoritos = new Set();
+let estadoSeccionesFavoritos = {
+    versiculos: false,
+    comentarios: false,
+    notas: false
+};
 let leidos = new Set();
 // Lumina cuenta 76 libros en su canon interno: 73 del canon católico + 3 suplementarios.
 const TOTAL_BIBLIA_LUMINA = 76;
 let bibliaCompletaCelebrada = false;
+let celebracionBibliaPendiente = false;
 const CLAVE_EVENTO_BIBLIA_COMPLETA = "lumina_biblia_completa_evento_v1";
 const CLAVE_CONTADOR_CELEBRACION_BIBLIA = "lumina_biblia_completa_contador_v1";
 let faseCelebracionBibliaActual = 1;
@@ -760,6 +1025,7 @@ function cargarNotasPersonales() {
 function cargarLeidos() {
     const stored = localStorage.getItem("lumina_leidos");
     if (stored) leidos = new Set(JSON.parse(stored));
+    limpiarMarcasLeidoNoLeibles();
 }
 
 function guardarLeidos() {
@@ -768,15 +1034,15 @@ function guardarLeidos() {
 function guardarNota(libro, capitulo, versiculo, texto) {
     const key = `${libro}_${capitulo}_${versiculo}`;
     if (!notasPersonales[key]) notasPersonales[key] = [];
-    
+
     // Lógica original
     notasPersonales[key].push({ texto, fecha: new Date().toLocaleString() });
     localStorage.setItem("lumina_notas", JSON.stringify(notasPersonales));
-    
+
     // --- EFECTO DE SONIDO ---
     const sonido = document.getElementById('sonido-guardar');
     if (sonido) {
-        sonido.currentTime = 0; 
+        sonido.currentTime = 0;
         sonido.play().catch(error => console.log("El navegador bloqueó el audio inicial:", error));
     }
 
@@ -786,12 +1052,31 @@ function guardarNota(libro, capitulo, versiculo, texto) {
     mostrarNotasPersonales(libro, capitulo, versiculo);
 }
 
+function detenerAudioCelebracion(audio) {
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+}
+
+function detenerAudiosCelebracion() {
+    detenerAudioCelebracion(document.getElementById('audio-celebracion-biblia'));
+    detenerAudioCelebracion(document.getElementById('audio-celebracion-libro'));
+}
+
+function reproducirAudioCelebracion(audioId) {
+    detenerAudiosCelebracion();
+    const audio = document.getElementById(audioId);
+    if (!audio) return;
+    audio.currentTime = 0;
+    audio.play().catch(error => console.log("El navegador bloqueó el audio de celebración:", error));
+}
+
 // Función auxiliar para el Toast
 function lanzarToast(mensaje) {
     const toast = document.getElementById('toast-confirmacion');
     toast.querySelector('span').textContent = mensaje;
     toast.classList.remove('hidden', 'opacity-0');
-    
+
     setTimeout(() => {
         toast.classList.add('opacity-0');
         setTimeout(() => toast.classList.add('hidden'), 500);
@@ -803,16 +1088,16 @@ let notaAPuntoDeBorrar = null;
 function eliminarNota(libro, capitulo, versiculo, index) {
     // 1. Guardamos los datos de la nota
     notaAPuntoDeBorrar = { libro, capitulo, versiculo, index };
-    
+
     // 2. Mostramos el modal
     const modal = document.getElementById('modal-confirmacion');
     modal.classList.remove('hidden');
 
     // 3. Obtenemos el botón y le damos el "sacudón" de advertencia
     const btnConfirmar = document.getElementById('btn-confirmar-borrado');
-    
+
     btnConfirmar.classList.add('animacion-alerta');
-    
+
     // Quitamos la clase después de 500ms para que está lista para la próxima
     setTimeout(() => {
         btnConfirmar.classList.remove('animacion-alerta');
@@ -831,13 +1116,13 @@ function ejecutarEliminacion() {
     // Lógica de borrado original
     notasPersonales[key].splice(index, 1);
     if (notasPersonales[key].length === 0) delete notasPersonales[key];
-    
+
     localStorage.setItem("lumina_notas", JSON.stringify(notasPersonales));
-    
+
     // Feedback visual y cierre
     cerrarModalConfirmacion();
     mostrarNotasPersonales(libro, capitulo, versiculo);
-    
+
     // Opcional: podrías disparar un console.log o un toast de "éxito" aqué
     notaAPuntoDeBorrar = null;
 }
@@ -860,7 +1145,7 @@ function mostrarNotasPersonales(libro, capitulo, versiculo) {
     container.innerHTML = notas.map((nota, idx) => {
         const esFav = esFavoritoComentario(libro, capitulo, versiculo, 'personal', idx);
         return `
-        <div class="border-l-4 border-oro/30 pl-4 py-3 bg-white dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700 rounded-lg mb-3 shadow-sm">
+        <div class="nota-panel-item border-l-4 border-oro/30 pl-4 py-3 bg-white dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700 rounded-lg mb-3 shadow-sm" data-panel-nota-idx="${idx}">
             <p class="text-gray-800 dark:text-gray-200 text-sm mb-2 font-medium">${escapeHtml(nota.texto)}</p>
             <div class="flex justify-between items-center mt-2 border-t border-gray-200 dark:border-gray-700 pt-2">
                 <span class="text-[10px] text-gray-600 dark:text-gray-400 uppercase font-sans font-bold">${nota.fecha}</span>
@@ -869,6 +1154,15 @@ function mostrarNotasPersonales(libro, capitulo, versiculo) {
                             class="btn-audio-nota text-gray-500 dark:text-gray-400 hover:text-oro transition p-1" 
                             title="Escuchar nota">
                         <i class="fas fa-volume-up text-sm"></i>
+                    </button>
+                    <button class="btn-compartir-nota text-gray-500 dark:text-gray-400 hover:text-oro transition p-1"
+                            data-libro="${libro.replace(/"/g, '&quot;')}"
+                            data-capitulo="${capitulo}"
+                            data-versiculo="${versiculo}"
+                            data-texto="${escapeHtml(nota.texto).replace(/"/g, '&quot;')}"
+                            title="Compartir nota"
+                            aria-label="Compartir nota">
+                        <i class="fas fa-share-alt text-sm"></i>
                     </button>
                     <button id="star_com_${libro}_${capitulo}_${versiculo}_personal_${idx}" 
                             onclick="toggleFavoritoComentario('${libro}', ${capitulo}, ${versiculo}, 'personal', ${idx})" 
@@ -885,9 +1179,21 @@ function mostrarNotasPersonales(libro, capitulo, versiculo) {
     `}).join('');
 
     container.querySelectorAll('.btn-audio-nota').forEach(btn => {
-        btn.onclick = function(e) {
+        btn.onclick = function (e) {
             e.preventDefault();
             escucharNota(this.dataset.texto || '', this);
+        };
+    });
+
+    container.querySelectorAll('.btn-compartir-nota').forEach(btn => {
+        btn.onclick = function (e) {
+            e.preventDefault();
+            compartirNota(
+                this.dataset.libro,
+                parseInt(this.dataset.capitulo),
+                parseFloat(this.dataset.versiculo),
+                this.dataset.texto || ''
+            );
         };
     });
 }
@@ -904,23 +1210,23 @@ function toggleFavoritoVersiculo(libro, capitulo, versiculo) {
     if (favoritos.has(key)) favoritos.delete(key);
     else favoritos.add(key);
     guardarFavoritos();
-actualizarEstrella(libro, capitulo, versiculo);
+    actualizarEstrella(libro, capitulo, versiculo);
 
-// ? FEEDBACK VISUAL
-const star = document.getElementById(`star_${libro}_${capitulo}_${versiculo}`);
+    // ? FEEDBACK VISUAL
+    const star = document.getElementById(`star_${libro}_${capitulo}_${versiculo}`);
 
-if (star) {
-    if (favoritos.has(`versiculo:${libro}_${capitulo}_${versiculo}`)) {
-        star.classList.add('animacion-fav');
-        lanzarToast("Versículo guardado ?");
-    } else {
-        lanzarToast("Versículo quitado");
+    if (star) {
+        if (favoritos.has(`versiculo:${libro}_${capitulo}_${versiculo}`)) {
+            star.classList.add('animacion-fav');
+            lanzarToast("Versículo guardado ?");
+        } else {
+            lanzarToast("Versículo quitado");
+        }
+
+        setTimeout(() => {
+            star.classList.remove('animacion-fav');
+        }, 300);
     }
-
-    setTimeout(() => {
-        star.classList.remove('animacion-fav');
-    }, 300);
-}
     if (document.getElementById('panel-favoritos').classList.contains('translate-x-full') === false) mostrarPanelFavoritos();
 }
 function toggleFavoritoComentario(libro, capitulo, versiculo, tipo, idx) {
@@ -930,26 +1236,26 @@ function toggleFavoritoComentario(libro, capitulo, versiculo, tipo, idx) {
     guardarFavoritos();
     const starId = `star_com_${libro}_${capitulo}_${versiculo}_${tipo}_${idx}`;
     const starElem = document.getElementById(starId);
-if (starElem) {
-    if (favoritos.has(key)) {
-        starElem.classList.add('activa');
+    if (starElem) {
+        if (favoritos.has(key)) {
+            starElem.classList.add('activa');
 
-        // ? FEEDBACK VISUAL
-        starElem.classList.add('animacion-fav');
-        lanzarToast("Guardado en favoritos ?");
+            // ? FEEDBACK VISUAL
+            starElem.classList.add('animacion-fav');
+            lanzarToast("Guardado en favoritos ?");
 
-    } else {
-        starElem.classList.remove('activa');
+        } else {
+            starElem.classList.remove('activa');
 
-        // ? FEEDBACK VISUAL
-        lanzarToast("Quitado de favoritos");
+            // ? FEEDBACK VISUAL
+            lanzarToast("Quitado de favoritos");
+        }
+
+        // limpiar animación
+        setTimeout(() => {
+            starElem.classList.remove('animacion-fav');
+        }, 300);
     }
-
-    // limpiar animación
-    setTimeout(() => {
-        starElem.classList.remove('animacion-fav');
-    }, 300);
-}
     if (document.getElementById('panel-favoritos').classList.contains('translate-x-full') === false) mostrarPanelFavoritos();
 }
 function esFavoritoVersiculo(libro, capitulo, versiculo) {
@@ -970,76 +1276,262 @@ function actualizarEstrella(libro, capitulo, versiculo) {
         }
     }
 }
-function mostrarPanelFavoritos() {
-    let listaDiv = document.getElementById('lista-favoritos');
-    listaDiv.innerHTML = "";
-    let favoritosArray = Array.from(favoritos);
-    if (favoritosArray.length === 0) {
-        listaDiv.innerHTML = '<div class="text-gray-400 italic text-center py-8">No tienes favoritos aún.<br>Puedes marcar versículos y comentarios como favoritos.</div>';
-        return;
-    }
-    for (let key of favoritosArray) {
+
+function obtenerOrdenLibroBiblico(libro) {
+    return ORDEN_LIBROS_BIBLICOS.get(libro) ?? Number.MAX_SAFE_INTEGER;
+}
+
+function truncarTextoFavorito(texto, maximo = 120) {
+    const limpio = String(texto || '').trim();
+    if (limpio.length <= maximo) return limpio;
+    return `${limpio.slice(0, maximo).trimEnd()}…`;
+}
+
+function compararFavoritosPorOrdenBiblico(a, b) {
+    return obtenerOrdenLibroBiblico(a.libro) - obtenerOrdenLibroBiblico(b.libro)
+        || a.capitulo - b.capitulo
+        || a.versiculo - b.versiculo
+        || (a.idx ?? 0) - (b.idx ?? 0);
+}
+
+function obtenerFavoritosClasificados() {
+    const grupos = {
+        versiculos: [],
+        comentarios: [],
+        notas: []
+    };
+
+    for (const key of favoritos) {
         if (key.startsWith('versiculo:')) {
-            let ref = key.substring(10);
-            let [libro, capitulo, versiculo] = ref.split('_');
-            let textoVersiculo = bibleContent[libro]?.[capitulo]?.[versiculo];
-            if (!textoVersiculo) continue;
-            let item = document.createElement('div');
-            item.className = "favorito-item favorito-item-versiculo p-3 bg-amber-50 dark:bg-gray-700 rounded-lg border-l-4 border-oro cursor-pointer hover:bg-amber-100 dark:hover:bg-gray-600 transition mb-3";
-            item.innerHTML = `
-                <div class="flex items-center gap-2 mb-1">
-                    <i class="fas fa-bible text-oro text-sm"></i>
-                    <div class="font-bold text-oro text-sm">${libro} ${capitulo}, ${versiculo}</div>
-                </div>
-                <div class="favorito-texto text-gray-700 dark:text-gray-300 text-sm line-clamp-2">${escapeHtml(textoVersiculo)}</div>
-            `;
-            item.onclick = () => {
-                cerrarPanel('panel-favoritos');
-                irAVersiculo(libro, parseInt(capitulo), parseFloat(versiculo));
-            };
-            listaDiv.appendChild(item);
-        } else if (key.startsWith('comentario:')) {
-            let parts = key.substring(11).split('_');
-            let libro = parts[0];
-            let capitulo = parts[1];
-            let versiculo = parts[2];
-            let tipo = parts[3];
-            let idx = parseInt(parts[4]);
-            let comentarioObj = null;
-            if (tipo === 'tradicion') {
-                let comentarios = obtenerComentarios(libro, parseInt(capitulo), parseFloat(versiculo));
-                if (comentarios[idx]) comentarioObj = comentarios[idx];
-            } else if (tipo === 'personal') {
-                let notas = obtenerNotasPersonales(libro, parseInt(capitulo), parseFloat(versiculo));
-                if (notas[idx]) comentarioObj = { autor: "Mi nota", texto: notas[idx].texto, fecha: notas[idx].fecha };
-            }
-            if (!comentarioObj) continue;
-            let item = document.createElement('div');
-            item.className = "favorito-item p-3 bg-amber-50 dark:bg-gray-700 rounded-lg border-l-4 border-oro cursor-pointer hover:bg-amber-100 dark:hover:bg-gray-600 transition mb-3";
-            item.innerHTML = `
-                <div class="flex items-center gap-2 mb-1">
-                    <i class="fas fa-comment text-oro text-sm"></i>
-                    <div class="font-bold text-oro text-sm">${libro} ${capitulo}, ${versiculo}</div>
-                    <span class="text-xs text-gray-500">${tipo === 'tradicion' ? 'Tradición' : 'Nota personal'}</span>
-                </div>
-                <div class="text-gray-700 dark:text-gray-300 text-sm">"${escapeHtml(comentarioObj.texto.substring(0, 100))}${comentarioObj.texto.length > 100 ? '…' : ''}"</div>
-            `;
-            item.onclick = () => {
-                cerrarPanel('panel-favoritos');
-                irAVersiculo(libro, parseInt(capitulo), parseFloat(versiculo));
-                setTimeout(() => {
-                    abrirPanel(libro, parseInt(capitulo), parseFloat(versiculo), bibleContent[libro]?.[capitulo]?.[versiculo] || "");
-                    if (tipo === 'personal') {
-                        document.getElementById('tab-personales').click();
-                    } else {
-                        document.getElementById('tab-tradicion').click();
-                    }
-                }, 200);
-            };
-            listaDiv.appendChild(item);
+            const ref = key.substring(10);
+            const [libro, capituloStr, versiculoStr] = ref.split('_');
+            const capitulo = parseInt(capituloStr, 10);
+            const versiculo = parseFloat(versiculoStr);
+            const texto = bibleContent[libro]?.[capituloStr]?.[versiculoStr];
+
+            if (!texto) continue;
+
+            grupos.versiculos.push({
+                libro,
+                capitulo,
+                versiculo,
+                texto
+            });
+            continue;
+        }
+
+        if (!key.startsWith('comentario:')) continue;
+
+        const parts = key.substring(11).split('_');
+        const libro = parts[0];
+        const capitulo = parseInt(parts[1], 10);
+        const versiculo = parseFloat(parts[2]);
+        const tipo = parts[3];
+        const idx = parseInt(parts[4], 10);
+
+        if (!Number.isInteger(idx)) continue;
+
+        if (tipo === 'tradicion') {
+            const comentarios = obtenerComentarios(libro, capitulo, versiculo);
+            const comentario = comentarios[idx];
+            if (!comentario) continue;
+
+            grupos.comentarios.push({
+                libro,
+                capitulo,
+                versiculo,
+                idx,
+                autor: comentario.autor || 'Tradición',
+                texto: comentario.texto || ''
+            });
+            continue;
+        }
+
+        if (tipo === 'personal') {
+            const notas = obtenerNotasPersonales(libro, capitulo, versiculo);
+            const nota = notas[idx];
+            if (!nota) continue;
+
+            grupos.notas.push({
+                libro,
+                capitulo,
+                versiculo,
+                idx,
+                fecha: nota.fecha || '',
+                texto: nota.texto || ''
+            });
         }
     }
-    document.getElementById('panel-favoritos').classList.remove('translate-x-full');
+
+    grupos.versiculos.sort(compararFavoritosPorOrdenBiblico);
+    grupos.comentarios.sort(compararFavoritosPorOrdenBiblico);
+    grupos.notas.sort(compararFavoritosPorOrdenBiblico);
+
+    return grupos;
+}
+
+function crearBotonFavoritoVersiculo(item) {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'favorito-entrada favorito-item favorito-item-versiculo';
+    boton.innerHTML = `
+        <div class="favorito-entrada-cabecera">
+            <i class="fas fa-bible favorito-entrada-icono" aria-hidden="true"></i>
+            <span class="favorito-entrada-ref">${escapeHtml(formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo))}</span>
+        </div>
+        <p class="favorito-entrada-texto">${escapeHtml(truncarTextoFavorito(item.texto))}</p>
+    `;
+    boton.onclick = () => {
+        cerrarPanel('panel-favoritos');
+        irAVersiculo(item.libro, item.capitulo, item.versiculo);
+    };
+    return boton;
+}
+
+function abrirFavoritoAnotacion(libro, capitulo, versiculo, tipo, idx) {
+    cerrarPanel('panel-favoritos');
+    irAVersiculo(libro, capitulo, versiculo);
+    setTimeout(() => {
+        abrirPanel(
+            libro,
+            capitulo,
+            versiculo,
+            bibleContent[libro]?.[capitulo]?.[versiculo] || "",
+            { tipoLlegada: tipo, idxLlegada: idx }
+        );
+    }, 200);
+}
+
+function crearBotonFavoritoComentario(item) {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'favorito-entrada favorito-item';
+    boton.innerHTML = `
+        <div class="favorito-entrada-cabecera">
+            <i class="fas fa-comment-dots favorito-entrada-icono" aria-hidden="true"></i>
+            <span class="favorito-entrada-ref">${escapeHtml(formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo))}</span>
+            <span class="favorito-entrada-badge">Tradición</span>
+        </div>
+        <p class="favorito-entrada-meta">${escapeHtml(item.autor)}</p>
+        <p class="favorito-entrada-texto">"${escapeHtml(truncarTextoFavorito(item.texto))}"</p>
+    `;
+    boton.onclick = () => abrirFavoritoAnotacion(item.libro, item.capitulo, item.versiculo, 'tradicion', item.idx);
+    return boton;
+}
+
+function crearBotonFavoritoNota(item) {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'favorito-entrada favorito-item';
+    boton.innerHTML = `
+        <div class="favorito-entrada-cabecera">
+            <i class="fas fa-pen favorito-entrada-icono" aria-hidden="true"></i>
+            <span class="favorito-entrada-ref">${escapeHtml(formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo))}</span>
+            <span class="favorito-entrada-badge">Nota</span>
+        </div>
+        ${item.fecha ? `<p class="favorito-entrada-meta">${escapeHtml(item.fecha)}</p>` : ''}
+        <p class="favorito-entrada-texto">${escapeHtml(truncarTextoFavorito(item.texto))}</p>
+    `;
+    boton.onclick = () => abrirFavoritoAnotacion(item.libro, item.capitulo, item.versiculo, 'personal', item.idx);
+    return boton;
+}
+
+function crearSeccionFavoritos(clave, titulo, icono, items, crearItem, mensajeVacio) {
+    const seccion = document.createElement('section');
+    seccion.className = 'favoritos-seccion';
+
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'favoritos-seccion-toggle';
+
+    const contenido = document.createElement('div');
+    contenido.className = 'favoritos-seccion-contenido';
+
+    const sincronizar = () => {
+        const expandida = estadoSeccionesFavoritos[clave] !== false;
+        toggle.setAttribute('aria-expanded', expandida ? 'true' : 'false');
+        contenido.hidden = !expandida;
+    };
+
+    toggle.innerHTML = `
+        <span class="favoritos-seccion-etiqueta">
+            <span class="favoritos-seccion-icono" aria-hidden="true"><i class="fas ${icono}"></i></span>
+            <span>${titulo}</span>
+        </span>
+        <span class="favoritos-seccion-meta">
+            <span class="favoritos-seccion-count">${items.length}</span>
+            <i class="fas fa-chevron-down favoritos-seccion-chevron" aria-hidden="true"></i>
+        </span>
+    `;
+    toggle.onclick = () => {
+        estadoSeccionesFavoritos[clave] = !(estadoSeccionesFavoritos[clave] !== false);
+        sincronizar();
+    };
+
+    if (items.length === 0) {
+        contenido.innerHTML = `<div class="favoritos-seccion-vacio">${mensajeVacio}</div>`;
+    } else {
+        const lista = document.createElement('div');
+        lista.className = 'favoritos-seccion-lista';
+        items.forEach(item => lista.appendChild(crearItem(item)));
+        contenido.appendChild(lista);
+    }
+
+    sincronizar();
+    seccion.appendChild(toggle);
+    seccion.appendChild(contenido);
+    return seccion;
+}
+
+function mostrarPanelFavoritos() {
+    const listaDiv = document.getElementById('lista-favoritos');
+    const favoritosClasificados = obtenerFavoritosClasificados();
+    const totalFavoritos = favoritosClasificados.versiculos.length
+        + favoritosClasificados.comentarios.length
+        + favoritosClasificados.notas.length;
+
+    listaDiv.innerHTML = "";
+
+    if (totalFavoritos === 0) {
+        listaDiv.innerHTML = '<div class="favoritos-vacio-global text-gray-400 italic text-center py-8">No tienes favoritos aún.<br>Puedes marcar versículos, comentarios y notas como favoritos.</div>';
+        abrirPanelLateral('panel-favoritos');
+        return;
+    }
+
+    listaDiv.appendChild(
+        crearSeccionFavoritos(
+            'versiculos',
+            'Versículos',
+            'fa-bible',
+            favoritosClasificados.versiculos,
+            crearBotonFavoritoVersiculo,
+            'Todavía no guardaste versículos en favoritos.'
+        )
+    );
+
+    listaDiv.appendChild(
+        crearSeccionFavoritos(
+            'comentarios',
+            'Comentarios',
+            'fa-comment-dots',
+            favoritosClasificados.comentarios,
+            crearBotonFavoritoComentario,
+            'Todavía no guardaste comentarios en favoritos.'
+        )
+    );
+
+    listaDiv.appendChild(
+        crearSeccionFavoritos(
+            'notas',
+            'Notas',
+            'fa-pen',
+            favoritosClasificados.notas,
+            crearBotonFavoritoNota,
+            'Todavía no guardaste notas en favoritos.'
+        )
+    );
+
+    abrirPanelLateral('panel-favoritos');
 }
 
 // --------------------------------------------------------------
@@ -1079,7 +1571,7 @@ function mostrarResultadosBusqueda(termino) {
     const panel = document.getElementById('panel-busqueda');
     const contenedor = document.getElementById('contenido-busqueda');
     const contador = document.getElementById('contador-busqueda');
-    
+
     // Cerrar otros paneles para reemplazarlos con el panel de búsqueda
     cerrarPanel('panel-comentarios');
     cerrarPanel('panel-favoritos');
@@ -1088,7 +1580,7 @@ function mostrarResultadosBusqueda(termino) {
     if (contador) {
         contador.textContent = `${resultados.length} resultado${resultados.length !== 1 ? 's' : ''} para "${termino}"`;
     }
-    
+
     if (resultados.length === 0) {
         contenedor.innerHTML = `<div class="text-gray-400 italic text-center py-8">No se encontraron versículos que contengan "${escapeHtml(termino)}".</div>`;
     } else {
@@ -1100,14 +1592,14 @@ function mostrarResultadosBusqueda(termino) {
         const estiloTexto = esModoOscuro ? '' : 'style="color: var(--lumina-ink);"';
         let html = '';
         html += resultados.map(ref => `
-            <div class="resultado-busqueda-item p-3 bg-amber-50 dark:bg-gray-700 rounded-lg border-l-4 border-oro cursor-pointer hover:bg-amber-100 dark:hover:bg-gray-600 transition mb-3" ${estiloTarjeta} onclick="irAVersiculo('${ref.libro}', ${ref.capitulo}, ${ref.versiculo})">
+            <div class="resultado-busqueda-item p-3 bg-amber-50 dark:bg-gray-700 rounded-lg border-l-4 border-oro cursor-pointer hover:bg-amber-100 dark:hover:bg-gray-600 transition mb-3" ${estiloTarjeta} onclick="irAVersiculo('${ref.libro}', ${ref.capitulo}, ${ref.versiculo}, 'busqueda')">
                 <div class="font-bold text-oro text-sm" ${estiloTitulo}>${ref.libro} ${ref.capitulo}, ${ref.versiculo}</div>
                 <div class="text-gray-700 dark:text-gray-300 text-sm line-clamp-2" ${estiloTexto}>${escapeHtml(ref.texto)}</div>
             </div>
         `).join('');
         contenedor.innerHTML = html;
     }
-    panel.classList.remove('translate-x-full');
+    abrirPanelLateral('panel-busqueda');
 }
 
 // --------------------------------------------------------------
@@ -1129,50 +1621,33 @@ function escucharComentario(autor, texto, btn) {
         alert('Tu navegador no admite lectura en voz alta.');
         return;
     }
-    
+
     // Si ya está reproduciendo este comentario, detener
     if (btnAudioActivo === btn && window.speechSynthesis.speaking) {
         detenerConRestauracion();
         return;
     }
-    
+
     detenerConRestauracion();
-    
+
     const contenido = `Comentario de ${autor}. ${texto}`;
     const utterance = crearUtteranceLectura(contenido);
-    
-    // Preparar palabras para resaltado
-    prepararPalabrasParaResaltado(contenido);
-    
+
     btnAudioActivo = btn;
     if (btn) cambiarAIconoPausa(btn);
-    
-    utterance.onstart = () => {
-        // Configurar Media Session para controles del dispositivo
-        // configurarMediaSession();
-        
-        // Iniciar monitor de reproducción para detectar pausas inesperadas
-        // iniciarMonitorReproduccion();
-        
-        // Estimar duración (aproximadamente 1.5 segundos por 10 palabras)
-        const duracionEstimada = (palabrasResaltables.length / 10) * 1.5;
-        iniciarSincronizacionResaltado(duracionEstimada, document.getElementById('contenido-panel-tradicion'));
-    };
-    
+
     utterance.onend = () => {
         limpiarMonitorReproduccion();
         if (btn) restaurarIconoParla(btn);
         btnAudioActivo = null;
-        limpiarResaltadoAnterior();
     };
-    
+
     utterance.onerror = () => {
         limpiarMonitorReproduccion();
         if (btn) restaurarIconoParla(btn);
         btnAudioActivo = null;
-        limpiarResaltadoAnterior();
     };
-    
+
     reproducirUtterance(utterance);
 }
 
@@ -1181,55 +1656,58 @@ function escucharNota(texto, btn) {
         alert('Tu navegador no admite lectura en voz alta.');
         return;
     }
-    
+
     // Si ya está reproduciendo esta nota, detener
     if (btnAudioActivo === btn && window.speechSynthesis.speaking) {
         detenerConRestauracion();
         return;
     }
-    
+
     detenerConRestauracion();
-    
+
     const utterance = crearUtteranceLectura(texto);
-    
-    // Preparar palabras para resaltado
-    prepararPalabrasParaResaltado(texto);
-    
+
     btnAudioActivo = btn;
     if (btn) cambiarAIconoPausa(btn);
-    
-    utterance.onstart = () => {
-        // Configurar Media Session para controles del dispositivo
-        // configurarMediaSession();
-        
-        // Iniciar monitor de reproducción para detectar pausas inesperadas
-        // iniciarMonitorReproduccion();
-        
-        // Estimar duración
-        const duracionEstimada = (palabrasResaltables.length / 10) * 1.5;
-        iniciarSincronizacionResaltado(duracionEstimada, document.getElementById('contenido-panel-personales'));
-    };
-    
+
     utterance.onend = () => {
         limpiarMonitorReproduccion();
         if (btn) restaurarIconoParla(btn);
         btnAudioActivo = null;
-        limpiarResaltadoAnterior();
     };
-    
+
     utterance.onerror = () => {
         limpiarMonitorReproduccion();
         if (btn) restaurarIconoParla(btn);
         btnAudioActivo = null;
-        limpiarResaltadoAnterior();
     };
-    
+
     reproducirUtterance(utterance);
 }
 
 function compartirVersiculo(libro, capitulo, versiculo, texto) {
-    const contenido = `${texto}\n\n- Compartido desde Lumina`;
-    compartirTexto(contenido, `Versículo: ${libro} ${capitulo}, ${versiculo}`);
+    const referencia = formatearReferenciaCompartida(libro, capitulo, versiculo);
+    const textoLimpio = String(texto || '').trim();
+    const contenido = referencia
+        ? `${textoLimpio} (${referencia})\n- Compartido desde Lumina`
+        : `${textoLimpio}\n- Compartido desde Lumina`;
+    compartirTexto(contenido, referencia ? `Versículo: ${referencia}` : 'Versículo compartido');
+}
+
+function formatearReferenciaCompartida(libro, capitulo, versiculo) {
+    const libroLimpio = String(libro || '').trim();
+    const cap = Number(capitulo);
+    const ver = Number(versiculo);
+
+    if (Number.isFinite(cap) && cap > 0 && Number.isFinite(ver) && ver > 0) {
+        return `${libroLimpio} ${capitulo},${versiculo}`;
+    }
+
+    if (Number.isFinite(cap) && cap > 0) {
+        return `${libroLimpio} ${capitulo}`;
+    }
+
+    return libroLimpio;
 }
 
 function limpiarAutorComentario(autor) {
@@ -1240,8 +1718,23 @@ function limpiarAutorComentario(autor) {
 
 function compartirComentario(libro, capitulo, versiculo, autor, texto) {
     const autorLimpio = limpiarAutorComentario(autor);
-    const contenido = `${texto}\n\n- Compartido desde Lumina`;
-    compartirTexto(contenido, `Comentario de ${autorLimpio} sobre ${libro} ${capitulo}, ${versiculo}`);
+    const referencia = formatearReferenciaCompartida(libro, capitulo, versiculo);
+    const textoLimpio = String(texto || '').trim();
+    const encabezado = referencia
+        ? `Comentario de ${autorLimpio}, de ${referencia}:`
+        : `Comentario de ${autorLimpio}:`;
+    const contenido = `${encabezado}\n${textoLimpio}\n- Compartido desde Lumina`;
+    compartirTexto(contenido, referencia ? `Comentario de ${autorLimpio} sobre ${referencia}` : `Comentario de ${autorLimpio}`);
+}
+
+function compartirNota(libro, capitulo, versiculo, texto) {
+    const referencia = formatearReferenciaCompartida(libro, capitulo, versiculo);
+    const textoLimpio = String(texto || '').trim();
+    const encabezado = referencia
+        ? `Nota propia sobre ${referencia}:`
+        : 'Nota propia:';
+    const contenido = `${encabezado}\n${textoLimpio}\n- Compartido desde Lumina`;
+    compartirTexto(contenido, referencia ? `Nota propia sobre ${referencia}` : 'Nota propia');
 }
 
 // --------------------------------------------------------------
@@ -1254,7 +1747,6 @@ let leyendoCapituloCompleto = false;
 // Variables para rastrear versículo en reproducción
 let versiculoActualEnLectura = null; // { libro, capitulo, versiculo }
 let listaVersiculosEnCapitulo = []; // Array de versículos en orden
-let tiemposAcumulativosVersiculos = []; // Array de tiempos acumulativos en ms para sincronización precisa
 
 // Variables para mantener reproducción con pantalla apagada
 let reproduccionActiva = false; // Track if actively playing
@@ -1263,27 +1755,31 @@ const MAX_INTENTOS_REANUDACION = 3; // Máximo de intentos antes de renunciar
 let tokenLecturaActiva = 0;
 let timeoutLecturaActiva = null;
 let speechSynthesisDesbloqueada = false;
+let vozEspanolPrecargada = null;
 
 function navegadorSoportaLectura() {
     return 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
 }
 
-function obtenerVozEspanol() {
-    if (!navegadorSoportaLectura()) return null;
-    const voces = window.speechSynthesis.getVoices();
-    
-    // Si no hay voces disponibles, esperar a que se carguen (común en móvil)
-    if (voces.length === 0) return null;
-    
+function esDispositivoMovilLectura() {
+    const userAgent = navigator.userAgent || '';
+    return Boolean(
+        navigator.maxTouchPoints > 1 ||
+        window.matchMedia?.('(pointer: coarse)').matches ||
+        /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent)
+    );
+}
+
+function seleccionarVozEspanol(voces) {
     // 1. Log de debug detallado: Nombre + Lang
     console.log('--- Listado detallado de voces ---');
     voces.forEach(v => console.log(`Voz: ${v.name} | Lang: ${v.lang}`));
     console.log('------------------------------------');
-    
+
     // 2. Prioridad 1: Búsqueda exhaustiva por Argentina (Lang o Nombre)
     // Buscamos "es-AR" o que el nombre contenga "Argentina" o "Elena" (voz de iOS)
-    let vozAR = voces.find(v => 
-        (v.lang && v.lang.toLowerCase() === 'es-ar') || 
+    let vozAR = voces.find(v =>
+        (v.lang && v.lang.toLowerCase() === 'es-ar') ||
         (v.name && (v.name.toLowerCase().includes('argentina') || v.name.toLowerCase().includes('elena')))
     );
 
@@ -1291,10 +1787,10 @@ function obtenerVozEspanol() {
         console.log('? Usando voz rioplatense identificada:', vozAR.name);
         return vozAR;
     }
-    
+
     // 3. Prioridad 2: Variantes preferidas (Subimos es-US y es-MX sobre es-ES)
     const variantesEspanol = ['es-MX', 'es-US', 'es-CO', 'es-VE', 'es-PE', 'es-CL', 'es', 'es-ES'];
-    
+
     for (let variante of variantesEspanol) {
         let vozEncontrada = voces.find(v => v.lang && v.lang.toLowerCase().includes(variante.toLowerCase()));
         if (vozEncontrada) {
@@ -1302,10 +1798,55 @@ function obtenerVozEspanol() {
             return vozEncontrada;
         }
     }
-    
+
     // Fallback: la primera que aparezca si todo lo anterior falla
     console.warn('No se encontró variante preferida, usando:', voces[0].lang);
     return voces.length > 0 ? voces[0] : null;
+}
+
+function sincronizarVozEspanol() {
+    if (!navegadorSoportaLectura()) return null;
+
+    const voces = window.speechSynthesis.getVoices();
+    if (voces.length === 0) {
+        vozEspanolPrecargada = null;
+        console.log('Sincronizando voces para Lumina... aún no hay voces disponibles.');
+        return null;
+    }
+
+    vozEspanolPrecargada = seleccionarVozEspanol(voces);
+
+    if (vozEspanolPrecargada) {
+        console.log(`Sincronizando voces para Lumina... ${vozEspanolPrecargada.name} (${vozEspanolPrecargada.lang})`);
+    }
+
+    return vozEspanolPrecargada;
+}
+
+function obtenerVozEspanol() {
+    if (!navegadorSoportaLectura()) return null;
+    const voces = window.speechSynthesis.getVoices();
+
+    // Si no hay voces disponibles, esperar a que se carguen (común en móvil)
+    if (voces.length === 0) {
+        vozEspanolPrecargada = null;
+        return null;
+    }
+
+    if (vozEspanolPrecargada) {
+        const vozActual = voces.find(v =>
+            (v.voiceURI && vozEspanolPrecargada.voiceURI && v.voiceURI === vozEspanolPrecargada.voiceURI) ||
+            (v.name === vozEspanolPrecargada.name && v.lang === vozEspanolPrecargada.lang)
+        );
+
+        if (vozActual) {
+            vozEspanolPrecargada = vozActual;
+            return vozActual;
+        }
+    }
+
+    vozEspanolPrecargada = seleccionarVozEspanol(voces);
+    return vozEspanolPrecargada;
 }
 
 function cambiarAIconoPausa(btn) {
@@ -1332,6 +1873,11 @@ function detenerConRestauracion() {
     detenerLectura();
 }
 
+function detenerReproduccionesLuminaActivas() {
+    detenerConRestauracion();
+    detenerAudiosCelebracion();
+}
+
 function limpiarEstadoLectura() {
     document.querySelectorAll('.btn-audio-versiculo').forEach(btn => {
         btn.classList.remove('reproduciendo');
@@ -1343,7 +1889,7 @@ function limpiarEstadoLectura() {
 
 function detenerLectura() {
     if (!navegadorSoportaLectura()) return;
-    
+
     // Limpiar monitores de reproducción
     limpiarMonitorReproduccion();
     tokenLecturaActiva += 1;
@@ -1351,7 +1897,7 @@ function detenerLectura() {
         clearTimeout(timeoutLecturaActiva);
         timeoutLecturaActiva = null;
     }
-    
+
     leyendoCapituloCompleto = false;
     leyendoLibroCompleto = false;
     libroEnReproduccion = null;
@@ -1361,6 +1907,7 @@ function detenerLectura() {
     }
     vozActiva = null;
     limpiarEstadoLectura();
+    limpiarResaltadoVersiculo();
     actualizarBotonesReproduccionListas();
 }
 
@@ -1368,10 +1915,10 @@ function crearUtteranceLectura(texto) {
     // 1. Limpiamos espacios extra que puedan venir del HTML
     const textoLimpio = texto.trim();
     const utterance = new SpeechSynthesisUtterance(textoLimpio);
-    
+
     // 2. Obtenemos la mejor voz disponible con nuestra nueva lógica
     const voz = obtenerVozEspanol();
-    
+
     if (voz) {
         utterance.voice = voz;
         utterance.lang = voz.lang;
@@ -1407,7 +1954,7 @@ function desbloquearSpeechSynthesis() {
     }
 }
 
-function dividirTextoParaLectura(texto, maxChars = 220) {
+function dividirTextoParaLectura(texto, maxChars = esDispositivoMovilLectura() ? 280 : 360) {
     const limpio = String(texto || '').replace(/\s+/g, ' ').trim();
     if (!limpio) return [];
     if (limpio.length <= maxChars) return [limpio];
@@ -1491,6 +2038,7 @@ function reproducirUtterance(utterance) {
     const token = ++tokenLecturaActiva;
     let arranco = false;
     let indice = 0;
+    const demoraEntreFragmentos = esDispositivoMovilLectura() ? 60 : 30;
 
     if (timeoutLecturaActiva) {
         clearTimeout(timeoutLecturaActiva);
@@ -1543,7 +2091,7 @@ function reproducirUtterance(utterance) {
                 return;
             }
 
-            timeoutLecturaActiva = setTimeout(hablarSiguiente, 30);
+            timeoutLecturaActiva = setTimeout(hablarSiguiente, demoraEntreFragmentos);
         };
 
         try {
@@ -1576,6 +2124,133 @@ function reproducirUtterance(utterance) {
     }
 }
 
+function finalizarLecturaSecuencial(opciones = {}) {
+    const { actualizarBotonCapitulo = false, actualizarBotonLibro = false } = opciones;
+
+    limpiarMonitorReproduccion();
+    leyendoCapituloCompleto = false;
+    leyendoLibroCompleto = false;
+    libroEnReproduccion = null;
+    capituloEnReproduccion = null;
+    vozActiva = null;
+    limpiarEstadoLectura();
+    limpiarResaltadoVersiculo();
+
+    if (actualizarBotonCapitulo) {
+        actualizarBotonLeerCapitulo(false);
+        return;
+    }
+
+    if (actualizarBotonLibro) {
+        actualizarBotonLeerLibro(false);
+        return;
+    }
+
+    actualizarBotonesReproduccionListas();
+}
+
+function reproducirSecuenciaVersiculos(secuencia, opciones = {}) {
+    if (!Array.isArray(secuencia) || secuencia.length === 0 || !navegadorSoportaLectura()) {
+        return false;
+    }
+
+    const {
+        pausaEntreVersiculosMs = esDispositivoMovilLectura() ? 110 : 60,
+        onPrimerInicio,
+        onFin,
+        onError
+    } = opciones;
+
+    const token = ++tokenLecturaActiva;
+    let indiceActual = 0;
+    let inicioNotificado = false;
+
+    if (timeoutLecturaActiva) {
+        clearTimeout(timeoutLecturaActiva);
+        timeoutLecturaActiva = null;
+    }
+
+    const reproducirSiguiente = () => {
+        if (token !== tokenLecturaActiva) return;
+
+        const item = secuencia[indiceActual];
+        if (!item) {
+            timeoutLecturaActiva = null;
+            if (typeof onFin === 'function') {
+                onFin();
+            }
+            return;
+        }
+
+        const texto = String(item.texto || '').trim();
+        if (!texto) {
+            indiceActual += 1;
+            reproducirSiguiente();
+            return;
+        }
+
+        const utterance = crearUtteranceLectura(texto);
+
+        utterance.onstart = (event) => {
+            if (token !== tokenLecturaActiva) return;
+
+            if (Number.isFinite(item.capitulo) && Number.isFinite(item.versiculo) && item.libro) {
+                resaltarVersiculo(item.libro, item.capitulo, item.versiculo);
+            } else {
+                limpiarResaltadoVersiculo();
+            }
+
+            if (!inicioNotificado) {
+                inicioNotificado = true;
+                if (typeof onPrimerInicio === 'function') {
+                    onPrimerInicio(event);
+                }
+            }
+        };
+
+        utterance.onend = () => {
+            if (token !== tokenLecturaActiva) return;
+
+            indiceActual += 1;
+            timeoutLecturaActiva = setTimeout(reproducirSiguiente, pausaEntreVersiculosMs);
+        };
+
+        utterance.onerror = (event) => {
+            if (token !== tokenLecturaActiva) return;
+
+            timeoutLecturaActiva = null;
+            if (typeof onError === 'function') {
+                onError(event);
+            }
+        };
+
+        try {
+            if (window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+            }
+            window.speechSynthesis.speak(utterance);
+        } catch (error) {
+            timeoutLecturaActiva = null;
+            if (typeof onError === 'function') {
+                onError(error);
+            }
+        }
+    };
+
+    try {
+        desbloquearSpeechSynthesis();
+        window.speechSynthesis.cancel();
+        timeoutLecturaActiva = setTimeout(reproducirSiguiente, 80);
+        return true;
+    } catch (error) {
+        timeoutLecturaActiva = null;
+        if (typeof onError === 'function') {
+            onError(error);
+        }
+        return false;
+    }
+}
+
 // Función para configurar Media Session API y preparar reanudación automática
 function configurarMediaSession() {
     if ('mediaSession' in navigator) {
@@ -1587,12 +2262,12 @@ function configurarMediaSession() {
                 { src: '/icon-512x512.png', sizes: '512x512', type: 'image/png' }
             ]
         });
-        
+
         // Handlers para controles de reproducción
         navigator.mediaSession.setActionHandler('pause', () => {
             window.speechSynthesis.pause();
         });
-        
+
         navigator.mediaSession.setActionHandler('play', () => {
             window.speechSynthesis.resume();
         });
@@ -1603,31 +2278,31 @@ function configurarMediaSession() {
 function iniciarMonitorReproduccion() {
     reproduccionActiva = true;
     intentosReanudacion = 0;
-    
+
     // Listener para visibilidad de página
     const handleVisibilityChange = () => {
         if (!reproduccionActiva) return;
-        
+
         // Si la página se vuelve visible y está pausada, intentar reanudar
         if (!document.hidden && window.speechSynthesis.paused && !window.speechSynthesis.speaking) {
             console.log('Página visible nuevamente, intentando reanudar...');
             intentarReanudarAutomaticamente();
         }
     };
-    
+
     // Listener para pausas inesperadas
     const checkPause = setInterval(() => {
         if (!reproduccionActiva || window.speechSynthesis.speaking || window.speechSynthesis.pending) {
             return; // Está reproduciendo normalmente
         }
-        
+
         // Si debería estar reproduciendo pero está pausado
         if (reproduccionActiva && !window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
             console.warn('Reproducción pausada inesperadamente, intentando reanudar...');
             intentarReanudarAutomaticamente();
         }
     }, 2000); // Verificar cada 2 segundos
-    
+
     // Guardar el interval ID para poder limpiarlo después
     window.checkPauseInterval = checkPause;
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -1639,7 +2314,7 @@ function intentarReanudarAutomaticamente() {
         console.log('? Máximo de intentos de reanudación alcanzado');
         return;
     }
-    
+
     try {
         intentosReanudacion++;
         window.speechSynthesis.resume();
@@ -1653,15 +2328,15 @@ function intentarReanudarAutomaticamente() {
 function limpiarMonitorReproduccion() {
     reproduccionActiva = false;
     intentosReanudacion = 0;
-    
+
     // Limpiar interval
     if (window.checkPauseInterval) {
         clearInterval(window.checkPauseInterval);
         window.checkPauseInterval = null;
     }
-    
+
     // Remover listener de visibilidad
-    document.removeEventListener('visibilitychange', () => {});
+    document.removeEventListener('visibilitychange', () => { });
 }
 
 function actualizarBotonLeerCapitulo(leyendo) {
@@ -1682,25 +2357,37 @@ function actualizarBotonLeerCapitulo(leyendo) {
     actualizarBotonesReproduccionListas();
 }
 
-function actualizarBotonLeerLibro(leyendo) {
+function sincronizarBotonLeerLibroPrincipal() {
     const btnLeer = document.querySelector('.btn-leer-libro');
     if (!btnLeer) return;
 
-    if (leyendo) {
+    if (leyendoLibroCompleto && libroEnReproduccion) {
         btnLeer.innerHTML = '<i class="fas fa-stop"></i> DEJAR DE ESCUCHAR';
-        btnLeer.title = 'Dejar de escuchar';
-        btnLeer.setAttribute('aria-label', 'Dejar de escuchar');
+        const descripcion = libroEnReproduccion === libroActual
+            ? 'Dejar de escuchar'
+            : `Dejar de escuchar ${libroEnReproduccion}`;
+        btnLeer.title = descripcion;
+        btnLeer.setAttribute('aria-label', descripcion);
         btnLeer.classList.add('en-reproduccion');
     } else {
         btnLeer.innerHTML = '<i class="fas fa-volume-up"></i> ESCUCHAR LIBRO';
-        btnLeer.title = 'Escuchar todo el libro';
-        btnLeer.setAttribute('aria-label', 'Escuchar todo el libro');
+        const descripcion = libroActual
+            ? `Escuchar todo el libro ${libroActual}`
+            : 'Escuchar todo el libro';
+        btnLeer.title = descripcion;
+        btnLeer.setAttribute('aria-label', descripcion);
         btnLeer.classList.remove('en-reproduccion');
     }
+}
+
+function actualizarBotonLeerLibro(leyendo) {
+    sincronizarBotonLeerLibroPrincipal();
     actualizarBotonesReproduccionListas();
 }
 
 function actualizarBotonesReproduccionListas() {
+    sincronizarBotonLeerLibroPrincipal();
+
     document.querySelectorAll('[data-tipo-reproduccion="libro"]').forEach(btn => {
         const libro = btn.dataset.libro;
         const activo = leyendoLibroCompleto && libroEnReproduccion === libro;
@@ -1721,6 +2408,16 @@ function actualizarBotonesReproduccionListas() {
     });
 
     actualizarBotonesLeidoVistaLectura();
+}
+
+function manejarBotonLeerLibroActual() {
+    if (leyendoLibroCompleto && libroEnReproduccion) {
+        detenerLectura();
+        actualizarBotonLeerLibro(false);
+        return;
+    }
+
+    leerLibroEntero(libroActual);
 }
 
 function escucharVersiculo(libro, capitulo, versiculo, texto) {
@@ -1754,27 +2451,19 @@ function escucharVersiculo(libro, capitulo, versiculo, texto) {
             btn.innerHTML = '<span class="audio-icon" aria-hidden="true">⏹</span>';
         }
 
-        // Preparar resaltado de palabras
-        palabrasResaltables = prepararPalabrasParaResaltado(texto);
-
         utterance.onstart = () => {
             // Configurar Media Session para controles del dispositivo
             // configurarMediaSession();
-            
+
             // Iniciar monitor de reproducción para detectar pausas inesperadas
             // iniciarMonitorReproduccion();
-            
-            // Iniciar sincronización de resaltado de palabras
-            const duracionEstimada = (palabrasResaltables.length / 10) * 1.5;
-            iniciarSincronizacionResaltado(duracionEstimada, document.getElementById(`verse_${libro}_${capitulo}_${versiculo}`));
-            
+
             // Resaltar el versículo completo
             resaltarVersiculo(libro, capitulo, versiculo);
         };
 
         utterance.onend = () => {
             // limpiarMonitorReproduccion();
-            limpiarResaltadoAnterior();
             limpiarResaltadoVersiculo();
             if (!leyendoCapituloCompleto) {
                 vozActiva = null;
@@ -1784,7 +2473,6 @@ function escucharVersiculo(libro, capitulo, versiculo, texto) {
 
         utterance.onerror = () => {
             // limpiarMonitorReproduccion();
-            limpiarResaltadoAnterior();
             limpiarResaltadoVersiculo();
             vozActiva = null;
             limpiarEstadoLectura();
@@ -1806,18 +2494,11 @@ function leerCapituloEntero() {
         return;
     }
 
-    const versiculosObj = bibleContent[libroActual]?.[capituloActual] || {};
-    const numerosVersiculos = Object.keys(versiculosObj).map(Number).sort((a, b) => a - b);
-    // Leer solo el texto, sin decir "Versículo X"
-    const textoCapitulo = numerosVersiculos
-        .filter(v => v >= 1)
-        .map(v => versiculosObj[v])
-        .join(' ');
-
-    if (!textoCapitulo) return;
+    const secuencia = construirListaVersiculosCapitulo(libroActual, capituloActual);
+    if (secuencia.length === 0) return;
 
     // Si ya está reproduciendo, detener
-    if (leyendoCapituloCompleto) {
+    if (leyendoCapituloCompleto && capituloEnReproduccion === capituloActual && !leyendoLibroCompleto) {
         detenerLectura();
         actualizarBotonLeerCapitulo(false);
         return;
@@ -1827,11 +2508,6 @@ function leerCapituloEntero() {
     leyendoCapituloCompleto = true;
     capituloEnReproduccion = capituloActual;
 
-    // Preparar palabras para resaltado y construir lista de versículos
-    const textoCompleto = `${libroActual}, capítulo ${capituloActual}. ${textoCapitulo}`;
-    prepararPalabrasParaResaltado(textoCompleto);
-    construirListaVersiculosCapitulo(libroActual, capituloActual);
-
     // Cambiar el texto del botón a "DETENER LECTURA"
     actualizarBotonLeerCapitulo(true);
 
@@ -1840,60 +2516,15 @@ function leerCapituloEntero() {
         console.warn('TTS: voces aún no disponibles. Usando fallback inmediato para conservar la activación del usuario.');
     }
 
-    const utterance = crearUtteranceLectura(textoCompleto);
-    
-    let tiempoInicio = 0;
-    let intervaloResalteVersiculo = null;
-    
-    utterance.onstart = () => {
-        const duracionEstimada = (palabrasResaltables.length / 10) * 1.5;
-        iniciarSincronizacionResaltado(duracionEstimada, document.getElementById('contenedor-versiculos'));
-        
-        // Calcular tiempos acumulativos basados en longitud de versículos
-        calcularTiemposAcumulativos(duracionEstimada);
-        
-        tiempoInicio = Date.now();
-        
-        // Interval para resaltar versículos con sincronización mejorada
-        intervaloResalteVersiculo = setInterval(() => {
-            const tiempoTranscurrido = Date.now() - tiempoInicio;
-            
-            // Buscar qué versículo corresponde a este tiempo
-            let indiceVersiculo = 0;
-            for (let i = 0; i < tiemposAcumulativosVersiculos.length; i++) {
-                if (tiempoTranscurrido < tiemposAcumulativosVersiculos[i]) {
-                    indiceVersiculo = i;
-                    break;
-                }
-            }
-            
-            if (indiceVersiculo < listaVersiculosEnCapitulo.length) {
-                const v = listaVersiculosEnCapitulo[indiceVersiculo];
-                resaltarVersiculo(v.libro, v.capitulo, v.versiculo);
-            }
-        }, 100);
-    };
-    
-    utterance.onend = () => {
-        leyendoCapituloCompleto = false;
-        vozActiva = null;
-        limpiarEstadoLectura();
-        limpiarResaltadoAnterior();
-        limpiarResaltadoVersiculo();
-        if (intervaloResalteVersiculo) clearInterval(intervaloResalteVersiculo);
-        actualizarBotonLeerCapitulo(false);
-    };
-    utterance.onerror = () => {
-        leyendoCapituloCompleto = false;
-        vozActiva = null;
-        limpiarEstadoLectura();
-        limpiarResaltadoAnterior();
-        limpiarResaltadoVersiculo();
-        if (intervaloResalteVersiculo) clearInterval(intervaloResalteVersiculo);
-        actualizarBotonLeerCapitulo(false);
-    };
+    const inicioCorrecto = reproducirSecuenciaVersiculos(secuencia, {
+        onFin: () => finalizarLecturaSecuencial({ actualizarBotonCapitulo: true }),
+        onError: () => finalizarLecturaSecuencial({ actualizarBotonCapitulo: true })
+    });
 
-    reproducirUtterance(utterance);
+    if (!inicioCorrecto) {
+        finalizarLecturaSecuencial({ actualizarBotonCapitulo: true });
+        lanzarToast('No se pudo iniciar la lectura en voz alta');
+    }
 }
 
 // Variables globales para lectura de libros
@@ -1915,88 +2546,28 @@ function leerCapituloEspecifico(capitulo) {
         return;
     }
 
-    const versiculosObj = bibleContent[libroActual]?.[capitulo] || {};
-    const numerosVersiculos = Object.keys(versiculosObj).map(Number).sort((a, b) => a - b);
-    const textoCapitulo = numerosVersiculos
-        .filter(v => v >= 1)
-        .map(v => versiculosObj[v])
-        .join(' ');
-
-    if (!textoCapitulo) return;
+    const secuencia = construirListaVersiculosCapitulo(libroActual, capitulo);
+    if (secuencia.length === 0) return;
 
     detenerLectura();
     leyendoCapituloCompleto = true;
     capituloEnReproduccion = capitulo;
     actualizarBotonesReproduccionListas();
 
-    // Preparar palabras para resaltado y construir lista de versículos
-    const textoCompleto = `${libroActual}, capítulo ${capitulo}. ${textoCapitulo}`;
-    prepararPalabrasParaResaltado(textoCompleto);
-    construirListaVersiculosCapitulo(libroActual, capitulo);
-
     const voces = window.speechSynthesis.getVoices();
     if (voces.length === 0) {
         console.warn('TTS: voces aún no disponibles. Usando fallback inmediato para conservar la activación del usuario.');
     }
 
-    const utterance = crearUtteranceLectura(textoCompleto);
-    
-    let tiempoInicio = 0;
-    let intervaloResalteVersiculo = null;
-    
-    utterance.onstart = () => {
-        const duracionEstimada = (palabrasResaltables.length / 10) * 1.5;
-        iniciarSincronizacionResaltado(duracionEstimada, document.getElementById('contenedor-versiculos'));
-        
-        // Calcular tiempos acumulativos basados en longitud de versículos
-        calcularTiemposAcumulativos(duracionEstimada);
-        
-        tiempoInicio = Date.now();
-        
-        // Interval para resaltar versículos con sincronización mejorada
-        intervaloResalteVersiculo = setInterval(() => {
-            const tiempoTranscurrido = Date.now() - tiempoInicio;
-            
-            // Buscar qué versículo corresponde a este tiempo
-            let indiceVersiculo = 0;
-            for (let i = 0; i < tiemposAcumulativosVersiculos.length; i++) {
-                if (tiempoTranscurrido < tiemposAcumulativosVersiculos[i]) {
-                    indiceVersiculo = i;
-                    break;
-                }
-            }
-            
-            if (indiceVersiculo < listaVersiculosEnCapitulo.length) {
-                const v = listaVersiculosEnCapitulo[indiceVersiculo];
-                resaltarVersiculo(v.libro, v.capitulo, v.versiculo);
-            }
-        }, 100);
-    };
-    
-    utterance.onend = () => {
-        limpiarMonitorReproduccion();
-        leyendoCapituloCompleto = false;
-        capituloEnReproduccion = null;
-        vozActiva = null;
-        limpiarEstadoLectura();
-        limpiarResaltadoAnterior();
-        limpiarResaltadoVersiculo();
-        if (intervaloResalteVersiculo) clearInterval(intervaloResalteVersiculo);
-        actualizarBotonesReproduccionListas();
-    };
-    utterance.onerror = () => {
-        limpiarMonitorReproduccion();
-        leyendoCapituloCompleto = false;
-        capituloEnReproduccion = null;
-        vozActiva = null;
-        limpiarEstadoLectura();
-        limpiarResaltadoAnterior();
-        limpiarResaltadoVersiculo();
-        if (intervaloResalteVersiculo) clearInterval(intervaloResalteVersiculo);
-        actualizarBotonesReproduccionListas();
-    };
+    const inicioCorrecto = reproducirSecuenciaVersiculos(secuencia, {
+        onFin: () => finalizarLecturaSecuencial(),
+        onError: () => finalizarLecturaSecuencial()
+    });
 
-    reproducirUtterance(utterance);
+    if (!inicioCorrecto) {
+        finalizarLecturaSecuencial();
+        lanzarToast('No se pudo iniciar la lectura en voz alta');
+    }
 }
 
 function leerLibroEntero(libroNombre) {
@@ -2021,31 +2592,12 @@ function leerLibroEntero(libroNombre) {
         return;
     }
 
-    // Reunir todo el texto del libro por capítulos
-    const capitulosSorted = Object.keys(libroContenido).map(Number).sort((a, b) => a - b);
-    let textoLibroCompleto = `${libroNombre}. `;
-    
-    capitulosSorted.forEach(capitulo => {
-        const versiculosObj = libroContenido[capitulo];
-        const numerosVersiculos = Object.keys(versiculosObj).map(Number).sort((a, b) => a - b);
-        const textoCapitulo = numerosVersiculos
-            .filter(v => v >= 1)
-            .map(v => versiculosObj[v])
-            .join(' ');
-        if (textoCapitulo) {
-            textoLibroCompleto += `Capítulo ${capitulo}. ${textoCapitulo} `;
-        }
-    });
+    const secuencia = construirSecuenciaLecturaLibro(libroNombre);
+    if (secuencia.length === 0) return;
 
     detenerLectura();
     leyendoLibroCompleto = true;
     libroEnReproduccion = libroNombre;
-
-    // Preparar palabras para resaltado
-    palabrasResaltables = prepararPalabrasParaResaltado(textoLibroCompleto);
-    
-    // Construir lista de versículos del libro para resaltado
-    listaVersiculosEnCapitulo = construirListaVersiculosLibro(libroNombre);
 
     // Cambiar el texto del botón a "DEJAR DE LEER"
     actualizarBotonLeerLibro(true);
@@ -2055,69 +2607,15 @@ function leerLibroEntero(libroNombre) {
         console.warn('TTS: voces aún no disponibles. Usando fallback inmediato para conservar la activación del usuario.');
     }
 
-    const utterance = crearUtteranceLectura(textoLibroCompleto);
-    let intervaloResalteVersiculo = null;
-    
-    utterance.onstart = () => {
-        // Configurar Media Session para controles del dispositivo
-                // configurarMediaSession();
-                
-                // Iniciar monitor de reproducción para detectar pausas inesperadas
-                // iniciarMonitorReproduccion();
+    const inicioCorrecto = reproducirSecuenciaVersiculos(secuencia, {
+        onFin: () => finalizarLecturaSecuencial({ actualizarBotonLibro: true }),
+        onError: () => finalizarLecturaSecuencial({ actualizarBotonLibro: true })
+    });
 
-        const duracionEstimada = (palabrasResaltables.length / 10) * 1.5;
-        
-        // Iniciar sincronización de resaltado de palabras
-        iniciarSincronizacionResaltado(duracionEstimada, document.getElementById('contenedor-versiculos'));
-        
-        // Calcular tiempos acumulativos basados en longitud de versículos
-        calcularTiemposAcumulativos(duracionEstimada);
-        
-        // Iniciar sincronización de resaltado de versículos
-        tiempoInicioDiccion = Date.now();
-        intervaloResalteVersiculo = setInterval(() => {
-            const tiempoTranscurrido = Date.now() - tiempoInicioDiccion;
-            
-            // Buscar qué versículo corresponde a este tiempo
-            let indiceVersiculo = 0;
-            for (let i = 0; i < tiemposAcumulativosVersiculos.length; i++) {
-                if (tiempoTranscurrido < tiemposAcumulativosVersiculos[i]) {
-                    indiceVersiculo = i;
-                    break;
-                }
-            }
-            
-            if (indiceVersiculo < listaVersiculosEnCapitulo.length) {
-                const v = listaVersiculosEnCapitulo[indiceVersiculo];
-                resaltarVersiculo(v.libro, v.capitulo, v.versiculo);
-            }
-        }, 100);
-    };
-    
-    utterance.onend = () => {
-        limpiarMonitorReproduccion();
-        leyendoLibroCompleto = false;
-        libroEnReproduccion = null;
-        vozActiva = null;
-        limpiarEstadoLectura();
-        limpiarResaltadoAnterior();
-        limpiarResaltadoVersiculo();
-        if (intervaloResalteVersiculo) clearInterval(intervaloResalteVersiculo);
-        actualizarBotonLeerLibro(false);
-    };
-    utterance.onerror = () => {
-        limpiarMonitorReproduccion();
-        leyendoLibroCompleto = false;
-        libroEnReproduccion = null;
-        vozActiva = null;
-        limpiarEstadoLectura();
-        limpiarResaltadoAnterior();
-        limpiarResaltadoVersiculo();
-        if (intervaloResalteVersiculo) clearInterval(intervaloResalteVersiculo);
-        actualizarBotonLeerLibro(false);
-    };
-
-    reproducirUtterance(utterance);
+    if (!inicioCorrecto) {
+        finalizarLecturaSecuencial({ actualizarBotonLibro: true });
+        lanzarToast('No se pudo iniciar la lectura en voz alta');
+    }
 }
 
 function initDarkMode() {
@@ -2142,6 +2640,31 @@ function claveLeidoVersiculo(libro, capitulo, versiculo) {
     return `versiculo:${libro}_${capitulo}_${versiculo}`;
 }
 
+function esVersiculoLeible(versiculo) {
+    return Number.isInteger(versiculo) && versiculo >= 1;
+}
+
+function esClaveLeidoVersiculoNoLeible(clave) {
+    if (typeof clave !== 'string' || !clave.startsWith('versiculo:')) return false;
+
+    const partes = clave.slice('versiculo:'.length).split('_');
+    if (partes.length < 3) return false;
+
+    const versiculo = Number(partes[partes.length - 1]);
+    return !esVersiculoLeible(versiculo);
+}
+
+function limpiarMarcasLeidoNoLeibles() {
+    const leidosDepurados = new Set(
+        Array.from(leidos).filter(clave => !esClaveLeidoVersiculoNoLeible(clave))
+    );
+
+    if (leidosDepurados.size === leidos.size) return;
+
+    leidos = leidosDepurados;
+    guardarLeidos();
+}
+
 function obtenerTestamentoDeLibro(nombreLibro) {
     for (const [testamento, libros] of Object.entries(canonBiblico)) {
         if (libros.some(libro => libro.nombre === nombreLibro)) return testamento;
@@ -2153,11 +2676,12 @@ function obtenerVersiculosLeiblesCapitulo(libro, capitulo) {
     const versiculos = bibleContent[libro]?.[capitulo] || {};
     return Object.keys(versiculos)
         .map(Number)
-        .filter(v => Number.isInteger(v) && v >= 1)
+        .filter(esVersiculoLeible)
         .sort((a, b) => a - b);
 }
 
 function esVersiculoLeido(libro, capitulo, versiculo) {
+    if (!esVersiculoLeible(versiculo)) return false;
     return leidos.has(claveLeidoVersiculo(libro, capitulo, versiculo));
 }
 
@@ -2403,11 +2927,13 @@ function actualizarProgresoBibliaVista() {
 function abrirCelebracionBibliaCompleta() {
     const modal = document.getElementById('modal-biblia-completa');
     if (!modal) return;
+    celebracionBibliaPendiente = false;
     actualizarMensajeCelebracionBiblia();
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.classList.add('biblia-completa-activa');
     lanzarEfectoCelebracionBiblia();
+    reproducirAudioCelebracion('audio-celebracion-biblia');
 }
 
 function cerrarCelebracionBibliaCompleta() {
@@ -2415,6 +2941,7 @@ function cerrarCelebracionBibliaCompleta() {
     if (!modal) return;
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+    detenerAudioCelebracion(document.getElementById('audio-celebracion-biblia'));
 }
 
 function abrirConfirmacionReinicioBiblia() {
@@ -2534,6 +3061,8 @@ function abrirCelebracionLibroCompleto(nombreLibro, opciones = {}) {
     const cuerpo = document.getElementById('mensaje-libro-completo');
     if (!modal || !cuerpo) return;
 
+    detenerReproduccionesLuminaActivas();
+
     const titulo = modal.querySelector('h3');
     const claveMensaje = opciones.claveMensaje || nombreLibro;
     const datosLibro = MENSAJES_LIBROS[claveMensaje] || MENSAJES_LIBROS[nombreLibro];
@@ -2544,7 +3073,7 @@ function abrirCelebracionLibroCompleto(nombreLibro, opciones = {}) {
     cuerpo.innerHTML = '';
 
     const intro = document.createElement('p');
-    intro.innerHTML = opciones.introHtml || `Has completado <strong>${nombreLibro}</strong>.`;
+    intro.innerHTML = opciones.introHtml || `Caminaste <strong>${nombreLibro}</strong>.`;
     cuerpo.appendChild(intro);
 
     const mensaje = document.createElement('p');
@@ -2563,6 +3092,7 @@ function abrirCelebracionLibroCompleto(nombreLibro, opciones = {}) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.classList.add('libro-completo-activa');
+    reproducirAudioCelebracion('audio-celebracion-libro');
 }
 
 function verificarCelebracionLibroCompleto(libro, estabaCompletoAntes = false) {
@@ -2572,8 +3102,8 @@ function verificarCelebracionLibroCompleto(libro, estabaCompletoAntes = false) {
         if (estanCuatroEvangeliosLeidos()) {
             abrirCelebracionLibroCompleto(libro, {
                 claveMensaje: 'Los Cuatro Evangelios',
-                titulo: '¡Evangelistas completado!',
-                introHtml: 'Has completado el <strong>Evangelio</strong>.'
+                titulo: '¡Evangelistas caminados!',
+                introHtml: 'Caminaste el <strong>Evangelio</strong>.'
             });
         }
         return;
@@ -2590,6 +3120,14 @@ function cerrarCelebracionLibroCompleto() {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     document.body.classList.remove('libro-completo-activa');
+    detenerAudioCelebracion(document.getElementById('audio-celebracion-libro'));
+
+    const progreso = obtenerProgresoBiblia();
+    if (celebracionBibliaPendiente && progreso.total > 0 && progreso.leidos === progreso.total && bibliaCompletaCelebrada) {
+        setTimeout(() => {
+            abrirCelebracionBibliaCompleta();
+        }, 100);
+    }
 }
 
 function verificarEventoBibliaCompleta() {
@@ -2602,11 +3140,20 @@ function verificarEventoBibliaCompleta() {
             bibliaCompletaCelebrada = true;
             localStorage.setItem(CLAVE_EVENTO_BIBLIA_COMPLETA, "true");
             setTimeout(() => {
+                const modalLibroCompleto = document.getElementById('modal-libro-completo');
+                const hayCelebracionLibroVisible = modalLibroCompleto && !modalLibroCompleto.classList.contains('hidden');
+
+                if (hayCelebracionLibroVisible) {
+                    celebracionBibliaPendiente = true;
+                    return;
+                }
+
                 abrirCelebracionBibliaCompleta();
             }, 250);
         }
     } else {
         bibliaCompletaCelebrada = false;
+        celebracionBibliaPendiente = false;
         localStorage.removeItem(CLAVE_EVENTO_BIBLIA_COMPLETA);
         document.body.classList.remove('biblia-completa-activa');
         cerrarCelebracionBibliaCompleta();
@@ -2620,6 +3167,7 @@ function reiniciarProgresoBiblia() {
     actualizarBotonesLeidoLibros();
     localStorage.removeItem(CLAVE_EVENTO_BIBLIA_COMPLETA);
     bibliaCompletaCelebrada = false;
+    celebracionBibliaPendiente = false;
     document.body.classList.remove('biblia-completa-activa');
 
     cerrarConfirmacionReinicioBiblia();
@@ -2653,6 +3201,17 @@ function actualizarBotonesLeidoLibros() {
         );
     });
 
+    document.querySelectorAll('[data-libro-principal]').forEach(btn => {
+        const libro = btn.dataset.libroPrincipal;
+        const leido = estaLibroLeido(libro);
+        btn.classList.toggle('libro-leido', leido);
+        const icono = btn.querySelector('.icono-estado-libro-portada');
+        if (icono) {
+            icono.classList.toggle('fa-check-circle', leido);
+            icono.classList.toggle('fa-book-open', !leido);
+        }
+    });
+
     const btnLibroVista = document.getElementById('btn-leido-libro-vista');
     if (btnLibroVista && libroActual) {
         const leido = estaLibroLeido(libroActual);
@@ -2670,6 +3229,11 @@ function actualizarBotonesLeidoLibros() {
 }
 
 function toggleLeidoVersiculo(libro, capitulo, versiculo) {
+    if (!esVersiculoLeible(versiculo)) {
+        lanzarToast('Esta aclaración no cuenta como versículo leído');
+        return;
+    }
+
     const libroCompletoAntes = estaLibroLeido(libro);
     const clave = claveLeidoVersiculo(libro, capitulo, versiculo);
     const marcado = !leidos.has(clave);
@@ -2710,7 +3274,7 @@ function toggleLeidoLibro(libro) {
         inicializarIndice();
     }
     lanzarToast(marcado ? 'Libro marcado como leído' : 'Libro marcado como no leído');
-    
+
     // Mostrar celebración al completar un libro
     if (marcado) {
         abrirCelebracionLibroCompleto(libro);
@@ -2727,7 +3291,7 @@ function toggleLeidoTestamento(testamento) {
 
 function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
+    return str.replace(/[&<>]/g, function (m) {
         if (m === '&') return '&amp;';
         if (m === '<') return '&lt;';
         if (m === '>') return '&gt;';
@@ -2774,7 +3338,7 @@ function abrirPrefacio(libro) {
     document.getElementById('titulo-panel-versiculo').innerHTML = `${libro} - Prefacio`;
     const panelHtml = `
         <div class="mb-5 p-4 bg-amber-50/40 dark:bg-gray-700 rounded-lg border-l-4 border-oro">
-            <p class="text-sm font-serif italic text-gray-700 dark:text-gray-300">Comentarios introductorios de los Padres y Doctores sobre el Evangelio según San ${libro}.</p>
+            <p class="text-sm font-serif italic text-gray-700 dark:text-gray-300">Comentarios introductorios de los Padres y Doctores sobre ${libro}.</p>
         </div>
         <div class="text-xs font-sans text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2"><i class="fas fa-feather-alt"></i> Tradición sobre el Evangelio</div>
     ` + (comentarios.length === 0 ? `<div class="text-gray-600 dark:text-gray-400 italic font-sans text-center py-10">Comentarios del prefacio en preparación.</div>` : comentarios.map((c, idx) => {
@@ -2798,7 +3362,7 @@ function abrirPrefacio(libro) {
     `}).join(''));
     document.getElementById('contenido-panel-tradicion').innerHTML = panelHtml;
     document.querySelectorAll('.btn-compartir-comentario').forEach(btn => {
-        btn.onclick = function(e) {
+        btn.onclick = function (e) {
             e.preventDefault();
             compartirComentario(
                 this.dataset.libro,
@@ -2809,11 +3373,30 @@ function abrirPrefacio(libro) {
             );
         };
     });
-    document.getElementById('panel-comentarios').classList.remove('translate-x-full');
+    abrirPanelLateral('panel-comentarios');
 }
 
 function abrirCapitulos(nombreLibro, cantidadCapitulos) {
     return abrirCapitulosV2(nombreLibro, cantidadCapitulos);
+}
+
+function volverAVistaCapitulosActual() {
+    if (!libroActual) {
+        mostrarVista('vista-libros');
+        return;
+    }
+
+    abrirCapitulos(libroActual, obtenerCantidadCapitulos(libroActual));
+
+    requestAnimationFrame(() => {
+        const botonCapituloActual = document.querySelector(
+            `#contenedor-capitulos .btn-capitulo-principal[data-capitulo-principal="${capituloActual}"]`
+        );
+
+        if (botonCapituloActual) {
+            botonCapituloActual.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+        }
+    });
 }
 
 function abrirLectura(capitulo) {
@@ -2822,7 +3405,9 @@ function abrirLectura(capitulo) {
     document.getElementById('subtitulo-capitulo').innerHTML = `Capítulo ${capitulo}`;
     const contenedor = document.getElementById('contenedor-versiculos');
     contenedor.innerHTML = '';
-    detenerLectura();
+    const lecturaActualVisible = versiculoActualEnLectura
+        && versiculoActualEnLectura.libro === libroActual
+        && versiculoActualEnLectura.capitulo === capitulo;
 
     const capituloLeido = estaCapituloLeido(libroActual, capitulo);
     const barraCapitulo = document.createElement('div');
@@ -2843,7 +3428,7 @@ function abrirLectura(capitulo) {
     const todosLibros = obtenerTodosLosLibros();
     const indiceLibroActual = todosLibros.findIndex(l => l.nombre === libroActual);
     const esGenesis1 = libroActual === 'Génesis' && capitulo === 1;
-    
+
     if (!esGenesis1) {
         const botonesNavInicio = document.createElement('div');
         botonesNavInicio.className = 'flex justify-center gap-3 mb-6';
@@ -2885,7 +3470,7 @@ function abrirLectura(capitulo) {
     }
 
     const versiculosObj = bibleContent[libroActual]?.[capitulo] || {};
-    const numerosVersiculos = Object.keys(versiculosObj).map(Number).sort((a,b)=>a-b);
+    const numerosVersiculos = Object.keys(versiculosObj).map(Number).sort((a, b) => a - b);
     if (numerosVersiculos.length > 0) {
         numerosVersiculos.forEach(v => {
             const textoOriginal = versiculosObj[v];
@@ -2899,16 +3484,14 @@ function abrirLectura(capitulo) {
                     <div id="verse_${libroActual}_${capitulo}_${v}" class="verse-card bg-amber-50/50 dark:bg-gray-700/50 border-l-4 border-oro rounded-xl p-4 shadow-sm mb-6 cursor-pointer" onclick="abrirPanel('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)">
                         <div class="flex items-start gap-3">
                             <span class="font-sans font-bold text-oro bg-white dark:bg-gray-800 w-8 h-8 flex items-center justify-center rounded-full text-sm shadow-sm flex-shrink-0"><i class="fas fa-info"></i></span>
-                            <p class="flex-1 text-gray-700 dark:text-gray-300 leading-relaxed text-base md:text-lg font-serif italic">${textoHTML}</p>
-                            <button id="read_${libroActual}_${capitulo}_${v}" class="btn-leido-versiculo text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition p-1 ${leido ? 'activo text-emerald-600 dark:text-emerald-400' : ''}" onclick="event.stopPropagation(); toggleLeidoVersiculo('${libroActual}', ${capitulo}, ${v}); return false;" title="${leido ? 'Marcar como no leído' : 'Marcar como leído'}" aria-label="${leido ? 'Marcar como no leído' : 'Marcar como leído'} ${v}" aria-pressed="${leido ? 'true' : 'false'}"><i class="fas ${leido ? 'fa-check-circle' : 'fa-circle'} icono-leido text-sm"></i></button>
+                            <p class="flex-1 text-gray-700 dark:text-gray-300 leading-relaxed text-base md:text-lg font-serif italic" data-versiculo-texto="${v}">${textoHTML}</p>
                         </div>
                     </div>
                 `;
             } else if (v % 1 !== 0) {
                 verseHtml = `
                     <div id="verse_${libroActual}_${capitulo}_${v}" class="my-6 text-center cursor-pointer" onclick="abrirPanel('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)">
-                        <span class="text-xs uppercase tracking-widest text-oro font-sans font-bold bg-santos/40 dark:bg-gray-800 px-4 py-2 rounded-full shadow-sm border border-oro/20">${textoHTML}</span>
-                        <button id="read_${libroActual}_${capitulo}_${v}" class="btn-leido-versiculo ml-3 inline-flex items-center justify-center text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition p-1 ${leido ? 'activo text-emerald-600 dark:text-emerald-400' : ''}" onclick="event.stopPropagation(); toggleLeidoVersiculo('${libroActual}', ${capitulo}, ${v}); return false;" title="${leido ? 'Marcar como no leído' : 'Marcar como leído'}" aria-label="${leido ? 'Marcar como no leído' : 'Marcar como leído'} ${v}" aria-pressed="${leido ? 'true' : 'false'}"><i class="fas ${leido ? 'fa-check-circle' : 'fa-circle'} icono-leido text-sm"></i></button>
+                        <span class="text-xs uppercase tracking-widest text-oro font-sans font-bold bg-santos/40 dark:bg-gray-800 px-4 py-2 rounded-full shadow-sm border border-oro/20" data-versiculo-texto="${v}">${textoHTML}</span>
                     </div>
                 `;
             } else {
@@ -2917,7 +3500,7 @@ function abrirLectura(capitulo) {
                         <div class="flex items-start gap-3">
                             <span class="font-sans font-bold text-oro bg-amber-50 dark:bg-gray-700 w-8 h-8 flex items-center justify-center rounded-full text-sm shadow-inner flex-shrink-0">${v}</span>
                             <div class="flex-1 cursor-pointer" onclick="abrirPanel('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)">
-                                <p class="text-gray-700 dark:text-gray-300 leading-relaxed text-base md:text-lg texto-biblico">${textoHTML}</p>
+                                <p class="text-gray-700 dark:text-gray-300 leading-relaxed text-base md:text-lg texto-biblico" data-versiculo-texto="${v}">${textoHTML}</p>
                             </div>
                             <div class="flex gap-2 items-center flex-shrink-0">
                                 <span id="star_${libroActual}_${capitulo}_${v}" class="estrella-fav ${favorito ? 'activa' : ''} cursor-pointer text-gray-400 hover:text-oro transition" onclick="event.stopPropagation(); toggleFavoritoVersiculo('${libroActual}', ${capitulo}, ${v}); return false;" title="Agregar a favoritos">${favorito ? '★' : '☆'}</span>
@@ -2947,6 +3530,13 @@ function abrirLectura(capitulo) {
         contenedor.innerHTML = `<div class="text-center py-16 bg-white/60 dark:bg-gray-800/60 rounded-2xl border border-dashed border-oro/40"><i class="fas fa-scroll text-4xl text-oro/40 mb-4"></i><p class="text-gray-500 dark:text-gray-400">Todavía no hay versículos cargados para ${libroActual} ${capitulo}.</p></div>`;
     }
     mostrarVista('vista-lectura');
+    if (lecturaActualVisible && versiculoActualEnLectura) {
+        const { libro, capitulo: capituloEnLectura, versiculo } = versiculoActualEnLectura;
+        versiculoActualEnLectura = null;
+        requestAnimationFrame(() => {
+            resaltarVersiculo(libro, capituloEnLectura, versiculo);
+        });
+    }
     actualizarBotonesReproduccionListas();
     actualizarBotonesLeidoVistaLectura();
 }
@@ -2981,47 +3571,60 @@ function toggleLeidoCapitulo(libro, capitulo) {
     lanzarToast(marcado ? 'Capítulo marcado como leído' : 'Capítulo marcado como no leído');
 }
 
+function llevarLecturaAlInicio() {
+    const contenedorScroll = document.getElementById('scroll-versiculos');
+    if (!contenedorScroll) return;
+
+    requestAnimationFrame(() => {
+        contenedorScroll.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    });
+}
+
 function irAlCapituloAnterior() {
     const todosLibros = obtenerTodosLosLibros();
     const indiceLibroActual = todosLibros.findIndex(l => l.nombre === libroActual);
-    
+
     if (indiceLibroActual === -1) return;
-    
+
     const cantidadCapitulos = capituloActual > 1 ? capituloActual - 1 : null;
-    
+
     if (cantidadCapitulos) {
         // Ir al capítulo anterior del mismo libro
         abrirLectura(cantidadCapitulos);
+        llevarLecturaAlInicio();
     } else if (indiceLibroActual > 0) {
         // Ir al último capítulo del libro anterior
         const libroAnterior = todosLibros[indiceLibroActual - 1];
         libroActual = libroAnterior.nombre;
-        const ultimoCapitulo = Array.isArray(libroAnterior.caps) 
-            ? libroAnterior.caps[libroAnterior.caps.length - 1] 
+        const ultimoCapitulo = Array.isArray(libroAnterior.caps)
+            ? libroAnterior.caps[libroAnterior.caps.length - 1]
             : libroAnterior.caps;
         abrirLectura(ultimoCapitulo);
+        llevarLecturaAlInicio();
     }
 }
 
 function irAlCapituloSiguiente() {
     const todosLibros = obtenerTodosLosLibros();
     const indiceLibroActual = todosLibros.findIndex(l => l.nombre === libroActual);
-    
+
     if (indiceLibroActual === -1) return;
-    
+
     const libroActualInfo = todosLibros[indiceLibroActual];
-    const cantCapitulos = Array.isArray(libroActualInfo.caps) 
+    const cantCapitulos = Array.isArray(libroActualInfo.caps)
         ? libroActualInfo.caps[libroActualInfo.caps.length - 1]
         : libroActualInfo.caps;
-    
+
     if (capituloActual < cantCapitulos) {
         // Ir al siguiente capítulo del mismo libro
         abrirLectura(capituloActual + 1);
+        llevarLecturaAlInicio();
     } else if (indiceLibroActual < todosLibros.length - 1) {
         // Ir al primer capítulo del siguiente libro
         const libroSiguiente = todosLibros[indiceLibroActual + 1];
         libroActual = libroSiguiente.nombre;
         abrirLectura(1);
+        llevarLecturaAlInicio();
     }
 }
 
@@ -3057,14 +3660,14 @@ function irAlInicio() {
     });
 }
 
-function abrirPanel(libro, capitulo, versiculo, textoVersiculo) {
+function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null) {
     const comentarios = obtenerComentarios(libro, capitulo, versiculo);
-    
+
     let tituloRef = "";
     if (versiculo < 1) tituloRef = `${libro} ${capitulo} (Introducción)`;
     else if (versiculo % 1 !== 0) tituloRef = `${libro} ${capitulo} (Acotación)`;
     else tituloRef = `${libro} ${capitulo}, ${versiculo}`;
-    
+
     document.getElementById('titulo-panel-versiculo').innerHTML = tituloRef;
 
     document.getElementById('cita-panel-sticky').innerHTML = `
@@ -3074,14 +3677,14 @@ function abrirPanel(libro, capitulo, versiculo, textoVersiculo) {
     `;
 
     let tradicionHtml = `<div class="text-xs font-sans text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3"><i class="fas fa-feather-alt"></i> Tradición de los Padres y Doctores</div>`;
-    
+
     if (comentarios.length === 0) {
         tradicionHtml += `<div class="text-gray-600 dark:text-gray-400 italic font-sans text-center py-10">? Aún no se han cargado comentarios de la Tradición para este pasaje.<br> Recemos para que un alma caratitativa me los haga llegar.</div>`;
     } else {
         tradicionHtml += comentarios.map((c, idx) => {
             const esFav = esFavoritoComentario(libro, capitulo, versiculo, 'tradicion', idx);
             return `
-            <div class="border-l-4 border-oro/30 pl-4 py-2">
+            <div class="comentario-panel-item border-l-4 border-oro/30 pl-4 py-2 rounded-lg" data-panel-comentario-idx="${idx}">
                 <div class="flex justify-between items-start">
                     <h3 class="font-bold text-xs text-oro">${escapeHtml(c.autor)}</h3>
                     <div class="flex gap-2 items-center">
@@ -3115,7 +3718,7 @@ function abrirPanel(libro, capitulo, versiculo, textoVersiculo) {
 
     // Event listener para botones de audio de comentarios
     document.querySelectorAll('.btn-audio-comentario').forEach(btn => {
-        btn.onclick = function(e) {
+        btn.onclick = function (e) {
             e.preventDefault();
             const autor = this.dataset.autor;
             const texto = this.dataset.texto;
@@ -3123,7 +3726,7 @@ function abrirPanel(libro, capitulo, versiculo, textoVersiculo) {
         };
     });
     document.querySelectorAll('.btn-compartir-comentario').forEach(btn => {
-        btn.onclick = function(e) {
+        btn.onclick = function (e) {
             e.preventDefault();
             compartirComentario(
                 this.dataset.libro,
@@ -3151,36 +3754,58 @@ function abrirPanel(libro, capitulo, versiculo, textoVersiculo) {
     const tabPers = document.getElementById('tab-personales');
     const divTrad = document.getElementById('contenido-panel-tradicion');
     const divPers = document.getElementById('contenido-panel-personales');
-    tabTrad.onclick = () => {
+    const activarTradicion = () => {
         tabTrad.classList.add('border-b-2', 'border-oro', 'text-oro');
+        tabTrad.classList.remove('text-gray-500', 'dark:text-gray-400');
         tabPers.classList.remove('border-b-2', 'border-oro', 'text-oro');
         tabPers.classList.add('text-gray-500', 'dark:text-gray-400');
         divTrad.classList.remove('hidden');
         divPers.classList.add('hidden');
+        requestAnimationFrame(() => aplicarLlegadaBusquedaPanel(libro, capitulo, versiculo, 'tradicion'));
     };
-    tabPers.onclick = () => {
+    const activarPersonales = () => {
         tabPers.classList.add('border-b-2', 'border-oro', 'text-oro');
+        tabPers.classList.remove('text-gray-500', 'dark:text-gray-400');
         tabTrad.classList.remove('border-b-2', 'border-oro', 'text-oro');
         tabTrad.classList.add('text-gray-500', 'dark:text-gray-400');
         divPers.classList.remove('hidden');
         divTrad.classList.add('hidden');
+        requestAnimationFrame(() => aplicarLlegadaBusquedaPanel(libro, capitulo, versiculo, 'personal'));
     };
 
-    document.getElementById('panel-comentarios').classList.remove('translate-x-full');
+    tabTrad.onclick = activarTradicion;
+    tabPers.onclick = activarPersonales;
+
+    activarTradicion();
+
+    if (opciones?.tipoLlegada === 'personal') {
+        activarPersonales();
+        requestAnimationFrame(() => resaltarAnotacionPanel('personal', opciones.idxLlegada));
+    } else if (opciones?.tipoLlegada === 'tradicion') {
+        requestAnimationFrame(() => resaltarAnotacionPanel('tradicion', opciones.idxLlegada));
+    }
+
+    abrirPanelLateral('panel-comentarios');
 }
 
 function cerrarPanel(id) {
-    document.getElementById(id).classList.add('translate-x-full');
+    const panel = document.getElementById(id);
+    if (!panel) return;
+
+    panel.style.transform = '';
+    panel.classList.remove('panel-lateral-arrastrando');
+    panel.classList.add('translate-x-full');
+
+    if (esPanelLateralDerecha(id)) {
+        actualizarOverlayPanelesDerecha();
+    }
 }
 
 function abrirPanelLumina() {
     const panel = document.getElementById('panel-lumina');
     const overlay = document.getElementById('overlay-panel-lumina');
     if (!panel || !overlay) return;
-    cerrarPanel('panel-comentarios');
-    cerrarPanel('panel-favoritos');
-    cerrarPanel('panel-concordancia');
-    cerrarPanel('panel-busqueda');
+    cerrarPanelActivoLateral();
     resetPanelLumina();
     overlay.classList.remove('hidden');
     panel.classList.remove('-translate-x-full');
@@ -3265,13 +3890,13 @@ function marcarNuevaVersionLuminaDisponible(disponible) {
 function actualizarIndicadorConexion() {
     const badge = document.getElementById("estado-offline");
     if (!badge) return;
-    
+
     badge.classList.remove("hidden");
     badge.classList.add("inline-flex");
-    
+
     const spanEl = badge.querySelector("span");
     if (!spanEl) return;
-    
+
     if (navigator.onLine) {
         spanEl.textContent = "Modo sin conexion disponible (en linea)";
         badge.setAttribute("title", "El Service Worker esta activo. Puedes desconectarte y seguir usando la app.");
@@ -3364,13 +3989,13 @@ window.onload = async () => {
     inicializarIndice();
     poblarSelectoresRapidos();
     mostrarVista('vista-libros');
-    
+
     document.getElementById('contenedor-versiculos').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin mr-2"></i> Cargando la Palabra y la Tradición...</div>';
     await Promise.all([
         cargarBibliaJSON(),
         cargarComentariosJSON()
     ]);
-    
+
     initDarkMode();
 
     const toggle = document.getElementById('toggle-concordancia');
@@ -3382,8 +4007,7 @@ window.onload = async () => {
     toggle.addEventListener('change', () => {
         concordanciaActiva = toggle.checked;
         localStorage.setItem('lumina_concordancia', concordanciaActiva);
-        if (libroActual && capituloActual) abrirLectura(capituloActual);
-        else if (libroActual) abrirCapitulos(libroActual, obtenerCantidadCapitulos(libroActual));
+        refrescarConcordanciaVistaActual();
     });
 
     document.getElementById('btn-favoritos').addEventListener('click', () => mostrarPanelFavoritos());
@@ -3411,10 +4035,12 @@ window.onload = async () => {
     }, 500);
 
     verificarBienvenida();
+    inicializarGestosPanelesLaterales();
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             cerrarModalBienvenida();
             cerrarPanelLumina();
+            cerrarPanelActivoLateral();
         }
     });
 
@@ -3422,214 +4048,102 @@ window.onload = async () => {
     // Listener para voces en m?viles (pueden cargarse de forma as?ncrona)
     if (navegadorSoportaLectura()) {
         window.speechSynthesis.getVoices();
+        sincronizarVozEspanol();
         window.speechSynthesis.onvoiceschanged = () => {
-            // Las voces se ha cargado, comentar aqué si necesitas debugging
-            console.log('TTS Voces cargadas:', window.speechSynthesis.getVoices().length);
+            sincronizarVozEspanol();
         };
     }
 };
 
 function compartirLumina() {
-  // Verificamos si el celular soporta esta función nativa
-  if (navigator.share) {
-    navigator.share({
-      title: 'Lumina - La Tradición Iluminando la Palabra',
-      text: 'Estoy leyendo el Evangelio con los comentarios de los Padres de la Iglesia. ¡Te invito a descubrir Lumina!',
-      url: 'https://nachomartinez1996.github.io/Lumina/' // Reemplazá con tu enlace real
-    })
-    .then(() => console.log('Gracias por compartir la Luz'))
-    .catch((error) => console.log('Error al compartir', error));
-  } else {
-    // Plan B por si están en una compu vieja: copiar al portapapeles
-    navigator.clipboard.writeText('https://nachomartinez1996.github.io/Lumina/');
-    alert('¡Enlace copiado! Ya podés pegarlo y compartir la Luz.');
-  }
-}
-
-// ========== SISTEMA DE RESALTADO PALABRA POR PALABRA ==========
-// Variables globales para seguimiento de resaltado
-let palabrasResaltables = [];
-let indiceActualResaltado = 0;
-let intervaloResaltado = null;
-let tiempoInicioDiccion = 0;
-
-// Función para preparar texto con IDs de palabras
-function prepararPalabrasParaResaltado(texto) {
-    const palabras = texto.split(/\s+/).filter(p => p.length > 0);
-    palabrasResaltables = palabras;
-    indiceActualResaltado = 0;
-    return palabras;
-}
-
-// Función para limpiar resaltado anterior
-function limpiarResaltadoAnterior() {
-    document.querySelectorAll('.palabra-resaltada').forEach(el => {
-        el.classList.remove('palabra-resaltada');
-    });
-    if (intervaloResaltado) {
-        clearInterval(intervaloResaltado);
-        intervaloResaltado = null;
+    // Verificamos si el celular soporta esta función nativa
+    if (navigator.share) {
+        navigator.share({
+            title: 'Lumina - La Tradición Iluminando la Palabra',
+            text: 'Estoy leyendo el Evangelio con los comentarios de los Padres de la Iglesia. ¡Te invito a descubrir Lumina!',
+            url: 'https://nachomartinez1996.github.io/Lumina/' // Reemplazá con tu enlace real
+        })
+            .then(() => console.log('Gracias por compartir la Luz'))
+            .catch((error) => console.log('Error al compartir', error));
+    } else {
+        // Plan B por si están en una compu vieja: copiar al portapapeles
+        navigator.clipboard.writeText('https://nachomartinez1996.github.io/Lumina/');
+        alert('¡Enlace copiado! Ya podés pegarlo y compartir la Luz.');
     }
-}
-
-// Función para resaltar palabra por palabra basado en tiempo
-function iniciarSincronizacionResaltado(duracionEstimada, elementoContenedor) {
-    limpiarResaltadoAnterior();
-    
-    if (palabrasResaltables.length === 0) return;
-    
-    tiempoInicioDiccion = Date.now();
-    const tiempoPorPalabra = (duracionEstimada * 1000) / palabrasResaltables.length;
-    
-    intervaloResaltado = setInterval(() => {
-        const tiempoTranscurrido = Date.now() - tiempoInicioDiccion;
-        const indiceNuevo = Math.floor(tiempoTranscurrido / tiempoPorPalabra);
-        
-        if (indiceNuevo >= palabrasResaltables.length) {
-            clearInterval(intervaloResaltado);
-            intervaloResaltado = null;
-            limpiarResaltadoAnterior();
-            return;
-        }
-        
-        // Limpiar resaltado anterior
-        document.querySelectorAll('.palabra-resaltada').forEach(el => {
-            el.classList.remove('palabra-resaltada');
-        });
-        
-        // Resaltar la palabra actual
-        const elementosPalabra = buscarElementosPalabra(palabrasResaltables[indiceNuevo], elementoContenedor);
-        elementosPalabra.forEach(el => {
-            el.classList.add('palabra-resaltada');
-        });
-        
-        indiceActualResaltado = indiceNuevo;
-    }, 50);
-}
-
-// Función auxiliar para encontrar elementos de palabras en el DOM
-function buscarElementosPalabra(palabra, contenedor) {
-    const elementos = [];
-    if (!contenedor) return elementos;
-    
-    // Buscar todos los nodos de texto
-    const allNodes = contenedor.querySelectorAll('p, span, div');
-    
-    allNodes.forEach(nodo => {
-        // Buscar la palabra en el texto del nodo
-        const regex = new RegExp(`\\b${palabra.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-        const matches = nodo.textContent.matchAll(regex);
-        
-        if (Array.from(matches).length > 0) {
-            // Si el nodo ya está dividido en spans, buscar en esos spans
-            const spans = nodo.querySelectorAll('span.palabra-highlight');
-            spans.forEach(span => {
-                if (span.textContent.toLowerCase() === palabra.toLowerCase()) {
-                    elementos.push(span);
-                }
-            });
-            
-            // Si no hay spans, buscar directamente en el nodo
-            if (spans.length === 0 && nodo.childNodes.length <= 1) {
-                // Reemplazar el text content con spans
-                const textNodes = Array.from(nodo.childNodes).filter(n => n.nodeType === Node.TEXT_NODE);
-                textNodes.forEach(textNode => {
-                    const html = textNode.textContent.replace(regex, `<span class="palabra-highlight">$&</span>`);
-                    if (html !== textNode.textContent) {
-                        const div = document.createElement('div');
-                        div.innerHTML = html;
-                        Array.from(div.childNodes).forEach(newNode => {
-                            nodo.insertBefore(newNode, textNode);
-                        });
-                        nodo.removeChild(textNode);
-                        
-                        // Agregar los nuevos spans a elementos
-                        nodo.querySelectorAll('span.palabra-highlight').forEach(span => {
-                            if (span.textContent.toLowerCase() === palabra.toLowerCase()) {
-                                elementos.push(span);
-                            }
-                        });
-                    }
-                });
-            }
-        }
-    });
-    
-    return elementos;
-}
-
-// Registrar listener en utterance para sincronizar resaltado
-function agregarSincronizacionAUtterance(utterance, duracionEstimada, libro, capitulo, nombreContenedor) {
-    utterance.onstart = () => {
-        const contenedor = document.getElementById(nombreContenedor) || document.getElementById('contenedor-versiculos');
-        iniciarSincronizacionResaltado(duracionEstimada, contenedor);
-    };
-    
-    utterance.onend = () => {
-        limpiarResaltadoAnterior();
-    };
-    
-    utterance.onerror = () => {
-        limpiarResaltadoAnterior();
-    };
-    
-    // Listener para boundary (cambio de palabra)
-    utterance.onboundary = (event) => {
-        if (event.name === 'word') {
-            indiceActualResaltado++;
-            if (indiceActualResaltado < palabrasResaltables.length) {
-                // Actualizar resaltado si existe la palabra
-                const contenedor = document.getElementById(nombreContenedor) || document.getElementById('contenedor-versiculos');
-                document.querySelectorAll('.palabra-resaltada').forEach(el => {
-                    el.classList.remove('palabra-resaltada');
-                });
-            }
-        }
-    };
 }
 
 // ========== FUNCIONES PARA RESALTAR VERSÍCULOS EN REPRODUCCIÓN ==========
 function resaltarVersiculo(libro, capitulo, versiculo) {
+    if (
+        versiculoActualEnLectura &&
+        versiculoActualEnLectura.libro === libro &&
+        versiculoActualEnLectura.capitulo === capitulo &&
+        versiculoActualEnLectura.versiculo === versiculo
+    ) {
+        return;
+    }
+
     // Limpiar resaltado anterior
     limpiarResaltadoVersiculo();
-    
+
     // Crear ID para la tarjeta del versículo
     const verseId = `verse_${libro}_${capitulo}_${versiculo}`;
     const verseCard = document.getElementById(verseId);
-    
+
     if (verseCard) {
         verseCard.classList.add('verse-card-leyendo');
         versiculoActualEnLectura = { libro, capitulo, versiculo };
-        
-        // Scroll suave hacia el versículo si existe
-        verseCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        asegurarVersiculoVisible(verseCard);
     } else {
         console.warn(`Tarjeta de versículo no encontrada: ${verseId}`);
     }
 }
 
 function limpiarResaltadoVersiculo() {
-    // Remover clase de todos los versículos
-    document.querySelectorAll('.verse-card-leyendo').forEach(card => {
-        card.classList.remove('verse-card-leyendo');
-    });
+    if (versiculoActualEnLectura) {
+        const { libro, capitulo, versiculo } = versiculoActualEnLectura;
+        const verseActual = document.getElementById(`verse_${libro}_${capitulo}_${versiculo}`);
+        if (verseActual) {
+            verseActual.classList.remove('verse-card-leyendo');
+        }
+    } else {
+        document.querySelectorAll('.verse-card-leyendo').forEach(card => {
+            card.classList.remove('verse-card-leyendo');
+        });
+    }
     versiculoActualEnLectura = null;
+}
+
+function asegurarVersiculoVisible(verseCard) {
+    const contenedor = document.getElementById('scroll-versiculos');
+    if (!contenedor || !verseCard) return;
+
+    const margen = 24;
+    const rectVersiculo = verseCard.getBoundingClientRect();
+    const rectContenedor = contenedor.getBoundingClientRect();
+    const estaFueraPorArriba = rectVersiculo.top < rectContenedor.top + margen;
+    const estaFueraPorAbajo = rectVersiculo.bottom > rectContenedor.bottom - margen;
+
+    if (estaFueraPorArriba || estaFueraPorAbajo) {
+        verseCard.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+    }
 }
 
 function construirListaVersiculosCapitulo(libro, capitulo) {
     const versiculosObj = bibleContent[libro]?.[capitulo] || {};
     const numerosVersiculos = Object.keys(versiculosObj)
         .map(Number)
-        .filter(v => v >= 1)
+        .filter(esVersiculoLeible)
         .sort((a, b) => a - b);
-    
+
     listaVersiculosEnCapitulo = numerosVersiculos.map(v => ({
         libro,
         capitulo,
         versiculo: v,
         texto: versiculosObj[v]
     }));
-    
+
     return listaVersiculosEnCapitulo;
 }
 
@@ -3637,17 +4151,17 @@ function construirListaVersiculosCapitulo(libro, capitulo) {
 function construirListaVersiculosLibro(libroNombre) {
     const libroContenido = bibleContent[libroNombre];
     if (!libroContenido) return [];
-    
+
     const listaCompleta = [];
     const capitulosSorted = Object.keys(libroContenido).map(Number).sort((a, b) => a - b);
-    
+
     capitulosSorted.forEach(capitulo => {
         const versiculosObj = libroContenido[capitulo];
         const numerosVersiculos = Object.keys(versiculosObj)
             .map(Number)
-            .filter(v => v >= 1)
+            .filter(esVersiculoLeible)
             .sort((a, b) => a - b);
-        
+
         numerosVersiculos.forEach(v => {
             listaCompleta.push({
                 libro: libroNombre,
@@ -3657,34 +4171,26 @@ function construirListaVersiculosLibro(libroNombre) {
             });
         });
     });
-    
+
     return listaCompleta;
 }
 
-// Función para calcular tiempos acumulativos de versículos basados en su longitud
-function calcularTiemposAcumulativos(duracionEstimada) {
-    tiemposAcumulativosVersiculos = [];
-    
-    if (listaVersiculosEnCapitulo.length === 0) return;
-    
-    // Calcular total de palabras en todos los versículos
-    let totalPalabras = 0;
-    const palabrasPorVersiculo = listaVersiculosEnCapitulo.map(v => {
-        const palabras = v.texto.trim().split(/\s+/).length;
-        totalPalabras += palabras;
-        return palabras;
+function construirSecuenciaLecturaLibro(libroNombre) {
+    const libroContenido = bibleContent[libroNombre];
+    if (!libroContenido) return [];
+
+    const secuencia = [];
+    const capitulosSorted = Object.keys(libroContenido).map(Number).sort((a, b) => a - b);
+
+    capitulosSorted.forEach(capitulo => {
+        const versiculos = construirListaVersiculosCapitulo(libroNombre, capitulo);
+        if (versiculos.length === 0) return;
+
+        secuencia.push({ texto: `Capítulo ${capitulo}.` });
+        versiculos.forEach(versiculo => secuencia.push(versiculo));
     });
-    
-    // Calcular tempo: ms por palabra
-    const tempoMsPorPalabra = (duracionEstimada * 1000) / totalPalabras;
-    
-    // Calcular tiempos acumulativos
-    let tiempoAcumulado = 0;
-    palabrasPorVersiculo.forEach(palabras => {
-        const tiempoVersiculo = palabras * tempoMsPorPalabra;
-        tiempoAcumulado += tiempoVersiculo;
-        tiemposAcumulativosVersiculos.push(tiempoAcumulado);
-    });
+
+    return secuencia;
 }
 
 function refrescarEstadoLecturaTrasCambio(libro) {
@@ -3702,6 +4208,11 @@ function refrescarEstadoLecturaTrasCambio(libro) {
 }
 
 function toggleLeidoVersiculo(libro, capitulo, versiculo) {
+    if (!esVersiculoLeible(versiculo)) {
+        lanzarToast('Esta aclaración no cuenta como versículo leído');
+        return;
+    }
+
     const libroCompletoAntes = estaLibroLeido(libro);
     const clave = claveLeidoVersiculo(libro, capitulo, versiculo);
     const marcado = !leidos.has(clave);
@@ -3875,7 +4386,7 @@ function importarProgreso(evento) {
     if (!archivo) return;
 
     const lector = new FileReader();
-    lector.onload = function(e) {
+    lector.onload = function (e) {
         try {
             const datosRestaurados = JSON.parse(e.target.result);
 

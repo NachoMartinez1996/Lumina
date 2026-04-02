@@ -1,0 +1,11 @@
+Contacto para donaciones: Poner medios de contacto para donaciones. Hacer internacional
+
+Texto de donación: Cambiar el texto actual por: "Lumina es y será siempre gratuita. Si sentís que esta herramienta te ayuda en tu fe o estudio y deseás colaborar con su mantenimiento, podés hacerlo aquí: [Tu Alias]."
+
+Selector de libros: Cuando se hace otra búsqueda, se selecciona automáticamente el selector de libros (probablemente un comportamiento no deseado).
+
+Búsqueda en celu: Actualmente solo funciona en la vista inicial.
+
+Si querés, en el siguiente paso puedo hacer una segunda pasada más fina para dejar también el HTML mejor ordenado e indentado, ahora que ya sacamos lo redundante funcional.
+
+Si querés, después podemos hacer una segunda pasada para blindar también cualquier caso raro de TTS del navegador cuando la app cambia de vista muy rápido.
