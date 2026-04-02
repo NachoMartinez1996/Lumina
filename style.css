@@ -924,26 +924,13 @@ body:not(.dark) .prefacio-btn {
 #contenedor-libros .btn-libro-principal {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 0.75rem;
+    position: relative;
+    overflow: hidden;
 }
 
 #contenedor-libros .btn-libro-principal > span:first-child {
     flex: 1;
-}
-
-#contenedor-libros .estado-libro-portada {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 9999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    border: 1px solid rgba(184, 134, 11, 0.18);
-    background: rgba(191, 166, 126, 0.1);
-    color: #9a7b42;
-    transition: all 0.2s ease;
 }
 
 body:not(.dark) #contenedor-libros .btn-libro-principal {
@@ -954,16 +941,18 @@ body:not(.dark) #contenedor-libros .btn-libro-principal {
 }
 
 body:not(.dark) #contenedor-libros .btn-libro-principal.libro-leido {
-    background: linear-gradient(135deg, #fcfaf7 0%, #f3fbf4 100%) !important;
-    color: #21543a !important;
-    border-color: #9bd2b0 !important;
-    box-shadow: 0 10px 24px rgba(47, 133, 90, 0.1) !important;
+    background: linear-gradient(135deg, #f6fcf7 0%, #e4f4e9 100%) !important;
+    color: #18462e !important;
+    border-color: #7fc59a !important;
+    box-shadow: 0 12px 28px rgba(47, 133, 90, 0.14), inset 0 0 0 1px rgba(127, 197, 154, 0.22) !important;
 }
 
-body:not(.dark) #contenedor-libros .btn-libro-principal.libro-leido .estado-libro-portada {
-    background: #e8f7ee;
-    color: #2f855a;
-    border-color: #9bd2b0;
+body:not(.dark) #contenedor-libros .btn-libro-principal.libro-leido::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0.38rem;
+    background: linear-gradient(180deg, #7fc59a 0%, #2f855a 100%);
 }
 
 body:not(.dark) #contenedor-libros .btn-libro-principal:hover {
@@ -1000,23 +989,31 @@ body.dark #contenedor-libros .btn-leido-libro {
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12) !important;
 }
 
-body.dark #contenedor-libros .estado-libro-portada {
-    background: rgba(250, 204, 21, 0.12);
-    color: #f6c453;
-    border-color: rgba(250, 204, 21, 0.16);
-}
-
 body.dark #contenedor-libros .btn-libro-principal.libro-leido {
-    background: linear-gradient(135deg, #1a1d23 0%, #102218 100%) !important;
-    color: #d1fae5 !important;
-    border-color: rgba(52, 211, 153, 0.35) !important;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18) !important;
+    background: linear-gradient(135deg, #18201c 0%, #0f2a1c 100%) !important;
+    color: #d9fbe8 !important;
+    border-color: rgba(74, 222, 128, 0.42) !important;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22), inset 0 0 0 1px rgba(74, 222, 128, 0.14) !important;
 }
 
-body.dark #contenedor-libros .btn-libro-principal.libro-leido .estado-libro-portada {
-    background: rgba(16, 185, 129, 0.16);
-    color: #86efac;
-    border-color: rgba(52, 211, 153, 0.35);
+body.dark #contenedor-libros .btn-libro-principal.libro-leido::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0.38rem;
+    background: linear-gradient(180deg, #4ade80 0%, #10b981 100%);
+}
+
+body:not(.dark) #contenedor-libros .btn-libro-principal.libro-leido:hover {
+    background: linear-gradient(135deg, #eff9f1 0%, #dcefe3 100%) !important;
+    color: #18462e !important;
+    border-color: #4b9b6d !important;
+}
+
+body.dark #contenedor-libros .btn-libro-principal.libro-leido:hover {
+    background: linear-gradient(135deg, #1a241f 0%, #123222 100%) !important;
+    color: #ecfdf5 !important;
+    border-color: rgba(74, 222, 128, 0.58) !important;
 }
 
 #contenedor-libros .btn-leido-libro .icono-leido {

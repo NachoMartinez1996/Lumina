@@ -1,4 +1,4 @@
-const NOMBRE_CAJA = 'lumina-cache-v2.5';
+const NOMBRE_CAJA = 'lumina-cache-v2.6';
 const APP_SHELL = './index.html';
 
 const archivosParaGuardar = [

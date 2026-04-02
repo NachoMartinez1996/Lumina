@@ -131,12 +131,11 @@ function inicializarIndiceV2() {
             fila.className = 'flex items-stretch gap-2';
             fila.innerHTML = `
                 <button type="button"
-                    class="btn-libro-principal flex-1 flex items-center justify-between gap-3 text-left py-2 px-3 rounded text-lg transition-all hover:bg-yellow-50 dark:hover:bg-gray-800 hover:text-oro hover:border-l-4 hover:border-oro bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm ${libroLeido ? 'libro-leido' : ''}"
-                    data-libro-principal="${libro.nombre}">
+                    class="btn-libro-principal flex-1 flex items-center gap-3 text-left py-2 px-3 rounded text-lg transition-all hover:bg-yellow-50 dark:hover:bg-gray-800 hover:text-oro hover:border-l-4 hover:border-oro bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm ${libroLeido ? 'libro-leido' : ''}"
+                    data-libro-principal="${libro.nombre}"
+                    title="${libroLeido ? `${libro.nombre} (leído)` : libro.nombre}"
+                    aria-label="${libroLeido ? `${libro.nombre}, libro leído` : `${libro.nombre}, libro no leído`}">
                     <span>${libro.nombre}</span>
-                    <span class="estado-libro-portada" aria-hidden="true">
-                        <i class="fas ${libroLeido ? 'fa-check-circle' : 'fa-book-open'} icono-estado-libro-portada"></i>
-                    </span>
                 </button>
             `;
             fila.querySelector('.btn-libro-principal').onclick = () => abrirCapitulos(libro.nombre, libro.caps);
@@ -3205,11 +3204,8 @@ function actualizarBotonesLeidoLibros() {
         const libro = btn.dataset.libroPrincipal;
         const leido = estaLibroLeido(libro);
         btn.classList.toggle('libro-leido', leido);
-        const icono = btn.querySelector('.icono-estado-libro-portada');
-        if (icono) {
-            icono.classList.toggle('fa-check-circle', leido);
-            icono.classList.toggle('fa-book-open', !leido);
-        }
+        btn.setAttribute('title', leido ? `${libro} (leído)` : libro);
+        btn.setAttribute('aria-label', leido ? `${libro}, libro leído` : `${libro}, libro no leído`);
     });
 
     const btnLibroVista = document.getElementById('btn-leido-libro-vista');
@@ -4473,4 +4469,3 @@ async function ejecutarResetLumina() {
         lanzarToast('No se pudo completar el restablecimiento');
     }
 }
-
