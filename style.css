@@ -1932,6 +1932,23 @@ body.dark .capitulos-header-sticky {
 En capítulos y lectura el scroll real ocurre dentro de #scroll-capitulos / #scroll-versiculos.
 Si el main externo conserva padding-bottom, se ve una franja fija entre contenido y footer.
 */
+.lectura-top-tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.lectura-book-switcher {
+    width: 16rem;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.lectura-back-button {
+    min-width: 0;
+}
+
 #vista-capitulos,
 #vista-lectura {
     padding-bottom: 0 !important;
@@ -1974,6 +1991,49 @@ body.dark .btn-compartir {
 }
 
 @media (max-width: 640px) {
+    .lectura-top-tools {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+        align-items: stretch;
+        gap: 0.6rem;
+    }
+
+    .lectura-book-switcher {
+        width: 100%;
+    }
+
+    .lectura-back-button {
+        min-height: 2.9rem;
+        justify-content: center;
+        padding: 0.65rem 0.7rem;
+        border: 1px solid rgba(184, 134, 11, 0.14);
+        border-radius: 0.95rem;
+        background: rgba(252, 250, 247, 0.74);
+        box-shadow: 0 10px 20px rgba(78, 60, 33, 0.06);
+        font-size: 0.64rem;
+        letter-spacing: 0.04em;
+        line-height: 1.1;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    body.dark .lectura-back-button {
+        background: rgba(31, 41, 55, 0.86);
+        border-color: rgba(212, 175, 55, 0.14);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.18);
+    }
+
+    .lectura-back-button i {
+        font-size: 0.7rem;
+    }
+
+    #selector-rapido-lectura {
+        min-height: 2.9rem;
+        padding-left: 0.85rem;
+        padding-right: 2rem;
+        font-size: 0.88rem;
+    }
+
     .app-footer .btn-compartir {
         width: 100%;
         justify-content: center;
