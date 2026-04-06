@@ -1992,16 +1992,23 @@ body.dark .btn-compartir {
 }
 
 @media (max-width: 640px) {
+    #vista-lectura {
+        padding: 0.85rem 0.95rem 0 !important;
+    }
+
     .lectura-top-tools {
         display: grid;
         grid-template-columns: max-content max-content;
-        justify-content: start;
+        width: fit-content;
+        max-width: 100%;
+        justify-content: center;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.45rem;
+        margin: 0 auto 0.5rem !important;
     }
 
     .lectura-book-switcher {
-        width: 11.35rem;
+        width: 11.15rem;
         max-width: 100%;
     }
 
@@ -2026,9 +2033,9 @@ body.dark .btn-compartir {
     .lectura-back-button {
         width: auto;
         flex: 0 0 auto;
-        min-height: 2.9rem;
+        min-height: 2.75rem;
         justify-content: center;
-        padding: 0.65rem 0.78rem;
+        padding: 0.58rem 0.75rem;
         border: 1px solid rgba(184, 134, 11, 0.14);
         border-radius: 0.95rem;
         background: rgba(252, 250, 247, 0.74);
@@ -2054,13 +2061,45 @@ body.dark .btn-compartir {
         width: 100% !important;
         min-width: 0;
         max-width: 100%;
-        min-height: 2.9rem;
+        min-height: 2.75rem;
         padding-left: 0.85rem;
         padding-right: 2.35rem;
-        font-size: 0.88rem;
+        font-size: 0.84rem;
         appearance: none;
         -webkit-appearance: none;
         background-image: none;
+    }
+
+    .lectura-header-sticky {
+        padding: 0.72rem 0 0.6rem;
+        margin-bottom: 0.65rem;
+    }
+
+    #titulo-lectura {
+        font-size: 1.7rem !important;
+        line-height: 1.02;
+        margin-bottom: 0.18rem !important;
+    }
+
+    .lectura-header-sticky > div {
+        gap: 0.65rem;
+    }
+
+    #subtitulo-capitulo {
+        font-size: 0.92rem !important;
+        letter-spacing: 0.14em;
+    }
+
+    .btn-leer-capitulo {
+        min-height: 2.2rem;
+        padding: 0.45rem 0.72rem !important;
+        border-radius: 999px;
+        font-size: 0.68rem !important;
+        gap: 0.38rem !important;
+    }
+
+    .btn-leer-capitulo i {
+        font-size: 0.72rem;
     }
 
     .app-footer .btn-compartir {
