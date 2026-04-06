@@ -4668,7 +4668,7 @@ window.onload = async () => {
     }, 500);
 
     verificarBienvenida();
-    inicializarGestosPanelesLaterales();
+    inicializarGesEtosPanelesLaterales();
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             cerrarModalBienvenida();

@@ -48,11 +48,6 @@
                         <i class="fas fa-search absolute left-3 top-3 text-gray-600 dark:text-gray-500"></i>
                     </div>
 
-                    <button type="button" id="btn-favoritos"
-                        class="header-favoritos-button text-sm font-sans text-gray-900 dark:text-gray-200 hover:text-oro font-semibold transition-colors flex items-center gap-1">
-                        <i class="fas fa-star"></i> Favoritos
-                    </button>
-
                     <button type="button" id="btn-buscar-movil"
                         class="btn-busqueda-movil header-icon-button sm:hidden text-gray-900 dark:text-gray-200 hover:text-oro"
                         aria-label="Abrir búsqueda"
@@ -61,9 +56,20 @@
                         <i class="fas fa-search text-lg"></i>
                     </button>
 
+                    <button type="button" id="btn-favoritos"
+                        class="header-favoritos-button text-sm font-sans text-gray-900 dark:text-gray-200 hover:text-oro font-semibold transition-colors flex items-center gap-1"
+                        aria-label="Abrir favoritos"
+                        title="Abrir favoritos">
+                        <i class="fas fa-star" aria-hidden="true"></i>
+                        <span class="header-favoritos-label">Favoritos</span>
+                    </button>
+
                     <div class="header-concordancia flex items-center gap-2">
                         <label
-                            class="header-concordancia-texto text-sm font-sans text-gray-900 dark:text-gray-200 font-semibold">Concordancias</label>
+                            class="header-concordancia-texto text-sm font-sans text-gray-900 dark:text-gray-200 font-semibold">
+                            <span class="header-concordancia-texto-full">Concordancias</span>
+                            <span class="header-concordancia-texto-short">Concor.</span>
+                        </label>
                         <label class="toggle-switch">
                             <input type="checkbox" id="toggle-concordancia">
                             <span class="slider"></span>
@@ -71,18 +77,22 @@
                     </div>
 
                     <button type="button" id="toggle-darkmode"
-                        class="header-icon-button text-gray-900 dark:text-gray-200 hover:text-oro transition-colors">
+                        class="header-icon-button text-gray-900 dark:text-gray-200 hover:text-oro transition-colors"
+                        aria-label="Cambiar modo de color"
+                        title="Cambiar modo de color">
                         <i class="fas fa-moon dark:fa-sun text-lg"></i>
                     </button>
 
-                    <div id="estado-offline"
-                        class="header-offline-badge hidden items-center gap-2 text-xs font-sans font-semibold px-3 py-1 rounded-full border border-green-200 bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">
-
-                        <i class="fas fa-wifi"></i>
-
-                        <span>Modo sin conexión disponible</span>
-
-                    </div>
+                    <button type="button" id="estado-offline"
+                        class="header-offline-badge hidden items-center gap-2 text-xs font-sans font-semibold px-3 py-1 rounded-full"
+                        aria-live="polite"
+                        aria-label="Estado de conexión y modo sin conexión"
+                        title="Estado de conexión y modo sin conexión">
+                        <span class="header-offline-icon" aria-hidden="true">
+                            <i class="fas fa-wifi"></i>
+                        </span>
+                        <span class="header-offline-text">Modo sin conexión disponible</span>
+                    </button>
                 </div>
             </div>
 
