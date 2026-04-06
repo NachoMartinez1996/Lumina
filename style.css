@@ -1928,6 +1928,19 @@ body.dark .capitulos-header-sticky {
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
 }
 
+.capitulos-title-row {
+    min-width: 0;
+}
+
+#titulo-libro-capitulos {
+    min-width: 0;
+}
+
+.btn-leer-libro {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
 /*
 En capítulos y lectura el scroll real ocurre dentro de #scroll-capitulos / #scroll-versiculos.
 Si el main externo conserva padding-bottom, se ve una franja fija entre contenido y footer.
@@ -1992,6 +2005,41 @@ body.dark .btn-compartir {
 }
 
 @media (max-width: 640px) {
+    .capitulos-header-sticky {
+        padding: 0.65rem 0 0.9rem;
+    }
+
+    .capitulos-tools-row {
+        margin-bottom: 0.75rem !important;
+    }
+
+    .capitulos-tools-row > div {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .capitulos-title-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.7rem;
+    }
+
+    #titulo-libro-capitulos {
+        font-size: 1.95rem;
+        line-height: 1.08;
+        padding-bottom: 0.65rem;
+    }
+
+    .btn-leer-libro {
+        width: fit-content;
+        max-width: 100%;
+        align-self: flex-start;
+        justify-content: center;
+        padding: 0.62rem 0.9rem;
+        font-size: 0.8rem;
+        letter-spacing: 0.02em;
+    }
+
     #vista-lectura {
         padding: 0.85rem 0.95rem 0 !important;
     }
