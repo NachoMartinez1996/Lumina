@@ -3821,7 +3821,7 @@ function poblarSelectoresRapidos() {
     const todosLibros = obtenerTodosLosLibros();
     const selectorCap = document.getElementById('selector-rapido-capitulos');
     const selectorLect = document.getElementById('selector-rapido-lectura');
-    const opcionesHtml = '<option value="">-- Cambiar de libro --</option>' + todosLibros.map(libro => `<option value="${libro.nombre}">${libro.nombre}</option>`).join('');
+    const opcionesHtml = '<option value="">Cambiar de libro</option>' + todosLibros.map(libro => `<option value="${libro.nombre}">${libro.nombre}</option>`).join('');
     selectorCap.innerHTML = opcionesHtml;
     selectorLect.innerHTML = opcionesHtml;
     selectorCap.addEventListener('change', (e) => {
