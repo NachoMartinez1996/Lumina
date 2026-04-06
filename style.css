@@ -1940,6 +1940,7 @@ Si el main externo conserva padding-bottom, se ve una franja fija entre contenid
 }
 
 .lectura-book-switcher {
+    position: relative;
     width: 16rem;
     max-width: 100%;
     min-width: 0;
@@ -2000,8 +2001,26 @@ body.dark .btn-compartir {
     }
 
     .lectura-book-switcher {
-        width: auto;
+        width: 11.35rem;
         max-width: 100%;
+    }
+
+    .lectura-book-switcher::after {
+        content: "";
+        position: absolute;
+        right: 0.95rem;
+        top: 50%;
+        width: 0.55rem;
+        height: 0.55rem;
+        border-right: 2px solid #8a6a17;
+        border-bottom: 2px solid #8a6a17;
+        transform: translateY(-65%) rotate(45deg);
+        pointer-events: none;
+        opacity: 0.95;
+    }
+
+    body.dark .lectura-book-switcher::after {
+        border-color: #f3cf77;
     }
 
     .lectura-back-button {
@@ -2032,13 +2051,16 @@ body.dark .btn-compartir {
     }
 
     #selector-rapido-lectura {
-        width: auto !important;
-        min-width: 10.75rem;
+        width: 100% !important;
+        min-width: 0;
         max-width: 100%;
         min-height: 2.9rem;
         padding-left: 0.85rem;
-        padding-right: 2rem;
+        padding-right: 2.35rem;
         font-size: 0.88rem;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: none;
     }
 
     .app-footer .btn-compartir {
