@@ -543,6 +543,14 @@ function normalizarTexto(texto) {
     return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
+function crearRegexPalabras() {
+    return /[\p{L}\p{M}']+/gu;
+}
+
+function extraerPalabras(texto) {
+    return texto.match(crearRegexPalabras()) || [];
+}
+
 // Normalizamos las palabras importantes para que coincidan con el Índice normalizado
 palabrasImportantes = new Set(Array.from(palabrasImportantes).map(normalizarTexto));
 
@@ -556,7 +564,7 @@ function construirIndiceConcordancia() {
             for (let ver in bibleContent[libro][cap]) {
                 let texto = bibleContent[libro][cap][ver];
                 let textoNormalizado = normalizarTexto(texto);
-                let palabras = textoNormalizado.match(/\b[\p{L}\p{M}']+\b/gu) || [];
+                let palabras = extraerPalabras(textoNormalizado);
                 let palabrasUnicas = new Set(palabras);
                 for (let palabra of palabrasUnicas) {
                     if (palabrasImportantes.has(palabra)) {
@@ -586,8 +594,7 @@ function construirIndiceConcordancia() {
 // CORRECCIÓN: resaltar palabras usando tokenización por palabra, normalizando cada una
 function resaltarPalabras(texto) {
     if (!concordanciaActiva) return escapeHtml(texto);
-    // Expresión regular para capturar palabras (incluye letras con acentos, apóstrofes, etc.)
-    const regexPalabras = /\b[\p{L}\p{M}']+\b/gu;
+    const regexPalabras = crearRegexPalabras();
     let partes = [];
     let lastIndex = 0;
     let match;
@@ -751,6 +758,7 @@ function abrirPanelLateral(id) {
     });
 
     cerrarPanelLumina();
+    mostrarBuscadorMovil(false);
     panel.style.transform = '';
     panel.classList.remove('panel-lateral-arrastrando');
     panel.classList.remove('translate-x-full');
@@ -1537,6 +1545,116 @@ function mostrarPanelFavoritos() {
 // 7. BÚSQUEDA
 // --------------------------------------------------------------
 let indiceBusqueda = [];
+let terminoBusquedaActual = '';
+
+function normalizarTerminoBusqueda(termino) {
+    return (termino || '').trim().replace(/\s+/g, ' ');
+}
+
+function obtenerInputsBusquedaDisponibles() {
+    return [
+        document.getElementById('busqueda-input'),
+        document.getElementById('busqueda-input-movil'),
+        document.getElementById('busqueda-panel-input')
+    ].filter(Boolean);
+}
+
+function obtenerTerminoBusquedaActual() {
+    const busquedaPanel = document.getElementById('busqueda-panel-input');
+    const busquedaDesktop = document.getElementById('busqueda-input');
+    const busquedaMovil = document.getElementById('busqueda-input-movil');
+
+    return normalizarTerminoBusqueda(
+        busquedaPanel?.value ||
+        busquedaDesktop?.value ||
+        busquedaMovil?.value ||
+        terminoBusquedaActual
+    );
+}
+
+function sincronizarInputsBusqueda(valor, origen = null) {
+    const siguienteValor = valor ?? '';
+    obtenerInputsBusquedaDisponibles().forEach(input => {
+        if (!input || input === origen) return;
+        if (input.value !== siguienteValor) input.value = siguienteValor;
+    });
+    actualizarEstadoControlesBusqueda();
+}
+
+function actualizarEstadoControlesBusqueda() {
+    const buscadorMovil = document.getElementById('buscador-movil');
+    const btnBuscarMovil = document.getElementById('btn-buscar-movil');
+    const btnLimpiarMovil = document.getElementById('btn-limpiar-busqueda-movil');
+    const btnLimpiarPanel = document.getElementById('btn-limpiar-panel-busqueda');
+    const busquedaMovil = document.getElementById('busqueda-input-movil');
+    const busquedaPanel = document.getElementById('busqueda-panel-input');
+
+    if (btnBuscarMovil && buscadorMovil) {
+        const expandido = !buscadorMovil.classList.contains('hidden');
+        btnBuscarMovil.setAttribute('aria-expanded', expandido ? 'true' : 'false');
+        btnBuscarMovil.classList.toggle('activo', expandido);
+    }
+
+    if (btnLimpiarMovil && busquedaMovil) {
+        btnLimpiarMovil.hidden = !busquedaMovil.value.trim();
+    }
+
+    if (btnLimpiarPanel && busquedaPanel) {
+        btnLimpiarPanel.hidden = !busquedaPanel.value.trim();
+    }
+}
+
+function mostrarBuscadorMovil(mostrar) {
+    const buscadorMovil = document.getElementById('buscador-movil');
+    const busquedaMovil = document.getElementById('busqueda-input-movil');
+    if (!buscadorMovil) return;
+
+    const visible = typeof mostrar === 'boolean' ? mostrar : buscadorMovil.classList.contains('hidden');
+    buscadorMovil.classList.toggle('hidden', !visible);
+    actualizarEstadoControlesBusqueda();
+
+    if (visible && busquedaMovil) {
+        requestAnimationFrame(() => busquedaMovil.focus());
+    }
+}
+
+function renderizarEstadoBusquedaVacio(termino = '') {
+    const terminoNormalizado = normalizarTerminoBusqueda(termino);
+    if (!terminoNormalizado) {
+        return `
+            <div class="resultado-busqueda-empty">
+                <div class="resultado-busqueda-empty-icon"><i class="fas fa-search"></i></div>
+                <div class="resultado-busqueda-empty-titulo">Buscá dentro de toda la Biblia</div>
+                <div class="resultado-busqueda-empty-texto">Escribí una palabra o una frase breve para encontrar versículos y saltar directo a la lectura.</div>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="resultado-busqueda-empty">
+            <div class="resultado-busqueda-empty-icon"><i class="fas fa-book-open"></i></div>
+            <div class="resultado-busqueda-empty-titulo">Sin coincidencias para "${escapeHtml(terminoNormalizado)}"</div>
+            <div class="resultado-busqueda-empty-texto">Probá con una sola palabra, una variante singular/plural o un término más corto para ampliar los resultados.</div>
+        </div>
+    `;
+}
+
+function crearTarjetaResultadoBusqueda(ref, index) {
+    return `
+        <button type="button" class="resultado-busqueda-item" onclick="irAVersiculo('${ref.libro}', ${ref.capitulo}, ${ref.versiculo}, 'busqueda')">
+            <div class="resultado-busqueda-item-top">
+                <span class="resultado-busqueda-kicker">Versículo encontrado</span>
+                <span class="resultado-busqueda-numero">${index + 1}</span>
+            </div>
+            <div class="resultado-busqueda-ref">${escapeHtml(ref.libro)} ${ref.capitulo}, ${ref.versiculo}</div>
+            <div class="resultado-busqueda-texto">${escapeHtml(ref.texto)}</div>
+            <div class="resultado-busqueda-foot">
+                <span class="resultado-busqueda-accion"><i class="fas fa-book-open"></i> Abrir lectura</span>
+            </div>
+        </button>
+    `;
+}
+
 function construirIndiceBusqueda() {
     indiceBusqueda = [];
     for (let libro in bibleContent) {
@@ -1552,8 +1670,9 @@ function construirIndiceBusqueda() {
         }
     }
 }
+
 function buscarVersiculos(termino) {
-    const terminoLimpio = normalizarTexto(termino).trim().replace(/\s+/g, ' ');
+    const terminoLimpio = normalizarTexto(normalizarTerminoBusqueda(termino));
     if (!terminoLimpio) return [];
 
     // Evitamos la bandera `g` porque `test()` con regex global
@@ -1565,11 +1684,16 @@ function buscarVersiculos(termino) {
         return regex.test(textoNormalizado);
     });
 }
+
 function mostrarResultadosBusqueda(termino) {
-    const resultados = buscarVersiculos(termino);
-    const panel = document.getElementById('panel-busqueda');
+    const terminoNormalizado = normalizarTerminoBusqueda(termino);
     const contenedor = document.getElementById('contenido-busqueda');
     const contador = document.getElementById('contador-busqueda');
+    const resultados = terminoNormalizado ? buscarVersiculos(terminoNormalizado) : [];
+    terminoBusquedaActual = terminoNormalizado;
+
+    sincronizarInputsBusqueda(terminoNormalizado);
+    mostrarBuscadorMovil(false);
 
     // Cerrar otros paneles para reemplazarlos con el panel de búsqueda
     cerrarPanel('panel-comentarios');
@@ -1577,28 +1701,43 @@ function mostrarResultadosBusqueda(termino) {
     cerrarPanel('panel-concordancia');
 
     if (contador) {
-        contador.textContent = `${resultados.length} resultado${resultados.length !== 1 ? 's' : ''} para "${termino}"`;
+        contador.textContent = terminoNormalizado
+            ? `${resultados.length} resultado${resultados.length !== 1 ? 's' : ''} para "${terminoNormalizado}"`
+            : 'Buscá una palabra o frase';
     }
 
-    if (resultados.length === 0) {
-        contenedor.innerHTML = `<div class="text-gray-400 italic text-center py-8">No se encontraron versículos que contengan "${escapeHtml(termino)}".</div>`;
-    } else {
-        const esModoOscuro = document.body.classList.contains('dark');
-        const estiloTarjeta = esModoOscuro
-            ? ''
-            : 'style="background-color: var(--lumina-paper); color: var(--lumina-ink); border: 1px solid var(--lumina-border); border-left: 4px solid var(--lumina-accent); box-shadow: var(--lumina-shadow);"';
-        const estiloTitulo = esModoOscuro ? '' : 'style="color: var(--lumina-accent);"';
-        const estiloTexto = esModoOscuro ? '' : 'style="color: var(--lumina-ink);"';
-        let html = '';
-        html += resultados.map(ref => `
-            <div class="resultado-busqueda-item p-3 bg-amber-50 dark:bg-gray-700 rounded-lg border-l-4 border-oro cursor-pointer hover:bg-amber-100 dark:hover:bg-gray-600 transition mb-3" ${estiloTarjeta} onclick="irAVersiculo('${ref.libro}', ${ref.capitulo}, ${ref.versiculo}, 'busqueda')">
-                <div class="font-bold text-oro text-sm" ${estiloTitulo}>${ref.libro} ${ref.capitulo}, ${ref.versiculo}</div>
-                <div class="text-gray-700 dark:text-gray-300 text-sm line-clamp-2" ${estiloTexto}>${escapeHtml(ref.texto)}</div>
-            </div>
-        `).join('');
-        contenedor.innerHTML = html;
+    if (contenedor) {
+        contenedor.innerHTML = resultados.length === 0
+            ? renderizarEstadoBusquedaVacio(terminoNormalizado)
+            : resultados.map((ref, index) => crearTarjetaResultadoBusqueda(ref, index)).join('');
     }
+
     abrirPanelLateral('panel-busqueda');
+    actualizarEstadoControlesBusqueda();
+}
+
+function limpiarBusqueda(cerrarPanelResultados = false) {
+    terminoBusquedaActual = '';
+    obtenerInputsBusquedaDisponibles().forEach(input => {
+        input.value = '';
+    });
+
+    const contenedor = document.getElementById('contenido-busqueda');
+    const contador = document.getElementById('contador-busqueda');
+
+    if (contador) {
+        contador.textContent = 'Buscá una palabra o frase';
+    }
+
+    if (contenedor) {
+        contenedor.innerHTML = renderizarEstadoBusquedaVacio('');
+    }
+
+    if (cerrarPanelResultados) {
+        cerrarPanel('panel-busqueda');
+    }
+
+    actualizarEstadoControlesBusqueda();
 }
 
 // --------------------------------------------------------------
@@ -3648,12 +3787,17 @@ function irAlInicio() {
 
     const inputsBusqueda = [
         document.getElementById('busqueda-input'),
-        document.getElementById('busqueda-input-movil')
+        document.getElementById('busqueda-input-movil'),
+        document.getElementById('busqueda-panel-input')
     ];
 
     inputsBusqueda.forEach(input => {
         if (input) input.value = "";
     });
+
+    terminoBusquedaActual = '';
+    mostrarBuscadorMovil(false);
+    actualizarEstadoControlesBusqueda();
 }
 
 function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null) {
@@ -3802,6 +3946,7 @@ function abrirPanelLumina() {
     const overlay = document.getElementById('overlay-panel-lumina');
     if (!panel || !overlay) return;
     cerrarPanelActivoLateral();
+    mostrarBuscadorMovil(false);
     resetPanelLumina();
     overlay.classList.remove('hidden');
     panel.classList.remove('-translate-x-full');
@@ -3878,12 +4023,48 @@ function verificarBienvenida() {
 let registroServiceWorkerLumina = null;
 let hayNuevaVersionLumina = false;
 let recargaPendientePorActualizacion = false;
+const RECURSOS_OFFLINE_ESENCIALES = [
+    './index.html',
+    './style.css',
+    './script.js',
+    './lumina.css',
+    './Biblia_Catolica_Completa.json',
+    './Catena_Aurea_Completa.json'
+];
 
 function marcarNuevaVersionLuminaDisponible(disponible) {
     hayNuevaVersionLumina = disponible;
 }
 
-function actualizarIndicadorConexion() {
+async function estaRecursoDisponibleEnCache(ruta) {
+    if (!('caches' in window)) return false;
+
+    const candidatos = [
+        ruta,
+        new URL(ruta, window.location.href).href
+    ];
+
+    for (const candidato of candidatos) {
+        const respuesta = await caches.match(candidato, { ignoreSearch: true });
+        if (respuesta) return true;
+    }
+
+    return false;
+}
+
+async function offlineEsencialDisponible() {
+    if (!('caches' in window)) return false;
+
+    for (const recurso of RECURSOS_OFFLINE_ESENCIALES) {
+        if (!(await estaRecursoDisponibleEnCache(recurso))) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+async function actualizarIndicadorConexion() {
     const badge = document.getElementById("estado-offline");
     if (!badge) return;
 
@@ -3893,27 +4074,35 @@ function actualizarIndicadorConexion() {
     const spanEl = badge.querySelector("span");
     if (!spanEl) return;
 
+    const listoParaOffline = await offlineEsencialDisponible();
+
     if (navigator.onLine) {
-        spanEl.textContent = "Modo sin conexion disponible (en linea)";
-        badge.setAttribute("title", "El Service Worker esta activo. Puedes desconectarte y seguir usando la app.");
+        if (listoParaOffline) {
+            spanEl.textContent = "Modo sin conexion disponible (en linea)";
+            badge.setAttribute("title", "Lumina ya guardó en este dispositivo la app y los datos esenciales para usarla sin internet.");
+        } else {
+            spanEl.textContent = "Preparando modo sin conexion...";
+            badge.setAttribute("title", "Lumina sigue guardando los archivos esenciales para poder abrirse sin internet en este dispositivo.");
+        }
     } else {
-        spanEl.textContent = "Sin conexion: usando contenido cacheado";
-        badge.setAttribute("title", "Sin conexion. La app funciona con lo cacheado.");
+        if (listoParaOffline) {
+            spanEl.textContent = "Sin conexion: usando contenido cacheado";
+            badge.setAttribute("title", "Sin conexión. Lumina está usando el contenido esencial guardado en este dispositivo.");
+        } else {
+            spanEl.textContent = "Sin conexion: falta contenido guardado";
+            badge.setAttribute("title", "Sin conexión, pero este dispositivo todavía no guardó todos los archivos esenciales para abrir Lumina offline.");
+        }
     }
 }
+
 async function mostrarEstadoOfflineDisponible() {
-    const badge = document.getElementById('estado-offline');
-    if (!badge) return;
-    badge.classList.remove('hidden');
-    badge.classList.add('inline-flex');
-    const spanEl = badge.querySelector('span');
-    if (spanEl) spanEl.setAttribute('title', 'Modo sin conexión disponible');
+    await actualizarIndicadorConexion();
 }
 
 async function registrarServiceWorker() {
     if (!('serviceWorker' in navigator)) {
         console.warn('Service Worker no soportado en este navegador.');
-        actualizarIndicadorConexion();
+        await actualizarIndicadorConexion();
         return false;
     }
 
@@ -3950,7 +4139,7 @@ async function registrarServiceWorker() {
             window.location.reload();
         });
 
-        mostrarEstadoOfflineDisponible();
+        await mostrarEstadoOfflineDisponible();
 
         window.addEventListener('online', () => {
             console.log('Conexión restaurada.');
@@ -3962,12 +4151,12 @@ async function registrarServiceWorker() {
             actualizarIndicadorConexion();
         });
 
-        actualizarIndicadorConexion();
+        await actualizarIndicadorConexion();
 
         return true;
     } catch (error) {
         console.error('No se pudo registrar el Service Worker:', error);
-        actualizarIndicadorConexion();
+        await actualizarIndicadorConexion();
         return false;
     }
 }
@@ -3991,6 +4180,7 @@ window.onload = async () => {
         cargarBibliaJSON(),
         cargarComentariosJSON()
     ]);
+    await actualizarIndicadorConexion();
 
     initDarkMode();
 
@@ -4010,18 +4200,75 @@ window.onload = async () => {
 
     const busquedaInput = document.getElementById('busqueda-input');
     const busquedaInputMovil = document.getElementById('busqueda-input-movil');
+    const busquedaPanelInput = document.getElementById('busqueda-panel-input');
     const btnBuscarMovil = document.getElementById('btn-buscar-movil');
-    const buscadorMovilDiv = document.getElementById('buscador-movil');
-    btnBuscarMovil.addEventListener('click', () => {
-        buscadorMovilDiv.classList.toggle('hidden');
-        if (!buscadorMovilDiv.classList.contains('hidden')) busquedaInputMovil.focus();
-    });
-    const realizarBusqueda = () => {
-        const termino = busquedaInput.value.trim() || busquedaInputMovil.value.trim();
-        if (termino) mostrarResultadosBusqueda(termino);
+    const btnEjecutarBusquedaMovil = document.getElementById('btn-ejecutar-busqueda-movil');
+    const btnEjecutarBusquedaPanel = document.getElementById('btn-ejecutar-busqueda-panel');
+    const btnLimpiarBusquedaMovil = document.getElementById('btn-limpiar-busqueda-movil');
+    const btnLimpiarPanelBusqueda = document.getElementById('btn-limpiar-panel-busqueda');
+
+    const realizarBusqueda = (terminoPreferido = '') => {
+        const termino = normalizarTerminoBusqueda(terminoPreferido || obtenerTerminoBusquedaActual());
+        if (!termino) {
+            const contenedorBusqueda = document.getElementById('contenido-busqueda');
+            const contadorBusqueda = document.getElementById('contador-busqueda');
+            if (contenedorBusqueda) contenedorBusqueda.innerHTML = renderizarEstadoBusquedaVacio('');
+            if (contadorBusqueda) contadorBusqueda.textContent = 'Buscá una palabra o frase';
+            return;
+        }
+        mostrarResultadosBusqueda(termino);
     };
-    busquedaInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') realizarBusqueda(); });
-    busquedaInputMovil.addEventListener('keypress', (e) => { if (e.key === 'Enter') realizarBusqueda(); });
+
+    [busquedaInput, busquedaInputMovil, busquedaPanelInput].forEach(input => {
+        if (!input) return;
+
+        input.addEventListener('input', (event) => {
+            sincronizarInputsBusqueda(event.target.value, event.target);
+        });
+
+        input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                realizarBusqueda(event.target.value);
+            }
+        });
+    });
+
+    if (btnBuscarMovil) {
+        btnBuscarMovil.addEventListener('click', () => mostrarBuscadorMovil());
+    }
+
+    if (btnEjecutarBusquedaMovil) {
+        btnEjecutarBusquedaMovil.addEventListener('click', () => realizarBusqueda(busquedaInputMovil?.value));
+    }
+
+    if (btnEjecutarBusquedaPanel) {
+        btnEjecutarBusquedaPanel.addEventListener('click', () => realizarBusqueda(busquedaPanelInput?.value));
+    }
+
+    if (btnLimpiarBusquedaMovil) {
+        btnLimpiarBusquedaMovil.addEventListener('click', () => {
+            limpiarBusqueda();
+            if (busquedaInputMovil) busquedaInputMovil.focus();
+        });
+    }
+
+    if (btnLimpiarPanelBusqueda) {
+        btnLimpiarPanelBusqueda.addEventListener('click', () => {
+            limpiarBusqueda();
+            if (busquedaPanelInput) busquedaPanelInput.focus();
+        });
+    }
+
+    const contenedorBusqueda = document.getElementById('contenido-busqueda');
+    if (contenedorBusqueda) {
+        contenedorBusqueda.innerHTML = renderizarEstadoBusquedaVacio('');
+    }
+    const contadorBusqueda = document.getElementById('contador-busqueda');
+    if (contadorBusqueda) {
+        contadorBusqueda.textContent = 'Buscá una palabra o frase';
+    }
+    actualizarEstadoControlesBusqueda();
 
     const observer = setInterval(() => {
         if (datosBibliaCargados && indiceBusqueda.length === 0) {
@@ -4361,7 +4608,7 @@ async function limpiarCacheLumina() {
         const cachesLumina = await caches.keys();
         await Promise.all(
             cachesLumina
-                .filter(nombre => nombre.startsWith('lumina-cache-'))
+                .filter(nombre => nombre.startsWith('lumina-'))
                 .map(nombre => caches.delete(nombre))
         );
 
@@ -4455,7 +4702,7 @@ async function ejecutarResetLumina() {
             const cachesLumina = await caches.keys();
             await Promise.all(
                 cachesLumina
-                    .filter(nombre => nombre.startsWith('lumina-cache-'))
+                    .filter(nombre => nombre.startsWith('lumina-'))
                     .map(nombre => caches.delete(nombre))
             );
         }
