@@ -2643,6 +2643,7 @@ body.dark .tradicion-viva {
 }
 
 .header-offline-text {
+    display: inline;
     white-space: nowrap;
 }
 
@@ -2758,7 +2759,7 @@ Comentarios compartir Lumina
     }
 
     #estado-offline .header-offline-text {
-        display: none;
+        display: none !important;
     }
 
     #estado-offline i {
@@ -2978,8 +2979,18 @@ body.dark #contenido-panel-personales .palabra-resaltada {
     display: inline;
 }
 
+.header-concordancia-texto {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.header-concordancia-texto-full {
+    display: inline !important;
+}
+
 .header-concordancia-texto-short {
-    display: none;
+    display: none !important;
 }
 
 .header-favoritos-button,
@@ -3896,11 +3907,11 @@ body:not(.dark) #contenido-busqueda .resultado-busqueda-item .resultado-busqueda
     }
 
     .header-concordancia-texto-full {
-        display: none;
+        display: none !important;
     }
 
     .header-concordancia-texto-short {
-        display: inline;
+        display: inline !important;
     }
 
     body.dark .header-concordancia-texto {
@@ -4012,5 +4023,19 @@ body:not(.dark) #contenido-busqueda .resultado-busqueda-item .resultado-busqueda
     .resultado-busqueda-foot {
         align-items: flex-start;
         flex-direction: column;
+    }
+}
+
+@media (min-width: 641px) {
+    .header-concordancia-texto-full {
+        display: inline !important;
+    }
+
+    .header-concordancia-texto-short {
+        display: none !important;
+    }
+
+    #estado-offline .header-offline-text {
+        display: inline !important;
     }
 }

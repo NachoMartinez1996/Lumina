@@ -4454,6 +4454,42 @@ async function offlineEsencialDisponible() {
     return true;
 }
 
+function obtenerEstadoIndicadorConexion(listoParaOffline) {
+    if (navigator.onLine) {
+        if (listoParaOffline) {
+            return {
+                texto: "Modo sin conexion disponible (en linea)",
+                tooltip: "Lumina ya guardo en este dispositivo la app y los datos esenciales para usarla sin internet.",
+                toast: "En linea. El modo sin conexion ya esta listo en este dispositivo.",
+                estado: "online-ready"
+            };
+        }
+
+        return {
+            texto: "Preparando modo sin conexion...",
+            tooltip: "Lumina sigue guardando los archivos esenciales para poder abrirse sin internet en este dispositivo.",
+            toast: "En linea. Lumina todavia esta preparando el modo sin conexion.",
+            estado: "online-syncing"
+        };
+    }
+
+    if (listoParaOffline) {
+        return {
+            texto: "Sin conexion: usando contenido cacheado",
+            tooltip: "Sin conexion. Lumina esta usando el contenido esencial guardado en este dispositivo.",
+            toast: "Sin conexion. Estas usando la version guardada en este dispositivo.",
+            estado: "offline-ready"
+        };
+    }
+
+    return {
+        texto: "Sin conexion: falta contenido guardado",
+        tooltip: "Sin conexion, pero este dispositivo todavia no guardo todos los archivos esenciales para abrir Lumina offline.",
+        toast: "Sin conexion. A este dispositivo todavia le faltan archivos esenciales para abrir Lumina offline.",
+        estado: "offline-missing"
+    };
+}
+
 async function actualizarIndicadorConexion() {
     const badge = document.getElementById("estado-offline");
     if (!badge) return;
@@ -4461,32 +4497,38 @@ async function actualizarIndicadorConexion() {
     badge.classList.remove("hidden");
     badge.classList.add("inline-flex");
 
-    const spanEl = badge.querySelector("span");
-    if (!spanEl) return;
+    const textoEl = badge.querySelector(".header-offline-text");
+    const iconoEl = badge.querySelector(".header-offline-icon i");
+    if (!textoEl) return;
 
     const listoParaOffline = await offlineEsencialDisponible();
+    const detalle = obtenerEstadoIndicadorConexion(listoParaOffline);
 
-    if (navigator.onLine) {
-        if (listoParaOffline) {
-            spanEl.textContent = "Modo sin conexion disponible (en linea)";
-            badge.setAttribute("title", "Lumina ya guardó en este dispositivo la app y los datos esenciales para usarla sin internet.");
-        } else {
-            spanEl.textContent = "Preparando modo sin conexion...";
-            badge.setAttribute("title", "Lumina sigue guardando los archivos esenciales para poder abrirse sin internet en este dispositivo.");
-        }
-    } else {
-        if (listoParaOffline) {
-            spanEl.textContent = "Sin conexion: usando contenido cacheado";
-            badge.setAttribute("title", "Sin conexión. Lumina está usando el contenido esencial guardado en este dispositivo.");
-        } else {
-            spanEl.textContent = "Sin conexion: falta contenido guardado";
-            badge.setAttribute("title", "Sin conexión, pero este dispositivo todavía no guardó todos los archivos esenciales para abrir Lumina offline.");
-        }
+    textoEl.textContent = detalle.texto;
+    badge.dataset.offlineState = detalle.estado;
+    badge.dataset.toastMessage = detalle.toast;
+    badge.setAttribute("title", detalle.tooltip);
+    badge.setAttribute("aria-label", detalle.toast);
+
+    if (iconoEl) {
+        iconoEl.className = "fas fa-wifi";
     }
 }
 
 async function mostrarEstadoOfflineDisponible() {
     await actualizarIndicadorConexion();
+}
+
+async function mostrarDetalleEstadoConexion() {
+    await actualizarIndicadorConexion();
+
+    const badge = document.getElementById("estado-offline");
+    if (!badge) return;
+
+    const mensaje = badge.dataset.toastMessage || badge.getAttribute("title");
+    if (mensaje) {
+        lanzarToast(mensaje);
+    }
 }
 
 async function registrarServiceWorker() {
@@ -4587,6 +4629,7 @@ window.onload = async () => {
     });
 
     document.getElementById('btn-favoritos').addEventListener('click', () => mostrarPanelFavoritos());
+    document.getElementById('estado-offline')?.addEventListener('click', () => mostrarDetalleEstadoConexion());
 
     const busquedaInput = document.getElementById('busqueda-input');
     const busquedaInputMovil = document.getElementById('busqueda-input-movil');
