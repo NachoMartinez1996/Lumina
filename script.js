@@ -1005,6 +1005,11 @@ let estadoSeccionesFavoritos = {
     comentarios: false,
     notas: false
 };
+let estadoSeccionesBusqueda = {
+    versiculos: true,
+    comentarios: true,
+    notas: true
+};
 let leidos = new Set();
 // Lumina cuenta 76 libros en su canon interno: 73 del canon católico + 3 suplementarios.
 const TOTAL_BIBLIA_LUMINA = 76;
@@ -1151,6 +1156,8 @@ function mostrarNotasPersonales(libro, capitulo, versiculo) {
     }
     container.innerHTML = notas.map((nota, idx) => {
         const esFav = esFavoritoComentario(libro, capitulo, versiculo, 'personal', idx);
+        const accionFavorito = esFav ? 'Quitar de favoritos' : 'Agregar a favoritos';
+        const identificadorFavorito = obtenerIdentificadorFavoritoComentario(libro, capitulo, versiculo, 'personal', idx);
         return `
         <div class="nota-panel-item border-l-4 border-oro/30 pl-4 py-3 bg-white dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700 rounded-lg mb-3 shadow-sm" data-panel-nota-idx="${idx}">
             <p class="text-gray-800 dark:text-gray-200 text-sm mb-2 font-medium">${escapeHtml(nota.texto)}</p>
@@ -1172,8 +1179,12 @@ function mostrarNotasPersonales(libro, capitulo, versiculo) {
                         <i class="fas fa-share-alt text-sm"></i>
                     </button>
                     <button id="star_com_${libro}_${capitulo}_${versiculo}_personal_${idx}" 
+                            data-favorito-comentario="${identificadorFavorito}"
                             onclick="toggleFavoritoComentario('${libro}', ${capitulo}, ${versiculo}, 'personal', ${idx})" 
-                            class="estrella-fav-comentario ${esFav ? 'activa' : ''} transition-all">
+                            class="estrella-fav-comentario ${esFav ? 'activa' : ''} transition-all"
+                            title="${accionFavorito}"
+                            aria-label="${accionFavorito} nota de ${escapeHtml(formatearReferenciaCompartida(libro, capitulo, versiculo))}"
+                            aria-pressed="${esFav ? 'true' : 'false'}">
                         <i class="fas fa-star"></i>
                     </button>
                     <button onclick="eliminarNota('${libro}', ${capitulo}, ${versiculo}, ${idx})" 
@@ -1212,76 +1223,121 @@ function cargarFavoritos() {
 function guardarFavoritos() {
     localStorage.setItem("lumina_favoritos", JSON.stringify(Array.from(favoritos)));
 }
+
+function obtenerClaveFavoritoVersiculo(libro, capitulo, versiculo) {
+    return `versiculo:${libro}_${capitulo}_${versiculo}`;
+}
+
+function obtenerIdentificadorFavoritoVersiculo(libro, capitulo, versiculo) {
+    return `${libro}_${capitulo}_${versiculo}`;
+}
+
+function obtenerNodosFavoritoVersiculo(libro, capitulo, versiculo) {
+    const identificador = obtenerIdentificadorFavoritoVersiculo(libro, capitulo, versiculo);
+    return Array.from(document.querySelectorAll('[data-favorito-versiculo]'))
+        .filter(nodo => nodo.dataset.favoritoVersiculo === identificador);
+}
+
+function obtenerClaveFavoritoComentario(libro, capitulo, versiculo, tipo, idx) {
+    return `comentario:${libro}_${capitulo}_${versiculo}_${tipo}_${idx}`;
+}
+
+function obtenerIdentificadorFavoritoComentario(libro, capitulo, versiculo, tipo, idx) {
+    return `${libro}_${capitulo}_${versiculo}_${tipo}_${idx}`;
+}
+
+function obtenerNodosFavoritoComentario(libro, capitulo, versiculo, tipo, idx) {
+    const identificador = obtenerIdentificadorFavoritoComentario(libro, capitulo, versiculo, tipo, idx);
+    return Array.from(document.querySelectorAll('[data-favorito-comentario]'))
+        .filter(nodo => nodo.dataset.favoritoComentario === identificador);
+}
+
 function toggleFavoritoVersiculo(libro, capitulo, versiculo) {
-    const key = `versiculo:${libro}_${capitulo}_${versiculo}`;
+    const key = obtenerClaveFavoritoVersiculo(libro, capitulo, versiculo);
     if (favoritos.has(key)) favoritos.delete(key);
     else favoritos.add(key);
     guardarFavoritos();
     actualizarEstrella(libro, capitulo, versiculo);
 
-    // ? FEEDBACK VISUAL
-    const star = document.getElementById(`star_${libro}_${capitulo}_${versiculo}`);
+    const stars = obtenerNodosFavoritoVersiculo(libro, capitulo, versiculo);
 
-    if (star) {
-        if (favoritos.has(`versiculo:${libro}_${capitulo}_${versiculo}`)) {
-            star.classList.add('animacion-fav');
+    if (stars.length > 0) {
+        if (favoritos.has(obtenerClaveFavoritoVersiculo(libro, capitulo, versiculo))) {
+            stars.forEach(star => star.classList.add('animacion-fav'));
             lanzarToast("Versículo guardado ?");
         } else {
             lanzarToast("Versículo quitado");
         }
 
         setTimeout(() => {
-            star.classList.remove('animacion-fav');
+            stars.forEach(star => star.classList.remove('animacion-fav'));
         }, 300);
     }
     if (document.getElementById('panel-favoritos').classList.contains('translate-x-full') === false) mostrarPanelFavoritos();
 }
 function toggleFavoritoComentario(libro, capitulo, versiculo, tipo, idx) {
-    const key = `comentario:${libro}_${capitulo}_${versiculo}_${tipo}_${idx}`;
-    if (favoritos.has(key)) favoritos.delete(key);
-    else favoritos.add(key);
+    const key = obtenerClaveFavoritoComentario(libro, capitulo, versiculo, tipo, idx);
+    const seAgrega = !favoritos.has(key);
+
+    if (seAgrega) favoritos.add(key);
+    else favoritos.delete(key);
+
     guardarFavoritos();
-    const starId = `star_com_${libro}_${capitulo}_${versiculo}_${tipo}_${idx}`;
-    const starElem = document.getElementById(starId);
-    if (starElem) {
-        if (favoritos.has(key)) {
-            starElem.classList.add('activa');
+    actualizarFavoritoComentarioUI(libro, capitulo, versiculo, tipo, idx);
 
-            // ? FEEDBACK VISUAL
-            starElem.classList.add('animacion-fav');
-            lanzarToast("Guardado en favoritos ?");
+    const stars = obtenerNodosFavoritoComentario(libro, capitulo, versiculo, tipo, idx);
 
+    if (stars.length > 0) {
+        if (seAgrega) {
+            stars.forEach(star => star.classList.add('animacion-fav'));
+            lanzarToast(tipo === 'personal' ? 'Nota guardada en favoritos' : 'Comentario guardado en favoritos');
         } else {
-            starElem.classList.remove('activa');
-
-            // ? FEEDBACK VISUAL
-            lanzarToast("Quitado de favoritos");
+            lanzarToast(tipo === 'personal' ? 'Nota quitada de favoritos' : 'Comentario quitado de favoritos');
         }
 
-        // limpiar animación
         setTimeout(() => {
-            starElem.classList.remove('animacion-fav');
+            stars.forEach(star => star.classList.remove('animacion-fav'));
         }, 300);
     }
     if (document.getElementById('panel-favoritos').classList.contains('translate-x-full') === false) mostrarPanelFavoritos();
 }
 function esFavoritoVersiculo(libro, capitulo, versiculo) {
-    return favoritos.has(`versiculo:${libro}_${capitulo}_${versiculo}`);
+    return favoritos.has(obtenerClaveFavoritoVersiculo(libro, capitulo, versiculo));
 }
 function esFavoritoComentario(libro, capitulo, versiculo, tipo, idx) {
-    return favoritos.has(`comentario:${libro}_${capitulo}_${versiculo}_${tipo}_${idx}`);
+    return favoritos.has(obtenerClaveFavoritoComentario(libro, capitulo, versiculo, tipo, idx));
 }
 function actualizarEstrella(libro, capitulo, versiculo) {
-    let starSpan = document.getElementById(`star_${libro}_${capitulo}_${versiculo}`);
-    if (starSpan) {
-        if (esFavoritoVersiculo(libro, capitulo, versiculo)) {
-            starSpan.classList.add("activa");
-            starSpan.textContent = "\u2605";
-        } else {
-            starSpan.classList.remove("activa");
-            starSpan.textContent = "\u2606";
-        }
-    }
+    const esFavorito = esFavoritoVersiculo(libro, capitulo, versiculo);
+    const textoAccion = esFavorito ? 'Quitar de favoritos' : 'Agregar a favoritos';
+    const label = `${textoAccion} ${libro} ${capitulo}, ${versiculo}`;
+
+    obtenerNodosFavoritoVersiculo(libro, capitulo, versiculo).forEach(starSpan => {
+        starSpan.classList.toggle("activa", esFavorito);
+        starSpan.textContent = esFavorito ? "\u2605" : "\u2606";
+        starSpan.setAttribute('title', textoAccion);
+        starSpan.setAttribute('aria-label', label);
+        starSpan.setAttribute('aria-pressed', esFavorito ? 'true' : 'false');
+    });
+}
+
+function actualizarFavoritoComentarioUI(libro, capitulo, versiculo, tipo, idx) {
+    const esFavorito = esFavoritoComentario(libro, capitulo, versiculo, tipo, idx);
+    const textoAccion = esFavorito ? 'Quitar de favoritos' : 'Agregar a favoritos';
+    const descripcion = tipo === 'personal' ? 'nota' : 'comentario';
+    const referencia = (Number(capitulo) === 0 && Number(versiculo) === 0)
+        ? `${libro} (Prefacio)`
+        : formatearReferenciaCompartida(libro, capitulo, versiculo);
+    const label = referencia
+        ? `${textoAccion} ${descripcion} de ${referencia}`
+        : `${textoAccion} ${descripcion}`;
+
+    obtenerNodosFavoritoComentario(libro, capitulo, versiculo, tipo, idx).forEach(star => {
+        star.classList.toggle('activa', esFavorito);
+        star.setAttribute('title', textoAccion);
+        star.setAttribute('aria-label', label);
+        star.setAttribute('aria-pressed', esFavorito ? 'true' : 'false');
+    });
 }
 
 function obtenerOrdenLibroBiblico(libro) {
@@ -1339,7 +1395,9 @@ function obtenerFavoritosClasificados() {
         if (!Number.isInteger(idx)) continue;
 
         if (tipo === 'tradicion') {
-            const comentarios = obtenerComentarios(libro, capitulo, versiculo);
+            const comentarios = (capitulo === 0 && versiculo === 0)
+                ? (comentariosDB[`${libro}_prefacio`] || [])
+                : obtenerComentarios(libro, capitulo, versiculo);
             const comentario = comentarios[idx];
             if (!comentario) continue;
 
@@ -1348,6 +1406,7 @@ function obtenerFavoritosClasificados() {
                 capitulo,
                 versiculo,
                 idx,
+                prefacio: capitulo === 0 && versiculo === 0,
                 autor: comentario.autor || 'Tradición',
                 texto: comentario.texto || ''
             });
@@ -1396,7 +1455,14 @@ function crearBotonFavoritoVersiculo(item) {
 }
 
 function abrirFavoritoAnotacion(libro, capitulo, versiculo, tipo, idx) {
+    cerrarPanel('panel-busqueda');
     cerrarPanel('panel-favoritos');
+
+    if (tipo === 'tradicion' && capitulo === 0 && versiculo === 0) {
+        abrirPrefacio(libro);
+        return;
+    }
+
     irAVersiculo(libro, capitulo, versiculo);
     setTimeout(() => {
         abrirPanel(
@@ -1413,10 +1479,13 @@ function crearBotonFavoritoComentario(item) {
     const boton = document.createElement('button');
     boton.type = 'button';
     boton.className = 'favorito-entrada favorito-item';
+    const referencia = item.prefacio
+        ? `${item.libro} (Prefacio)`
+        : formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo);
     boton.innerHTML = `
         <div class="favorito-entrada-cabecera">
             <i class="fas fa-comment-dots favorito-entrada-icono" aria-hidden="true"></i>
-            <span class="favorito-entrada-ref">${escapeHtml(formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo))}</span>
+            <span class="favorito-entrada-ref">${escapeHtml(referencia)}</span>
             <span class="favorito-entrada-badge">Tradición</span>
         </div>
         <p class="favorito-entrada-meta">${escapeHtml(item.autor)}</p>
@@ -1443,43 +1512,43 @@ function crearBotonFavoritoNota(item) {
     return boton;
 }
 
-function crearSeccionFavoritos(clave, titulo, icono, items, crearItem, mensajeVacio) {
+function crearSeccionPanel(claseBase, estadoStore, clave, titulo, icono, items, crearItem, mensajeVacio) {
     const seccion = document.createElement('section');
-    seccion.className = 'favoritos-seccion';
+    seccion.className = `${claseBase}-seccion`;
 
     const toggle = document.createElement('button');
     toggle.type = 'button';
-    toggle.className = 'favoritos-seccion-toggle';
+    toggle.className = `${claseBase}-seccion-toggle`;
 
     const contenido = document.createElement('div');
-    contenido.className = 'favoritos-seccion-contenido';
+    contenido.className = `${claseBase}-seccion-contenido`;
 
     const sincronizar = () => {
-        const expandida = estadoSeccionesFavoritos[clave] !== false;
+        const expandida = estadoStore[clave] !== false;
         toggle.setAttribute('aria-expanded', expandida ? 'true' : 'false');
         contenido.hidden = !expandida;
     };
 
     toggle.innerHTML = `
-        <span class="favoritos-seccion-etiqueta">
-            <span class="favoritos-seccion-icono" aria-hidden="true"><i class="fas ${icono}"></i></span>
+        <span class="${claseBase}-seccion-etiqueta">
+            <span class="${claseBase}-seccion-icono" aria-hidden="true"><i class="fas ${icono}"></i></span>
             <span>${titulo}</span>
         </span>
-        <span class="favoritos-seccion-meta">
-            <span class="favoritos-seccion-count">${items.length}</span>
-            <i class="fas fa-chevron-down favoritos-seccion-chevron" aria-hidden="true"></i>
+        <span class="${claseBase}-seccion-meta">
+            <span class="${claseBase}-seccion-count">${items.length}</span>
+            <i class="fas fa-chevron-down ${claseBase}-seccion-chevron" aria-hidden="true"></i>
         </span>
     `;
     toggle.onclick = () => {
-        estadoSeccionesFavoritos[clave] = !(estadoSeccionesFavoritos[clave] !== false);
+        estadoStore[clave] = !(estadoStore[clave] !== false);
         sincronizar();
     };
 
     if (items.length === 0) {
-        contenido.innerHTML = `<div class="favoritos-seccion-vacio">${mensajeVacio}</div>`;
+        contenido.innerHTML = `<div class="${claseBase}-seccion-vacio">${mensajeVacio}</div>`;
     } else {
         const lista = document.createElement('div');
-        lista.className = 'favoritos-seccion-lista';
+        lista.className = `${claseBase}-seccion-lista`;
         items.forEach(item => lista.appendChild(crearItem(item)));
         contenido.appendChild(lista);
     }
@@ -1488,6 +1557,14 @@ function crearSeccionFavoritos(clave, titulo, icono, items, crearItem, mensajeVa
     seccion.appendChild(toggle);
     seccion.appendChild(contenido);
     return seccion;
+}
+
+function crearSeccionFavoritos(clave, titulo, icono, items, crearItem, mensajeVacio) {
+    return crearSeccionPanel('favoritos', estadoSeccionesFavoritos, clave, titulo, icono, items, crearItem, mensajeVacio);
+}
+
+function crearSeccionBusqueda(clave, titulo, icono, items, crearItem, mensajeVacio) {
+    return crearSeccionPanel('busqueda', estadoSeccionesBusqueda, clave, titulo, icono, items, crearItem, mensajeVacio);
 }
 
 function mostrarPanelFavoritos() {
@@ -1624,8 +1701,8 @@ function renderizarEstadoBusquedaVacio(termino = '') {
         return `
             <div class="resultado-busqueda-empty">
                 <div class="resultado-busqueda-empty-icon"><i class="fas fa-search"></i></div>
-                <div class="resultado-busqueda-empty-titulo">Buscá dentro de toda la Biblia</div>
-                <div class="resultado-busqueda-empty-texto">Escribí una palabra o una frase breve para encontrar versículos y saltar directo a la lectura.</div>
+                <div class="resultado-busqueda-empty-titulo">Buscá en versículos, comentarios y notas</div>
+                <div class="resultado-busqueda-empty-texto">Escribí una palabra o una frase breve para encontrar pasajes, comentarios de la Tradición y tus notas personales en un mismo panel.</div>
             </div>
         `;
     }
@@ -1634,25 +1711,206 @@ function renderizarEstadoBusquedaVacio(termino = '') {
         <div class="resultado-busqueda-empty">
             <div class="resultado-busqueda-empty-icon"><i class="fas fa-book-open"></i></div>
             <div class="resultado-busqueda-empty-titulo">Sin coincidencias para "${escapeHtml(terminoNormalizado)}"</div>
-            <div class="resultado-busqueda-empty-texto">Probá con una sola palabra, una variante singular/plural o un término más corto para ampliar los resultados.</div>
+            <div class="resultado-busqueda-empty-texto">Probá con una sola palabra, una variante singular/plural o un término más corto para ampliar los resultados en versículos, comentarios y notas.</div>
         </div>
     `;
 }
 
-function crearTarjetaResultadoBusqueda(ref, index) {
-    return `
-        <button type="button" class="resultado-busqueda-item" onclick="irAVersiculo('${ref.libro}', ${ref.capitulo}, ${ref.versiculo}, 'busqueda')">
-            <div class="resultado-busqueda-item-top">
-                <span class="resultado-busqueda-kicker">Versículo encontrado</span>
-                <span class="resultado-busqueda-numero">${index + 1}</span>
+function crearRegexBusqueda(termino) {
+    const terminoLimpio = normalizarTexto(normalizarTerminoBusqueda(termino));
+    if (!terminoLimpio) return null;
+
+    const termRegex = terminoLimpio.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`\\b${termRegex}\\b`, 'i');
+}
+
+function coincideTextoBusqueda(texto, regex) {
+    if (!regex) return false;
+    return regex.test(normalizarTexto(String(texto || '')));
+}
+
+function obtenerFragmentoBusqueda(texto, termino, maximo = 180) {
+    const textoLimpio = String(texto || '').trim();
+    if (!textoLimpio) return '';
+    if (textoLimpio.length <= maximo) return textoLimpio;
+
+    const terminoLimpio = normalizarTexto(normalizarTerminoBusqueda(termino));
+    const textoNormalizado = normalizarTexto(textoLimpio);
+    const indiceCoincidencia = terminoLimpio ? textoNormalizado.indexOf(terminoLimpio) : -1;
+
+    if (indiceCoincidencia === -1) {
+        return truncarTextoFavorito(textoLimpio, maximo);
+    }
+
+    const margen = Math.max(40, Math.floor((maximo - terminoLimpio.length) / 2));
+    const inicio = Math.max(0, indiceCoincidencia - margen);
+    const fin = Math.min(textoLimpio.length, indiceCoincidencia + terminoLimpio.length + margen);
+    let fragmento = textoLimpio.slice(inicio, fin).trim();
+
+    if (inicio > 0) fragmento = `…${fragmento}`;
+    if (fin < textoLimpio.length) fragmento = `${fragmento}…`;
+
+    return fragmento;
+}
+
+function formatearReferenciaResultadoBusqueda(item) {
+    if (item.prefacio) return `${item.libro} (Prefacio)`;
+
+    if (Number.isFinite(item.versiculoHasta) && item.versiculoHasta > item.versiculo) {
+        return `${item.libro} ${item.capitulo},${item.versiculo}-${item.versiculoHasta}`;
+    }
+
+    return formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo);
+}
+
+function configurarTarjetaResultadoBusqueda(tarjeta, onOpen) {
+    tarjeta.setAttribute('role', 'button');
+    tarjeta.tabIndex = 0;
+    tarjeta.addEventListener('click', onOpen);
+    tarjeta.addEventListener('keydown', (event) => {
+        if (event.target !== tarjeta) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onOpen();
+        }
+    });
+}
+
+function crearTarjetaResultadoBusquedaVersiculo(item) {
+    const favorito = esFavoritoVersiculo(item.libro, item.capitulo, item.versiculo);
+    const accionFavorito = favorito ? 'Quitar de favoritos' : 'Agregar a favoritos';
+    const identificadorFavorito = obtenerIdentificadorFavoritoVersiculo(item.libro, item.capitulo, item.versiculo);
+    const referencia = formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo);
+    const tarjeta = document.createElement('div');
+
+    tarjeta.className = 'resultado-busqueda-item';
+    tarjeta.innerHTML = `
+        <div class="resultado-busqueda-ref-row">
+            <div class="resultado-busqueda-ref-main">
+                <div class="resultado-busqueda-ref-line">
+                    <i class="fas fa-bible resultado-busqueda-icono" aria-hidden="true"></i>
+                    <div class="resultado-busqueda-ref">${escapeHtml(referencia)}</div>
+                </div>
             </div>
-            <div class="resultado-busqueda-ref">${escapeHtml(ref.libro)} ${ref.capitulo}, ${ref.versiculo}</div>
-            <div class="resultado-busqueda-texto">${escapeHtml(ref.texto)}</div>
-            <div class="resultado-busqueda-foot">
-                <span class="resultado-busqueda-accion"><i class="fas fa-book-open"></i> Abrir lectura</span>
+            <div class="resultado-busqueda-ref-tools">
+                <button
+                    type="button"
+                    data-favorito-versiculo="${identificadorFavorito}"
+                    class="resultado-busqueda-fav estrella-fav ${favorito ? 'activa' : ''}"
+                    title="${accionFavorito}"
+                    aria-label="${accionFavorito} ${escapeHtml(referencia)}"
+                    aria-pressed="${favorito ? 'true' : 'false'}">${favorito ? '★' : '☆'}</button>
+                <span class="resultado-busqueda-numero">${item.numeroResultado}</span>
             </div>
-        </button>
+        </div>
+        <div class="resultado-busqueda-texto">${escapeHtml(item.texto)}</div>
     `;
+
+    configurarTarjetaResultadoBusqueda(tarjeta, () => irAVersiculo(item.libro, item.capitulo, item.versiculo, 'busqueda'));
+
+    const botonFavorito = tarjeta.querySelector('[data-favorito-versiculo]');
+    botonFavorito?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleFavoritoVersiculo(item.libro, item.capitulo, item.versiculo);
+    });
+
+    return tarjeta;
+}
+
+function crearTarjetaResultadoBusquedaAnotacion(item, opciones) {
+    const favorito = esFavoritoComentario(item.libro, item.capitulo, item.versiculo, item.tipoFavorito, item.idx);
+    const accionFavorito = favorito ? 'Quitar de favoritos' : 'Agregar a favoritos';
+    const identificadorFavorito = obtenerIdentificadorFavoritoComentario(item.libro, item.capitulo, item.versiculo, item.tipoFavorito, item.idx);
+    const referencia = formatearReferenciaResultadoBusqueda(item);
+    const tarjeta = document.createElement('div');
+    const texto = opciones.citar ? `"${escapeHtml(item.fragmento || item.texto)}"` : escapeHtml(item.fragmento || item.texto);
+
+    tarjeta.className = 'resultado-busqueda-item';
+    tarjeta.innerHTML = `
+        <div class="resultado-busqueda-ref-row">
+            <div class="resultado-busqueda-ref-main">
+                <div class="resultado-busqueda-ref-line">
+                    <i class="fas ${opciones.icono} resultado-busqueda-icono" aria-hidden="true"></i>
+                    <div class="resultado-busqueda-ref">${escapeHtml(referencia)}</div>
+                    <span class="resultado-busqueda-badge">${escapeHtml(opciones.badge)}</span>
+                </div>
+                ${opciones.meta ? `<p class="resultado-busqueda-meta">${escapeHtml(opciones.meta)}</p>` : ''}
+            </div>
+            <div class="resultado-busqueda-ref-tools">
+                <button
+                    type="button"
+                    data-favorito-comentario="${identificadorFavorito}"
+                    class="resultado-busqueda-fav estrella-fav-comentario ${favorito ? 'activa' : ''}"
+                    title="${accionFavorito}"
+                    aria-label="${accionFavorito} ${escapeHtml(opciones.badge.toLowerCase())} de ${escapeHtml(referencia)}"
+                    aria-pressed="${favorito ? 'true' : 'false'}"><i class="fas fa-star"></i></button>
+                <span class="resultado-busqueda-numero">${item.numeroResultado}</span>
+            </div>
+        </div>
+        <div class="resultado-busqueda-texto">${texto}</div>
+    `;
+
+    configurarTarjetaResultadoBusqueda(tarjeta, () => abrirFavoritoAnotacion(item.libro, item.capitulo, item.versiculo, item.tipoFavorito, item.idx));
+
+    const botonFavorito = tarjeta.querySelector('[data-favorito-comentario]');
+    botonFavorito?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleFavoritoComentario(item.libro, item.capitulo, item.versiculo, item.tipoFavorito, item.idx);
+    });
+
+    return tarjeta;
+}
+
+function crearTarjetaResultadoBusquedaComentario(item) {
+    return crearTarjetaResultadoBusquedaAnotacion(item, {
+        icono: 'fa-comment-dots',
+        badge: 'Tradición',
+        meta: item.autor || '',
+        citar: true
+    });
+}
+
+function crearTarjetaResultadoBusquedaNota(item) {
+    return crearTarjetaResultadoBusquedaAnotacion(item, {
+        icono: 'fa-pen',
+        badge: 'Nota',
+        meta: item.fecha || '',
+        citar: false
+    });
+}
+
+function renderizarResultadosBusqueda(contenedor, resultados) {
+    contenedor.innerHTML = '';
+    contenedor.appendChild(
+        crearSeccionBusqueda(
+            'versiculos',
+            'Versículos',
+            'fa-bible',
+            resultados.versiculos,
+            crearTarjetaResultadoBusquedaVersiculo,
+            'No hubo versículos que coincidan en esta búsqueda.'
+        )
+    );
+    contenedor.appendChild(
+        crearSeccionBusqueda(
+            'comentarios',
+            'Comentarios',
+            'fa-comment-dots',
+            resultados.comentarios,
+            crearTarjetaResultadoBusquedaComentario,
+            'No hubo comentarios que coincidan en esta búsqueda.'
+        )
+    );
+    contenedor.appendChild(
+        crearSeccionBusqueda(
+            'notas',
+            'Notas',
+            'fa-pen',
+            resultados.notas,
+            crearTarjetaResultadoBusquedaNota,
+            'No hubo notas que coincidan en esta búsqueda.'
+        )
+    );
 }
 
 function construirIndiceBusqueda() {
@@ -1662,7 +1920,7 @@ function construirIndiceBusqueda() {
             for (let ver in bibleContent[libro][cap]) {
                 indiceBusqueda.push({
                     libro,
-                    capitulo: parseInt(cap),
+                    capitulo: parseInt(cap, 10),
                     versiculo: parseFloat(ver),
                     texto: bibleContent[libro][cap][ver]
                 });
@@ -1672,24 +1930,139 @@ function construirIndiceBusqueda() {
 }
 
 function buscarVersiculos(termino) {
-    const terminoLimpio = normalizarTexto(normalizarTerminoBusqueda(termino));
-    if (!terminoLimpio) return [];
+    const regex = crearRegexBusqueda(termino);
+    if (!regex) return [];
 
-    // Evitamos la bandera `g` porque `test()` con regex global
-    // avanza `lastIndex` y puede saltarse coincidencias.
-    const termRegex = terminoLimpio.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`\\b${termRegex}\\b`, 'i');
-    return indiceBusqueda.filter(item => {
-        const textoNormalizado = normalizarTexto(item.texto);
-        return regex.test(textoNormalizado);
+    return indiceBusqueda
+        .filter(item => coincideTextoBusqueda(item.texto, regex))
+        .sort(compararFavoritosPorOrdenBiblico);
+}
+
+function buscarComentarios(termino) {
+    const regex = crearRegexBusqueda(termino);
+    if (!regex) return [];
+
+    const resultados = [];
+
+    Object.entries(comentariosDB).forEach(([clave, comentarios]) => {
+        if (clave === '__ranges' || !Array.isArray(comentarios) || comentarios.length === 0) return;
+
+        if (clave.endsWith('_prefacio')) {
+            const libro = clave.slice(0, -9);
+            comentarios.forEach((comentario, idx) => {
+                if (!coincideTextoBusqueda(comentario?.texto, regex)) return;
+                resultados.push({
+                    libro,
+                    capitulo: 0,
+                    versiculo: 0,
+                    idx,
+                    prefacio: true,
+                    tipoFavorito: 'tradicion',
+                    autor: comentario.autor || 'Tradición',
+                    texto: comentario.texto || '',
+                    fragmento: obtenerFragmentoBusqueda(comentario.texto, termino)
+                });
+            });
+            return;
+        }
+
+        const partes = clave.split('_');
+        if (partes.length < 3) return;
+
+        const versiculoClave = partes.pop();
+        const capitulo = parseInt(partes.pop(), 10);
+        const libro = partes.join('_');
+        if (!libro || !Number.isFinite(capitulo)) return;
+
+        let versiculo = parseFloat(versiculoClave);
+        let versiculoHasta = null;
+
+        if (versiculoClave.includes('-')) {
+            const [desde, hasta] = versiculoClave.split('-').map(valor => parseFloat(valor));
+            versiculo = desde;
+            versiculoHasta = hasta;
+        }
+
+        if (!Number.isFinite(versiculo)) return;
+
+        comentarios.forEach((comentario, idx) => {
+            if (!coincideTextoBusqueda(comentario?.texto, regex)) return;
+            resultados.push({
+                libro,
+                capitulo,
+                versiculo,
+                versiculoHasta,
+                idx,
+                tipoFavorito: 'tradicion',
+                autor: comentario.autor || 'Tradición',
+                texto: comentario.texto || '',
+                fragmento: obtenerFragmentoBusqueda(comentario.texto, termino)
+            });
+        });
     });
+
+    return resultados.sort(compararFavoritosPorOrdenBiblico);
+}
+
+function buscarNotas(termino) {
+    const regex = crearRegexBusqueda(termino);
+    if (!regex) return [];
+
+    const resultados = [];
+
+    Object.entries(notasPersonales).forEach(([clave, notas]) => {
+        if (!Array.isArray(notas) || notas.length === 0) return;
+
+        const partes = clave.split('_');
+        if (partes.length < 3) return;
+
+        const versiculo = parseFloat(partes.pop());
+        const capitulo = parseInt(partes.pop(), 10);
+        const libro = partes.join('_');
+
+        if (!libro || !Number.isFinite(capitulo) || !Number.isFinite(versiculo)) return;
+
+        notas.forEach((nota, idx) => {
+            if (!coincideTextoBusqueda(nota?.texto, regex)) return;
+            resultados.push({
+                libro,
+                capitulo,
+                versiculo,
+                idx,
+                tipoFavorito: 'personal',
+                fecha: nota.fecha || '',
+                texto: nota.texto || '',
+                fragmento: obtenerFragmentoBusqueda(nota.texto, termino)
+            });
+        });
+    });
+
+    return resultados.sort(compararFavoritosPorOrdenBiblico);
+}
+
+function buscarResultadosBusqueda(termino) {
+    const resultados = {
+        versiculos: termino ? buscarVersiculos(termino) : [],
+        comentarios: termino ? buscarComentarios(termino) : [],
+        notas: termino ? buscarNotas(termino) : []
+    };
+
+    let numeroResultado = 1;
+    ['versiculos', 'comentarios', 'notas'].forEach(clave => {
+        resultados[clave].forEach(item => {
+            item.numeroResultado = numeroResultado++;
+        });
+    });
+
+    resultados.total = numeroResultado - 1;
+    return resultados;
 }
 
 function mostrarResultadosBusqueda(termino) {
     const terminoNormalizado = normalizarTerminoBusqueda(termino);
     const contenedor = document.getElementById('contenido-busqueda');
     const contador = document.getElementById('contador-busqueda');
-    const resultados = terminoNormalizado ? buscarVersiculos(terminoNormalizado) : [];
+    const resultados = buscarResultadosBusqueda(terminoNormalizado);
     terminoBusquedaActual = terminoNormalizado;
 
     sincronizarInputsBusqueda(terminoNormalizado);
@@ -1702,14 +2075,16 @@ function mostrarResultadosBusqueda(termino) {
 
     if (contador) {
         contador.textContent = terminoNormalizado
-            ? `${resultados.length} resultado${resultados.length !== 1 ? 's' : ''} para "${terminoNormalizado}"`
+            ? `${resultados.total} resultado${resultados.total !== 1 ? 's' : ''} para "${terminoNormalizado}"`
             : 'Buscá una palabra o frase';
     }
 
     if (contenedor) {
-        contenedor.innerHTML = resultados.length === 0
-            ? renderizarEstadoBusquedaVacio(terminoNormalizado)
-            : resultados.map((ref, index) => crearTarjetaResultadoBusqueda(ref, index)).join('');
+        if (!terminoNormalizado || resultados.total === 0) {
+            contenedor.innerHTML = renderizarEstadoBusquedaVacio(terminoNormalizado);
+        } else {
+            renderizarResultadosBusqueda(contenedor, resultados);
+        }
     }
 
     abrirPanelLateral('panel-busqueda');
@@ -3478,11 +3853,19 @@ function abrirPrefacio(libro) {
         <div class="text-xs font-sans text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2"><i class="fas fa-feather-alt"></i> Tradición sobre el Evangelio</div>
     ` + (comentarios.length === 0 ? `<div class="text-gray-600 dark:text-gray-400 italic font-sans text-center py-10">Comentarios del prefacio en preparación.</div>` : comentarios.map((c, idx) => {
         const esFav = esFavoritoComentario(libro, 0, 0, 'tradicion', idx);
+        const accionFavorito = esFav ? 'Quitar de favoritos' : 'Agregar a favoritos';
+        const identificadorFavorito = obtenerIdentificadorFavoritoComentario(libro, 0, 0, 'tradicion', idx);
         return `
         <div class="border-l-4 border-oro/30 pl-4 py-2">
             <div class="flex justify-between items-start">
                 <h3 class="font-bold text-xs text-oro">${escapeHtml(c.autor)}</h3>
-                <button id="star_com_${libro}_0_0_tradicion_${idx}" onclick="toggleFavoritoComentario('${libro}', 0, 0, 'tradicion', ${idx})" class="estrella-fav-comentario ${esFav ? 'activa' : ''} transition"><i class="fas fa-star"></i></button>
+                <button id="star_com_${libro}_0_0_tradicion_${idx}"
+                        data-favorito-comentario="${identificadorFavorito}"
+                        onclick="toggleFavoritoComentario('${libro}', 0, 0, 'tradicion', ${idx})"
+                        class="estrella-fav-comentario ${esFav ? 'activa' : ''} transition"
+                        title="${accionFavorito}"
+                        aria-label="${accionFavorito} comentario del prefacio de ${escapeHtml(libro)}"
+                        aria-pressed="${esFav ? 'true' : 'false'}"><i class="fas fa-star"></i></button>
             </div>
             <p class="text-gray-700 dark:text-gray-300 text-sm mt-2">${escapeHtml(c.texto)}</p>
             <button class="btn-compartir-comentario mt-2 text-xs text-oro hover:underline flex items-center gap-1"
@@ -3546,7 +3929,7 @@ function abrirLectura(capitulo) {
 
     const capituloLeido = estaCapituloLeido(libroActual, capitulo);
     const barraCapitulo = document.createElement('div');
-    barraCapitulo.className = 'flex justify-center mb-5';
+    barraCapitulo.className = 'flex justify-center mt-6 mb-4';
     barraCapitulo.innerHTML = `
         <button type="button"
                 id="btn-leido-capitulo-vista"
@@ -3574,8 +3957,6 @@ function abrirLectura(capitulo) {
         `;
         contenedor.appendChild(botonesNavInicio);
     }
-
-    contenedor.appendChild(barraCapitulo);
 
     const progresoCapitulo = obtenerProgresoCapitulo(libroActual, capitulo);
     const cabeceraProgreso = document.getElementById('cabecera-progreso-lectura');
@@ -3638,7 +4019,7 @@ function abrirLectura(capitulo) {
                                 <p class="text-gray-700 dark:text-gray-300 leading-relaxed text-base md:text-lg texto-biblico" data-versiculo-texto="${v}">${textoHTML}</p>
                             </div>
                             <div class="flex gap-2 items-center flex-shrink-0">
-                                <span id="star_${libroActual}_${capitulo}_${v}" class="estrella-fav ${favorito ? 'activa' : ''} cursor-pointer text-gray-400 hover:text-oro transition" onclick="event.stopPropagation(); toggleFavoritoVersiculo('${libroActual}', ${capitulo}, ${v}); return false;" title="Agregar a favoritos">${favorito ? '★' : '☆'}</span>
+                                <span id="star_${libroActual}_${capitulo}_${v}" data-favorito-versiculo="${obtenerIdentificadorFavoritoVersiculo(libroActual, capitulo, v)}" class="estrella-fav ${favorito ? 'activa' : ''} cursor-pointer text-gray-400 hover:text-oro transition" onclick="event.stopPropagation(); toggleFavoritoVersiculo('${libroActual}', ${capitulo}, ${v}); return false;" title="Agregar a favoritos">${favorito ? '★' : '☆'}</span>
                                 <button id="audio_${libroActual}_${capitulo}_${v}" class="btn-audio-versiculo text-gray-400 hover:text-oro transition p-1" onclick="event.stopPropagation(); escucharVersiculo('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`, this)" title="Escuchar versículo" aria-label="Escuchar versículo ${v}" aria-pressed="false"><i class="fas fa-volume-up text-sm"></i></button>
                                 <button onclick="event.stopPropagation(); compartirVersiculo('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)" class="text-gray-400 hover:text-oro transition p-1" title="Compartir versículo"><i class="fas fa-share-alt"></i></button>
                                 <button id="read_${libroActual}_${capitulo}_${v}" class="btn-leido-versiculo text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition p-1 ${leido ? 'activo text-emerald-600 dark:text-emerald-400' : ''}" onclick="event.stopPropagation(); toggleLeidoVersiculo('${libroActual}', ${capitulo}, ${v}); return false;" title="${leido ? 'Marcar como no leído' : 'Marcar como leído'}" aria-label="${leido ? 'Marcar como no leído' : 'Marcar como leído'} ${v}" aria-pressed="${leido ? 'true' : 'false'}"><i class="fas ${leido ? 'fa-check-circle' : 'fa-circle'} icono-leido text-sm"></i></button>
@@ -3649,6 +4030,8 @@ function abrirLectura(capitulo) {
             }
             contenedor.innerHTML += verseHtml;
         });
+
+        contenedor.appendChild(barraCapitulo);
 
         const esApocalipsis22 = libroActual === 'Apocalipsis' && capitulo === 22;
         if (!esApocalipsis22) {
@@ -3663,6 +4046,7 @@ function abrirLectura(capitulo) {
         }
     } else {
         contenedor.innerHTML = `<div class="text-center py-16 bg-white/60 dark:bg-gray-800/60 rounded-2xl border border-dashed border-oro/40"><i class="fas fa-scroll text-4xl text-oro/40 mb-4"></i><p class="text-gray-500 dark:text-gray-400">Todavía no hay versículos cargados para ${libroActual} ${capitulo}.</p></div>`;
+        contenedor.appendChild(barraCapitulo);
     }
     mostrarVista('vista-lectura');
     if (lecturaActualVisible && versiculoActualEnLectura) {
@@ -3823,6 +4207,8 @@ function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null)
     } else {
         tradicionHtml += comentarios.map((c, idx) => {
             const esFav = esFavoritoComentario(libro, capitulo, versiculo, 'tradicion', idx);
+            const accionFavorito = esFav ? 'Quitar de favoritos' : 'Agregar a favoritos';
+            const identificadorFavorito = obtenerIdentificadorFavoritoComentario(libro, capitulo, versiculo, 'tradicion', idx);
             return `
             <div class="comentario-panel-item border-l-4 border-oro/30 pl-4 py-2 rounded-lg" data-panel-comentario-idx="${idx}">
                 <div class="flex justify-between items-start">
@@ -3835,8 +4221,12 @@ function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null)
                             <i class="fas fa-volume-up text-sm"></i>
                         </button>
                         <button id="star_com_${libro}_${capitulo}_${versiculo}_tradicion_${idx}" 
+                                data-favorito-comentario="${identificadorFavorito}"
                                 onclick="toggleFavoritoComentario('${libro}', ${capitulo}, ${versiculo}, 'tradicion', ${idx})" 
-                                class="estrella-fav-comentario ${esFav ? 'activa' : ''} transition">
+                                class="estrella-fav-comentario ${esFav ? 'activa' : ''} transition"
+                                title="${accionFavorito}"
+                                aria-label="${accionFavorito} comentario de ${escapeHtml(formatearReferenciaCompartida(libro, capitulo, versiculo))}"
+                                aria-pressed="${esFav ? 'true' : 'false'}">
                             <i class="fas fa-star"></i>
                         </button>
                     </div>
