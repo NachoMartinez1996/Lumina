@@ -1006,9 +1006,9 @@ let estadoSeccionesFavoritos = {
     notas: false
 };
 let estadoSeccionesBusqueda = {
-    versiculos: true,
-    comentarios: true,
-    notas: true
+    versiculos: false,
+    comentarios: false,
+    notas: false
 };
 let leidos = new Set();
 // Lumina cuenta 76 libros en su canon interno: 73 del canon católico + 3 suplementarios.
@@ -1880,6 +1880,12 @@ function crearTarjetaResultadoBusquedaNota(item) {
 }
 
 function renderizarResultadosBusqueda(contenedor, resultados) {
+    estadoSeccionesBusqueda = {
+        versiculos: false,
+        comentarios: false,
+        notas: false
+    };
+
     contenedor.innerHTML = '';
     contenedor.appendChild(
         crearSeccionBusqueda(
