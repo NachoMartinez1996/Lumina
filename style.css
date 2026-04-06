@@ -3893,25 +3893,25 @@ body:not(.dark) #contenido-busqueda .resultado-busqueda-item .resultado-busqueda
         grid-area: concordancia;
         min-width: 0;
         justify-content: flex-start;
-        gap: 0.38rem;
+        gap: 0.34rem;
         padding: 0 0.08rem;
     }
 
     .header-concordancia-texto {
-        font-size: 0.58rem;
+        font-size: 0.62rem;
         line-height: 1.2;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        text-transform: none;
         color: #8a6a17 !important;
         white-space: nowrap;
     }
 
     .header-concordancia-texto-full {
-        display: none !important;
+        display: inline !important;
     }
 
     .header-concordancia-texto-short {
-        display: inline !important;
+        display: none !important;
     }
 
     body.dark .header-concordancia-texto {

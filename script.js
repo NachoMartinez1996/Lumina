@@ -4458,9 +4458,9 @@ function obtenerEstadoIndicadorConexion(listoParaOffline) {
     if (navigator.onLine) {
         if (listoParaOffline) {
             return {
-                texto: "Modo sin conexion disponible (en linea)",
+                texto: "Modo sin conexion disponible (en línea)",
                 tooltip: "Lumina ya guardo en este dispositivo la app y los datos esenciales para usarla sin internet.",
-                toast: "En linea. El modo sin conexion ya esta listo en este dispositivo.",
+                toast: "En línea. El modo sin conexion ya esta listo en este dispositivo.",
                 estado: "online-ready"
             };
         }
@@ -4468,7 +4468,7 @@ function obtenerEstadoIndicadorConexion(listoParaOffline) {
         return {
             texto: "Preparando modo sin conexion...",
             tooltip: "Lumina sigue guardando los archivos esenciales para poder abrirse sin internet en este dispositivo.",
-            toast: "En linea. Lumina todavia esta preparando el modo sin conexion.",
+            toast: "En línea. Lumina todavia esta preparando el modo sin conexion.",
             estado: "online-syncing"
         };
     }
