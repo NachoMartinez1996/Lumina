@@ -3806,10 +3806,10 @@ body:not(.dark) #contenido-busqueda .resultado-busqueda-item .resultado-busqueda
 
     .header-actions {
         display: grid;
-        grid-template-columns: 2.3rem 2.3rem minmax(0, 1fr) 2.3rem 2.1rem;
+        grid-template-columns: 2.2rem 2.2rem minmax(0, 1fr) 2.2rem 2rem;
         grid-template-areas: "buscar favoritos concordancia tema offline";
         align-items: center;
-        gap: 0.24rem;
+        gap: 0.18rem;
     }
 
     .header-title {
@@ -3854,12 +3854,12 @@ body:not(.dark) #contenido-busqueda .resultado-busqueda-item .resultado-busqueda
 
     #btn-favoritos {
         grid-area: favoritos;
-        width: 2.3rem;
-        min-height: 2.3rem;
+        width: 2.2rem;
+        min-height: 2.2rem;
         justify-content: center;
         gap: 0;
         padding: 0;
-        border-radius: 0.88rem;
+        border-radius: 0.84rem;
         font-size: 0.88rem;
     }
 
@@ -3873,10 +3873,10 @@ body:not(.dark) #contenido-busqueda .resultado-busqueda-item .resultado-busqueda
 
     #toggle-darkmode,
     .btn-busqueda-movil {
-        width: 2.3rem;
-        min-height: 2.3rem;
+        width: 2.2rem;
+        min-height: 2.2rem;
         padding: 0;
-        border-radius: 0.88rem;
+        border-radius: 0.84rem;
         justify-content: center;
         align-items: center;
     }
@@ -3893,22 +3893,24 @@ body:not(.dark) #contenido-busqueda .resultado-busqueda-item .resultado-busqueda
         grid-area: concordancia;
         width: 100%;
         min-width: 0;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
-        gap: 0.55rem;
-        padding: 0 0.12rem 0 0.18rem;
+        gap: 0.22rem;
+        padding: 0 0.08rem 0 0.14rem;
     }
 
     .header-concordancia-texto {
-        flex: 1 1 auto;
+        width: 100%;
         min-width: 0;
-        font-size: 0.72rem;
-        line-height: 1.2;
-        letter-spacing: 0.01em;
+        justify-content: flex-end;
+        font-size: 0.82rem;
+        line-height: 1.06;
+        letter-spacing: -0.01em;
         text-transform: none;
         color: #8a6a17 !important;
         white-space: nowrap;
-        text-align: center;
+        text-align: right;
     }
 
     .header-concordancia-texto-full {
@@ -3925,15 +3927,16 @@ body:not(.dark) #contenido-busqueda .resultado-busqueda-item .resultado-busqueda
 
     .header-concordancia .toggle-switch {
         flex: 0 0 auto;
-        margin-left: auto;
+        margin-left: 0;
+        justify-self: end;
     }
 
     #estado-offline {
         grid-area: offline;
         justify-self: end;
-        width: 2.1rem;
-        min-width: 2.1rem;
-        min-height: 2.1rem;
+        width: 2rem;
+        min-width: 2rem;
+        min-height: 2rem;
         padding: 0;
         border-radius: 999px;
         justify-content: center;
