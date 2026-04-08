@@ -1236,7 +1236,7 @@ function elegirVersiculoComoInicio(libro, capitulo, versiculo, texto) {
     guardarVersiculoInicioGuardado();
     refrescarBotonesVersiculoInicio();
     renderizarModalVersiculoInicio();
-    lanzarToast(`Versículo de inicio: ${formatearReferenciaCompartida(libro, capitulo, versiculo)}`);
+    lanzarToast('Te estará esperando cuando regreses');
 }
 
 function toggleVersiculoInicio(libro, capitulo, versiculo, texto) {
