@@ -1011,7 +1011,9 @@ let estadoSeccionesBusqueda = {
     notas: false
 };
 const CLAVE_MODO_DESIERTO = 'lumina_modo_desierto_v1';
+const CLAVE_TEXTO_CORRIDO = 'lumina_texto_corrido_v1';
 let modoDesiertoActivo = false;
+let textoCorridoActivo = false;
 let leidos = new Set();
 // Lumina cuenta 76 libros en su canon interno: 73 del canon católico + 3 suplementarios.
 const TOTAL_BIBLIA_LUMINA = 76;
@@ -4035,7 +4037,7 @@ function abrirLectura(capitulo) {
 
     if (!esGenesis1) {
         const botonesNavInicio = document.createElement('div');
-        botonesNavInicio.className = 'flex justify-center gap-3 mb-6';
+        botonesNavInicio.className = 'lectura-nav-inicio flex justify-center gap-3 mb-6';
         botonesNavInicio.innerHTML = `
             <button onclick="irAlCapituloAnterior()" class="btn-nav-lectura px-4 py-2 bg-oro/10 hover:bg-oro/20 text-oro border border-oro/20 rounded-lg font-sans text-sm font-bold transition flex items-center gap-2">
                 <i class="fas fa-chevron-left"></i> Anterior
@@ -4085,26 +4087,26 @@ function abrirLectura(capitulo) {
                 verseHtml = `
                     <div id="verse_${libroActual}_${capitulo}_${v}" class="verse-card bg-amber-50/50 dark:bg-gray-700/50 border-l-4 border-oro rounded-xl p-4 shadow-sm mb-6 cursor-pointer" onclick="abrirPanel('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)">
                         <div class="flex items-start gap-3">
-                            <span class="font-sans font-bold text-oro bg-white dark:bg-gray-800 w-8 h-8 flex items-center justify-center rounded-full text-sm shadow-sm flex-shrink-0"><i class="fas fa-info"></i></span>
+                            <span class="verse-card-numero font-sans font-bold text-oro bg-white dark:bg-gray-800 w-8 h-8 flex items-center justify-center rounded-full text-sm shadow-sm flex-shrink-0"><i class="fas fa-info"></i></span>
                             <p class="flex-1 text-gray-700 dark:text-gray-300 leading-relaxed text-base md:text-lg font-serif italic" data-versiculo-texto="${v}">${textoHTML}</p>
                         </div>
                     </div>
                 `;
             } else if (v % 1 !== 0) {
                 verseHtml = `
-                    <div id="verse_${libroActual}_${capitulo}_${v}" class="my-6 text-center cursor-pointer" onclick="abrirPanel('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)">
-                        <span class="text-xs uppercase tracking-widest text-oro font-sans font-bold bg-santos/40 dark:bg-gray-800 px-4 py-2 rounded-full shadow-sm border border-oro/20" data-versiculo-texto="${v}">${textoHTML}</span>
+                    <div id="verse_${libroActual}_${capitulo}_${v}" class="verse-card-aclaracion-wrap my-6 text-center cursor-pointer" onclick="abrirPanel('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)">
+                        <span class="verse-card-aclaracion text-xs uppercase tracking-widest text-oro font-sans font-bold bg-santos/40 dark:bg-gray-800 px-4 py-2 rounded-full shadow-sm border border-oro/20" data-versiculo-texto="${v}">${textoHTML}</span>
                     </div>
                 `;
             } else {
                 verseHtml = `
                     <div id="verse_${libroActual}_${capitulo}_${v}" class="verse-card bg-white dark:bg-gray-800 border-l-4 border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm hover:shadow-md transition-all mb-4">
                         <div class="flex items-start gap-3">
-                            <span class="font-sans font-bold text-oro bg-amber-50 dark:bg-gray-700 w-8 h-8 flex items-center justify-center rounded-full text-sm shadow-inner flex-shrink-0">${v}</span>
+                            <span class="verse-card-numero font-sans font-bold text-oro bg-amber-50 dark:bg-gray-700 w-8 h-8 flex items-center justify-center rounded-full text-sm shadow-inner flex-shrink-0">${v}</span>
                             <div class="flex-1 cursor-pointer" onclick="abrirPanel('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)">
                                 <p class="text-gray-700 dark:text-gray-300 leading-relaxed text-base md:text-lg texto-biblico" data-versiculo-texto="${v}">${textoHTML}</p>
                             </div>
-                            <div class="flex gap-2 items-center flex-shrink-0">
+                            <div class="verse-card-acciones flex gap-2 items-center flex-shrink-0">
                                 <span id="star_${libroActual}_${capitulo}_${v}" data-favorito-versiculo="${obtenerIdentificadorFavoritoVersiculo(libroActual, capitulo, v)}" class="estrella-fav ${favorito ? 'activa' : ''} cursor-pointer text-gray-400 hover:text-oro transition" onclick="event.stopPropagation(); toggleFavoritoVersiculo('${libroActual}', ${capitulo}, ${v}); return false;" title="Agregar a favoritos">${favorito ? '★' : '☆'}</span>
                                 <button id="audio_${libroActual}_${capitulo}_${v}" class="btn-audio-versiculo text-gray-400 hover:text-oro transition p-1" onclick="event.stopPropagation(); escucharVersiculo('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`, this)" title="Escuchar versículo" aria-label="Escuchar versículo ${v}" aria-pressed="false"><i class="fas fa-volume-up text-sm"></i></button>
                                 <button onclick="event.stopPropagation(); compartirVersiculo('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)" class="text-gray-400 hover:text-oro transition p-1" title="Compartir versículo"><i class="fas fa-share-alt"></i></button>
@@ -4122,7 +4124,7 @@ function abrirLectura(capitulo) {
         const esApocalipsis22 = libroActual === 'Apocalipsis' && capitulo === 22;
         if (!esApocalipsis22) {
             const botonesNavFinal = document.createElement('div');
-            botonesNavFinal.className = 'flex justify-center gap-3 mt-6';
+            botonesNavFinal.className = 'lectura-nav-final flex justify-center gap-3 mt-6';
             botonesNavFinal.innerHTML = `
                 <button onclick="irAlCapituloSiguiente()" class="btn-nav-lectura px-4 py-2 bg-oro/10 hover:bg-oro/20 text-oro border border-oro/20 rounded-lg font-sans text-sm font-bold transition flex items-center gap-2">
                     Siguiente <i class="fas fa-chevron-right"></i>
@@ -4506,6 +4508,46 @@ function actualizarUIBotonModoDesierto() {
     }
 }
 
+function sincronizarClaseTextoCorrido() {
+    document.body.classList.toggle('modo-desierto-texto-corrido', modoDesiertoActivo && textoCorridoActivo);
+}
+
+function actualizarUIBotonTextoCorrido() {
+    const boton = document.getElementById('btn-texto-corrido');
+    const titulo = document.getElementById('texto-corrido-titulo');
+    const descripcion = document.getElementById('texto-corrido-descripcion');
+    const disponible = modoDesiertoActivo;
+
+    if (boton) {
+        boton.disabled = !disponible;
+        boton.classList.toggle('activa', disponible && textoCorridoActivo);
+        boton.setAttribute('aria-pressed', disponible && textoCorridoActivo ? 'true' : 'false');
+        boton.setAttribute('aria-disabled', disponible ? 'false' : 'true');
+        boton.setAttribute(
+            'title',
+            !disponible
+                ? 'Texto corrido disponible dentro del modo desierto'
+                : (textoCorridoActivo ? 'Mostrar referencias y botones' : 'Activar texto corrido')
+        );
+    }
+
+    if (titulo) {
+        titulo.textContent = !disponible
+            ? 'Texto corrido'
+            : (textoCorridoActivo ? 'Mostrar referencias y botones' : 'Activar texto corrido');
+    }
+
+    if (descripcion) {
+        descripcion.textContent = !disponible
+            ? 'Entrá al desierto para poder ocultar numeración y herramientas para una lectura puramente narrativa.'
+            : (
+                textoCorridoActivo
+                    ? 'Volvé a ver numeritos, favoritos, audio, compartir y marcas de lectura en cada versículo.'
+                    : 'Ocultá numeritos, acciones y bloques de apoyo dentro de la lectura para dejar la Palabra más despejada.'
+            );
+    }
+}
+
 function aplicarModoDesierto(activo, opciones = {}) {
     const {
         guardar = true,
@@ -4524,7 +4566,9 @@ function aplicarModoDesierto(activo, opciones = {}) {
         localStorage.setItem(CLAVE_MODO_DESIERTO, modoDesiertoActivo ? 'true' : 'false');
     }
 
+    sincronizarClaseTextoCorrido();
     actualizarUIBotonModoDesierto();
+    actualizarUIBotonTextoCorrido();
 
     if (cerrarMenu) {
         cerrarPanelLumina();
@@ -4535,11 +4579,49 @@ function aplicarModoDesierto(activo, opciones = {}) {
     }
 }
 
+function aplicarTextoCorrido(activo, opciones = {}) {
+    const {
+        guardar = true,
+        mostrarToast = false,
+        cerrarMenu = false
+    } = opciones;
+
+    textoCorridoActivo = !!activo;
+
+    if (guardar) {
+        localStorage.setItem(CLAVE_TEXTO_CORRIDO, textoCorridoActivo ? 'true' : 'false');
+    }
+
+    sincronizarClaseTextoCorrido();
+    actualizarUIBotonTextoCorrido();
+
+    if (cerrarMenu) {
+        cerrarPanelLumina();
+    }
+
+    if (mostrarToast) {
+        lanzarToast(textoCorridoActivo ? 'Texto corrido activado' : 'Referencias y botones restaurados');
+    }
+}
+
 function toggleModoDesierto() {
     aplicarModoDesierto(!modoDesiertoActivo, {
         guardar: true,
         mostrarToast: true,
         cerrarMenu: !modoDesiertoActivo
+    });
+}
+
+function toggleTextoCorrido() {
+    if (!modoDesiertoActivo) {
+        lanzarToast('Entrá al desierto para usar texto corrido');
+        return;
+    }
+
+    aplicarTextoCorrido(!textoCorridoActivo, {
+        guardar: true,
+        mostrarToast: true,
+        cerrarMenu: !textoCorridoActivo
     });
 }
 
@@ -4770,6 +4852,7 @@ window.onload = async () => {
 
     initDarkMode();
     aplicarModoDesierto(localStorage.getItem(CLAVE_MODO_DESIERTO) === 'true', { guardar: false });
+    aplicarTextoCorrido(localStorage.getItem(CLAVE_TEXTO_CORRIDO) === 'true', { guardar: false });
 
     const toggle = document.getElementById('toggle-concordancia');
     const saved = localStorage.getItem('lumina_concordancia');

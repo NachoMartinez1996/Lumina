@@ -2027,6 +2027,75 @@ Si el main externo conserva padding-bottom, se ve una franja fija entre contenid
     padding-bottom: 0 !important;
 }
 
+body.modo-desierto-texto-corrido #vista-lectura #cabecera-progreso-lectura,
+body.modo-desierto-texto-corrido #vista-lectura #capitulo-footer {
+    display: none !important;
+}
+
+body.modo-desierto-texto-corrido #vista-lectura #contenedor-versiculos {
+    padding-top: 0.4rem;
+}
+
+body.modo-desierto-texto-corrido #vista-lectura #contenedor-versiculos > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.75rem !important;
+}
+
+body.modo-desierto-texto-corrido #vista-lectura .lectura-nav-inicio,
+body.modo-desierto-texto-corrido #vista-lectura .lectura-nav-final {
+    margin: 1.1rem 0 !important;
+}
+
+body.modo-desierto-texto-corrido #vista-lectura .btn-nav-lectura {
+    padding: 0.55rem 0.9rem !important;
+    background: transparent !important;
+    border-color: rgba(184, 134, 11, 0.18) !important;
+    box-shadow: none !important;
+}
+
+body.modo-desierto-texto-corrido #vista-lectura .verse-card {
+    background: transparent !important;
+    border: none !important;
+    border-left: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+body.modo-desierto-texto-corrido #vista-lectura .verse-card > div {
+    gap: 0 !important;
+}
+
+body.modo-desierto-texto-corrido #vista-lectura .verse-card-numero,
+body.modo-desierto-texto-corrido #vista-lectura .verse-card-acciones {
+    display: none !important;
+}
+
+body.modo-desierto-texto-corrido #vista-lectura .verse-card .texto-biblico,
+body.modo-desierto-texto-corrido #vista-lectura .verse-card p {
+    color: inherit !important;
+    font-size: clamp(1.08rem, 1.02rem + 0.18vw, 1.18rem) !important;
+    line-height: 1.9 !important;
+    font-weight: 500 !important;
+}
+
+body.modo-desierto-texto-corrido #vista-lectura .verse-card .font-serif.italic {
+    opacity: 0.92;
+}
+
+body.modo-desierto-texto-corrido #vista-lectura .verse-card-aclaracion-wrap {
+    margin: 0.55rem 0 !important;
+}
+
+body.modo-desierto-texto-corrido #vista-lectura .verse-card-aclaracion {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    letter-spacing: 0.16em !important;
+    opacity: 0.75;
+}
+
 .app-footer {
     background: linear-gradient(180deg, rgba(255, 252, 246, 0.96), rgba(248, 245, 237, 0.96));
     color: #7c7c70;
@@ -2874,6 +2943,39 @@ body.dark .panel-lumina-contenido blockquote {
         0 0 0 3px rgba(212, 175, 55, 0.12);
 }
 
+.panel-lumina-cta-texto-corrido {
+    border-color: rgba(140, 120, 84, 0.2);
+    background: linear-gradient(180deg, rgba(252, 249, 242, 0.98), rgba(245, 239, 226, 0.96));
+    color: #705638;
+    box-shadow: 0 10px 22px rgba(78, 60, 33, 0.07);
+}
+
+.panel-lumina-cta-texto-corrido:hover {
+    border-color: rgba(184, 134, 11, 0.24);
+    background: linear-gradient(180deg, rgba(255, 251, 242, 1), rgba(247, 240, 220, 0.98));
+}
+
+.panel-lumina-cta-texto-corrido.activa {
+    border-color: rgba(184, 134, 11, 0.3);
+    background: linear-gradient(180deg, rgba(255, 247, 224, 1), rgba(249, 236, 198, 0.98));
+    color: #7a5300;
+    box-shadow:
+        0 12px 28px rgba(184, 134, 11, 0.12),
+        0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
+.panel-lumina-cta-texto-corrido:disabled {
+    opacity: 0.62;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.panel-lumina-cta-texto-corrido:disabled:hover {
+    border-color: rgba(140, 120, 84, 0.2);
+    background: linear-gradient(180deg, rgba(252, 249, 242, 0.98), rgba(245, 239, 226, 0.96));
+}
+
 .panel-lumina-cta-alerta:hover {
     border-color: rgba(190, 24, 93, 0.34);
     background: rgba(255, 228, 230, 1);
@@ -2904,6 +3006,31 @@ body.dark .panel-lumina-cta-desierto.activa {
     box-shadow:
         0 14px 30px rgba(0, 0, 0, 0.26),
         0 0 0 3px rgba(245, 214, 138, 0.1);
+}
+
+body.dark .panel-lumina-cta-texto-corrido {
+    background: linear-gradient(180deg, rgba(41, 34, 23, 0.54), rgba(27, 24, 18, 0.6));
+    color: #e7d7b0;
+    border-color: rgba(184, 134, 11, 0.16);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+body.dark .panel-lumina-cta-texto-corrido:hover {
+    background: linear-gradient(180deg, rgba(55, 44, 27, 0.66), rgba(34, 29, 19, 0.72));
+    border-color: rgba(212, 175, 55, 0.24);
+}
+
+body.dark .panel-lumina-cta-texto-corrido.activa {
+    background: linear-gradient(180deg, rgba(131, 92, 19, 0.3), rgba(88, 62, 14, 0.34));
+    border-color: rgba(245, 214, 138, 0.34);
+    color: #fde8b4;
+    box-shadow:
+        0 12px 28px rgba(0, 0, 0, 0.24),
+        0 0 0 3px rgba(245, 214, 138, 0.08);
+}
+
+body.dark .panel-lumina-cta-texto-corrido:disabled {
+    opacity: 0.52;
 }
 
 body.dark .panel-lumina-cta-copy span {
