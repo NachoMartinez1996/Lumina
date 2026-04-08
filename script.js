@@ -1436,22 +1436,57 @@ function obtenerFavoritosClasificados() {
     return grupos;
 }
 
+function configurarEntradaPanelFavoritos(entrada, onOpen) {
+    entrada.setAttribute('role', 'button');
+    entrada.tabIndex = 0;
+    entrada.addEventListener('click', onOpen);
+    entrada.addEventListener('keydown', (event) => {
+        if (event.target !== entrada) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onOpen();
+        }
+    });
+}
+
 function crearBotonFavoritoVersiculo(item) {
-    const boton = document.createElement('button');
-    boton.type = 'button';
-    boton.className = 'favorito-entrada favorito-item favorito-item-versiculo';
-    boton.innerHTML = `
-        <div class="favorito-entrada-cabecera">
-            <i class="fas fa-bible favorito-entrada-icono" aria-hidden="true"></i>
-            <span class="favorito-entrada-ref">${escapeHtml(formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo))}</span>
+    const entrada = document.createElement('div');
+    const referencia = formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo);
+    const favorito = esFavoritoVersiculo(item.libro, item.capitulo, item.versiculo);
+    const accionFavorito = favorito ? 'Quitar de favoritos' : 'Agregar a favoritos';
+    const identificadorFavorito = obtenerIdentificadorFavoritoVersiculo(item.libro, item.capitulo, item.versiculo);
+
+    entrada.className = 'favorito-entrada favorito-item favorito-item-versiculo';
+    entrada.innerHTML = `
+        <div class="favorito-entrada-superior">
+            <div class="favorito-entrada-contenido">
+                <div class="favorito-entrada-cabecera">
+                    <i class="fas fa-bible favorito-entrada-icono" aria-hidden="true"></i>
+                    <span class="favorito-entrada-ref">${escapeHtml(referencia)}</span>
+                </div>
+                <p class="favorito-entrada-texto">${escapeHtml(truncarTextoFavorito(item.texto))}</p>
+            </div>
+            <button
+                type="button"
+                data-favorito-versiculo="${identificadorFavorito}"
+                class="favorito-entrada-fav estrella-fav ${favorito ? 'activa' : ''}"
+                title="${accionFavorito}"
+                aria-label="${accionFavorito} ${escapeHtml(referencia)}"
+                aria-pressed="${favorito ? 'true' : 'false'}">${favorito ? '★' : '☆'}</button>
         </div>
-        <p class="favorito-entrada-texto">${escapeHtml(truncarTextoFavorito(item.texto))}</p>
     `;
-    boton.onclick = () => {
+    configurarEntradaPanelFavoritos(entrada, () => {
         cerrarPanel('panel-favoritos');
         irAVersiculo(item.libro, item.capitulo, item.versiculo);
-    };
-    return boton;
+    });
+
+    const botonFavorito = entrada.querySelector('[data-favorito-versiculo]');
+    botonFavorito?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleFavoritoVersiculo(item.libro, item.capitulo, item.versiculo);
+    });
+
+    return entrada;
 }
 
 function abrirFavoritoAnotacion(libro, capitulo, versiculo, tipo, idx) {
@@ -1476,40 +1511,83 @@ function abrirFavoritoAnotacion(libro, capitulo, versiculo, tipo, idx) {
 }
 
 function crearBotonFavoritoComentario(item) {
-    const boton = document.createElement('button');
-    boton.type = 'button';
-    boton.className = 'favorito-entrada favorito-item';
     const referencia = item.prefacio
         ? `${item.libro} (Prefacio)`
         : formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo);
-    boton.innerHTML = `
-        <div class="favorito-entrada-cabecera">
-            <i class="fas fa-comment-dots favorito-entrada-icono" aria-hidden="true"></i>
-            <span class="favorito-entrada-ref">${escapeHtml(referencia)}</span>
-            <span class="favorito-entrada-badge">Tradición</span>
+    const favorito = esFavoritoComentario(item.libro, item.capitulo, item.versiculo, 'tradicion', item.idx);
+    const accionFavorito = favorito ? 'Quitar de favoritos' : 'Agregar a favoritos';
+    const identificadorFavorito = obtenerIdentificadorFavoritoComentario(item.libro, item.capitulo, item.versiculo, 'tradicion', item.idx);
+    const entrada = document.createElement('div');
+
+    entrada.className = 'favorito-entrada favorito-item';
+    entrada.innerHTML = `
+        <div class="favorito-entrada-superior">
+            <div class="favorito-entrada-contenido">
+                <div class="favorito-entrada-cabecera">
+                    <i class="fas fa-comment-dots favorito-entrada-icono" aria-hidden="true"></i>
+                    <span class="favorito-entrada-ref">${escapeHtml(referencia)}</span>
+                    <span class="favorito-entrada-badge">Tradición</span>
+                </div>
+                <p class="favorito-entrada-meta">${escapeHtml(item.autor)}</p>
+                <p class="favorito-entrada-texto">"${escapeHtml(truncarTextoFavorito(item.texto))}"</p>
+            </div>
+            <button
+                type="button"
+                data-favorito-comentario="${identificadorFavorito}"
+                class="favorito-entrada-fav estrella-fav-comentario ${favorito ? 'activa' : ''}"
+                title="${accionFavorito}"
+                aria-label="${accionFavorito} comentario de ${escapeHtml(referencia)}"
+                aria-pressed="${favorito ? 'true' : 'false'}"><i class="fas fa-star"></i></button>
         </div>
-        <p class="favorito-entrada-meta">${escapeHtml(item.autor)}</p>
-        <p class="favorito-entrada-texto">"${escapeHtml(truncarTextoFavorito(item.texto))}"</p>
     `;
-    boton.onclick = () => abrirFavoritoAnotacion(item.libro, item.capitulo, item.versiculo, 'tradicion', item.idx);
-    return boton;
+    configurarEntradaPanelFavoritos(entrada, () => abrirFavoritoAnotacion(item.libro, item.capitulo, item.versiculo, 'tradicion', item.idx));
+
+    const botonFavorito = entrada.querySelector('[data-favorito-comentario]');
+    botonFavorito?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleFavoritoComentario(item.libro, item.capitulo, item.versiculo, 'tradicion', item.idx);
+    });
+
+    return entrada;
 }
 
 function crearBotonFavoritoNota(item) {
-    const boton = document.createElement('button');
-    boton.type = 'button';
-    boton.className = 'favorito-entrada favorito-item';
-    boton.innerHTML = `
-        <div class="favorito-entrada-cabecera">
-            <i class="fas fa-pen favorito-entrada-icono" aria-hidden="true"></i>
-            <span class="favorito-entrada-ref">${escapeHtml(formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo))}</span>
-            <span class="favorito-entrada-badge">Nota</span>
+    const referencia = formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo);
+    const favorito = esFavoritoComentario(item.libro, item.capitulo, item.versiculo, 'personal', item.idx);
+    const accionFavorito = favorito ? 'Quitar de favoritos' : 'Agregar a favoritos';
+    const identificadorFavorito = obtenerIdentificadorFavoritoComentario(item.libro, item.capitulo, item.versiculo, 'personal', item.idx);
+    const entrada = document.createElement('div');
+
+    entrada.className = 'favorito-entrada favorito-item';
+    entrada.innerHTML = `
+        <div class="favorito-entrada-superior">
+            <div class="favorito-entrada-contenido">
+                <div class="favorito-entrada-cabecera">
+                    <i class="fas fa-pen favorito-entrada-icono" aria-hidden="true"></i>
+                    <span class="favorito-entrada-ref">${escapeHtml(referencia)}</span>
+                    <span class="favorito-entrada-badge">Nota</span>
+                </div>
+                ${item.fecha ? `<p class="favorito-entrada-meta">${escapeHtml(item.fecha)}</p>` : ''}
+                <p class="favorito-entrada-texto">${escapeHtml(truncarTextoFavorito(item.texto))}</p>
+            </div>
+            <button
+                type="button"
+                data-favorito-comentario="${identificadorFavorito}"
+                class="favorito-entrada-fav estrella-fav-comentario ${favorito ? 'activa' : ''}"
+                title="${accionFavorito}"
+                aria-label="${accionFavorito} nota de ${escapeHtml(referencia)}"
+                aria-pressed="${favorito ? 'true' : 'false'}"><i class="fas fa-star"></i></button>
         </div>
-        ${item.fecha ? `<p class="favorito-entrada-meta">${escapeHtml(item.fecha)}</p>` : ''}
-        <p class="favorito-entrada-texto">${escapeHtml(truncarTextoFavorito(item.texto))}</p>
     `;
-    boton.onclick = () => abrirFavoritoAnotacion(item.libro, item.capitulo, item.versiculo, 'personal', item.idx);
-    return boton;
+    configurarEntradaPanelFavoritos(entrada, () => abrirFavoritoAnotacion(item.libro, item.capitulo, item.versiculo, 'personal', item.idx));
+
+    const botonFavorito = entrada.querySelector('[data-favorito-comentario]');
+    botonFavorito?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleFavoritoComentario(item.libro, item.capitulo, item.versiculo, 'personal', item.idx);
+    });
+
+    return entrada;
 }
 
 function crearSeccionPanel(claseBase, estadoStore, clave, titulo, icono, items, crearItem, mensajeVacio) {
@@ -4209,7 +4287,7 @@ function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null)
     let tradicionHtml = `<div class="text-xs font-sans text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3"><i class="fas fa-feather-alt"></i> Tradición de los Padres y Doctores</div>`;
 
     if (comentarios.length === 0) {
-        tradicionHtml += `<div class="text-gray-600 dark:text-gray-400 italic font-sans text-center py-10">? Aún no se han cargado comentarios de la Tradición para este pasaje.<br> Recemos para que un alma caratitativa me los haga llegar.</div>`;
+        tradicionHtml += `<div class="text-gray-600 dark:text-gray-400 italic font-sans text-center py-10">Aún no se han cargado comentarios de la Tradición para este pasaje.<br> Recemos para que un alma caratitativa me los haga llegar.</div>`;
     } else {
         tradicionHtml += comentarios.map((c, idx) => {
             const esFav = esFavoritoComentario(libro, capitulo, versiculo, 'tradicion', idx);
