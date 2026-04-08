@@ -2034,6 +2034,11 @@ Si el main externo conserva padding-bottom, se ve una franja fija entre contenid
     box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.55) inset;
 }
 
+body.modo-desierto-activo .app-header,
+body.modo-desierto-activo .app-footer {
+    display: none;
+}
+
 body.dark .app-footer {
     background: linear-gradient(180deg, rgba(17, 24, 39, 0.96), rgba(10, 14, 22, 0.96));
     color: #9ca3af;
@@ -2389,6 +2394,18 @@ blockquote {
     position: relative;
 }
 
+.btn-menu-lumina-flotante {
+    position: fixed;
+    top: max(0.95rem, calc(env(safe-area-inset-top) + 0.3rem));
+    left: max(0.95rem, calc(env(safe-area-inset-left) + 0.3rem));
+    z-index: 45;
+    display: none;
+}
+
+body.modo-desierto-activo .btn-menu-lumina-flotante {
+    display: inline-flex;
+}
+
 .btn-menu-lumina-hoja {
     width: 3.2rem;
     height: 3.2rem;
@@ -2554,6 +2571,11 @@ body:not(.dark) .btn-menu-lumina-hoja::after {
     .btn-menu-lumina-hoja {
         width: 3rem;
         height: 3rem;
+    }
+
+    .btn-menu-lumina-flotante {
+        top: max(0.8rem, calc(env(safe-area-inset-top) + 0.2rem));
+        left: max(0.8rem, calc(env(safe-area-inset-left) + 0.2rem));
     }
 }
 
@@ -2831,6 +2853,27 @@ body.dark .panel-lumina-contenido blockquote {
     color: #9f1239;
 }
 
+.panel-lumina-cta-desierto {
+    border-color: rgba(184, 134, 11, 0.26);
+    background: linear-gradient(180deg, rgba(255, 248, 228, 0.98), rgba(248, 238, 210, 0.96));
+    color: #8a6200;
+    box-shadow: 0 12px 26px rgba(184, 134, 11, 0.11);
+}
+
+.panel-lumina-cta-desierto:hover {
+    border-color: rgba(184, 134, 11, 0.36);
+    background: linear-gradient(180deg, rgba(255, 244, 214, 1), rgba(246, 231, 190, 0.98));
+}
+
+.panel-lumina-cta-desierto.activa {
+    border-color: rgba(184, 134, 11, 0.34);
+    background: linear-gradient(180deg, rgba(255, 238, 196, 1), rgba(248, 225, 168, 0.98));
+    color: #7a5300;
+    box-shadow:
+        0 14px 30px rgba(184, 134, 11, 0.16),
+        0 0 0 3px rgba(212, 175, 55, 0.12);
+}
+
 .panel-lumina-cta-alerta:hover {
     border-color: rgba(190, 24, 93, 0.34);
     background: rgba(255, 228, 230, 1);
@@ -2840,6 +2883,27 @@ body.dark .panel-lumina-cta {
     background: rgba(184, 134, 11, 0.1);
     color: #f5d68a;
     border-color: rgba(184, 134, 11, 0.22);
+}
+
+body.dark .panel-lumina-cta-desierto {
+    background: linear-gradient(180deg, rgba(118, 78, 12, 0.2), rgba(77, 52, 10, 0.22));
+    color: #f6d98f;
+    border-color: rgba(212, 175, 55, 0.26);
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.2);
+}
+
+body.dark .panel-lumina-cta-desierto:hover {
+    background: linear-gradient(180deg, rgba(138, 92, 16, 0.26), rgba(95, 65, 14, 0.28));
+    border-color: rgba(212, 175, 55, 0.34);
+}
+
+body.dark .panel-lumina-cta-desierto.activa {
+    background: linear-gradient(180deg, rgba(166, 114, 19, 0.3), rgba(118, 78, 12, 0.34));
+    border-color: rgba(245, 214, 138, 0.42);
+    color: #fde8b4;
+    box-shadow:
+        0 14px 30px rgba(0, 0, 0, 0.26),
+        0 0 0 3px rgba(245, 214, 138, 0.1);
 }
 
 body.dark .panel-lumina-cta-copy span {

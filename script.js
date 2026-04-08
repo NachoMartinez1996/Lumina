@@ -1010,6 +1010,8 @@ let estadoSeccionesBusqueda = {
     comentarios: false,
     notas: false
 };
+const CLAVE_MODO_DESIERTO = 'lumina_modo_desierto_v1';
+let modoDesiertoActivo = false;
 let leidos = new Set();
 // Lumina cuenta 76 libros en su canon interno: 73 del canon católico + 3 suplementarios.
 const TOTAL_BIBLIA_LUMINA = 76;
@@ -4473,6 +4475,74 @@ function resetPanelLumina() {
     }
 }
 
+function actualizarUIBotonModoDesierto() {
+    const boton = document.getElementById('btn-modo-desierto');
+    const titulo = document.getElementById('modo-desierto-titulo');
+    const descripcion = document.getElementById('modo-desierto-descripcion');
+    const plumaFlotante = document.getElementById('btn-menu-lumina-flotante');
+
+    if (boton) {
+        boton.classList.toggle('activa', modoDesiertoActivo);
+        boton.setAttribute('aria-pressed', modoDesiertoActivo ? 'true' : 'false');
+        boton.setAttribute('title', modoDesiertoActivo ? 'Salir del modo desierto' : 'Activar modo desierto');
+    }
+
+    if (titulo) {
+        titulo.textContent = modoDesiertoActivo ? 'Salir del modo desierto' : 'Activar modo desierto';
+    }
+
+    if (descripcion) {
+        descripcion.textContent = modoDesiertoActivo
+            ? 'Volvé a la versión completa de Lumina con header y footer visibles cuando quieras salir del foco de lectura.'
+            : 'Ocultá el header y el footer para leer con menos distracciones. La pluma queda visible para volver al menú cuando quieras.';
+    }
+
+    if (plumaFlotante) {
+        const etiqueta = modoDesiertoActivo
+            ? 'Abrir menú Lumina y salir del modo desierto'
+            : 'Abrir menú Lumina';
+        plumaFlotante.setAttribute('aria-label', etiqueta);
+        plumaFlotante.setAttribute('title', etiqueta);
+    }
+}
+
+function aplicarModoDesierto(activo, opciones = {}) {
+    const {
+        guardar = true,
+        mostrarToast = false,
+        cerrarMenu = false
+    } = opciones;
+
+    modoDesiertoActivo = !!activo;
+    document.body.classList.toggle('modo-desierto-activo', modoDesiertoActivo);
+
+    if (modoDesiertoActivo) {
+        mostrarBuscadorMovil(false);
+    }
+
+    if (guardar) {
+        localStorage.setItem(CLAVE_MODO_DESIERTO, modoDesiertoActivo ? 'true' : 'false');
+    }
+
+    actualizarUIBotonModoDesierto();
+
+    if (cerrarMenu) {
+        cerrarPanelLumina();
+    }
+
+    if (mostrarToast) {
+        lanzarToast(modoDesiertoActivo ? 'Modo desierto activado' : 'Modo desierto desactivado');
+    }
+}
+
+function toggleModoDesierto() {
+    aplicarModoDesierto(!modoDesiertoActivo, {
+        guardar: true,
+        mostrarToast: true,
+        cerrarMenu: !modoDesiertoActivo
+    });
+}
+
 function abrirModalBienvenida() {
     const modal = document.getElementById('modal-bienvenida');
     if (!modal) return;
@@ -4699,6 +4769,7 @@ window.onload = async () => {
     await actualizarIndicadorConexion();
 
     initDarkMode();
+    aplicarModoDesierto(localStorage.getItem(CLAVE_MODO_DESIERTO) === 'true', { guardar: false });
 
     const toggle = document.getElementById('toggle-concordancia');
     const saved = localStorage.getItem('lumina_concordancia');

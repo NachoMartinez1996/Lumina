@@ -115,6 +115,13 @@
         </div>
     </header>
 
+    <button type="button" id="btn-menu-lumina-flotante" onclick="togglePanelLumina()"
+        aria-label="Abrir menú Lumina"
+        class="btn-menu-lumina btn-menu-lumina-hoja btn-menu-lumina-flotante inline-flex items-center justify-center text-oro transition-all"
+        title="Abrir menú Lumina">
+        <i class="fas fa-feather-alt text-xl" aria-hidden="true"></i>
+    </button>
+
     <div class="flex-1 flex overflow-hidden relative">
 
         <!-- VISTA LIBROS -->
@@ -377,6 +384,18 @@
                         <p>Para que siempre tengas el control total, te ofrecemos estas herramientas de autogestión:</p>
 
                         <div class="panel-lumina-herramientas">
+                            <button type="button" id="btn-modo-desierto"
+                                class="panel-lumina-cta panel-lumina-cta-stack panel-lumina-cta-desierto"
+                                onclick="toggleModoDesierto()" aria-pressed="false">
+                                <span class="panel-lumina-cta-icon" aria-hidden="true">🏜️</span>
+                                <span class="panel-lumina-cta-copy">
+                                    <strong id="modo-desierto-titulo">Activar modo desierto</strong>
+                                    <span id="modo-desierto-descripcion">Ocultá el header y el footer para leer con
+                                        menos distracciones. La pluma queda visible para volver al menú cuando
+                                        quieras.</span>
+                                </span>
+                            </button>
+
                             <button type="button" class="panel-lumina-cta panel-lumina-cta-stack"
                                 onclick="exportarDatosLumina()">
                                 <span class="panel-lumina-cta-icon" aria-hidden="true">💾</span>
