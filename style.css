@@ -741,8 +741,15 @@ body:not(.dark) #lista-favoritos .favorito-entrada-texto {
 }
 
 /* Animación para el modal */
+#modal-versiculo-inicio {
+    position: fixed;
+    inset: 0;
+    z-index: 20000;
+}
+
 #modal-confirmacion:not(.hidden),
-#modal-confirmacion-reset-lumina:not(.hidden) {
+#modal-confirmacion-reset-lumina:not(.hidden),
+#modal-versiculo-inicio:not(.hidden) {
     display: flex;
     animation: fadeIn 0.2s ease-out;
 }
@@ -762,6 +769,25 @@ body:not(.dark) #lista-favoritos .favorito-entrada-texto {
 .dark #modal-confirmacion .bg-red-500,
 .dark #modal-confirmacion-reset-lumina .bg-red-500 {
     background-color: #991b1b;
+}
+
+.modal-versiculo-inicio-card {
+    position: relative;
+    z-index: 1;
+    pointer-events: auto;
+    box-shadow: 0 28px 80px rgba(35, 27, 19, 0.24);
+}
+
+.versiculo-inicio-cita {
+    margin: 0;
+    padding: 1.3rem 1.45rem;
+    border-left: 4px solid #b8860b;
+    background: rgba(255, 248, 230, 0.72);
+    border-radius: 0 1.35rem 1.35rem 0;
+}
+
+body.dark .versiculo-inicio-cita {
+    background: rgba(184, 134, 11, 0.1);
 }
 
 /* Animación de sacudida (Shake) */
@@ -1861,6 +1887,27 @@ body:not(.dark) .panel-cita-fija {
     border: 1px solid transparent;
 }
 
+.btn-versiculo-inicio {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid transparent;
+}
+
+.btn-versiculo-inicio:hover {
+    background-color: rgba(184, 134, 11, 0.12);
+}
+
+.btn-versiculo-inicio.activa {
+    color: #b8860b !important;
+    background-color: rgba(184, 134, 11, 0.16);
+    box-shadow: 0 0 0 1px rgba(184, 134, 11, 0.18);
+}
+
 .btn-audio-versiculo:hover {
     background-color: rgba(184, 134, 11, 0.12);
 }
@@ -1875,6 +1922,10 @@ body:not(.dark) .panel-cita-fija {
     background-color: rgba(212, 175, 55, 0.12);
 }
 
+.dark .btn-versiculo-inicio:hover {
+    background-color: rgba(212, 175, 55, 0.12);
+}
+
 body:not(.dark) .btn-audio-versiculo {
     background-color: var(--lumina-paper);
     border-color: var(--lumina-border);
@@ -1882,7 +1933,20 @@ body:not(.dark) .btn-audio-versiculo {
     box-shadow: var(--lumina-shadow);
 }
 
+body:not(.dark) .btn-versiculo-inicio {
+    background-color: var(--lumina-paper);
+    border-color: var(--lumina-border);
+    color: var(--lumina-accent) !important;
+    box-shadow: var(--lumina-shadow);
+}
+
 body:not(.dark) .btn-audio-versiculo:hover {
+    background-color: var(--lumina-paper-soft);
+    border-color: var(--lumina-accent);
+    color: #8a6200 !important;
+}
+
+body:not(.dark) .btn-versiculo-inicio:hover {
     background-color: var(--lumina-paper-soft);
     border-color: var(--lumina-accent);
     color: #8a6200 !important;
