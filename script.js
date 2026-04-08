@@ -2710,12 +2710,25 @@ function detenerLectura() {
     vozActiva = null;
     limpiarEstadoLectura();
     limpiarResaltadoVersiculo();
-    actualizarBotonesReproduccionListas();
+   actualizarBotonesReproduccionListas();
+}
+
+function normalizarTextoParaLectura(texto) {
+    const textoLimpio = String(texto || '').replace(/\s+/g, ' ').trim();
+    if (!textoLimpio) return '';
+
+    const acotacionPura = textoLimpio.match(/^\[([^\]]+)\]$/);
+    if (acotacionPura) {
+        const etiqueta = acotacionPura[1].trim();
+        return etiqueta ? `${etiqueta}.` : '';
+    }
+
+    return textoLimpio;
 }
 
 function crearUtteranceLectura(texto) {
-    // 1. Limpiamos espacios extra que puedan venir del HTML
-    const textoLimpio = texto.trim();
+    // 1. Limpiamos espacios extra y volvemos pronunciables las acotaciones.
+    const textoLimpio = normalizarTextoParaLectura(texto);
     const utterance = new SpeechSynthesisUtterance(textoLimpio);
 
     // 2. Obtenemos la mejor voz disponible con nuestra nueva lógica
@@ -4305,7 +4318,7 @@ function abrirLectura(capitulo) {
                 `;
             } else if (usaAcotacionesEspeciales && v % 1 !== 0) {
                 verseHtml = `
-                    <div id="verse_${libroActual}_${capitulo}_${v}" class="verse-card-aclaracion-wrap my-6 text-center cursor-pointer" onclick="abrirPanel('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)">
+                    <div id="verse_${libroActual}_${capitulo}_${v}" class="verse-card-aclaracion-wrap my-6 text-center" role="note" aria-label="${escapeHtml(normalizarTextoParaLectura(textoOriginal))}">
                         <span class="verse-card-aclaracion text-xs uppercase tracking-widest text-oro font-sans font-bold bg-santos/40 dark:bg-gray-800 px-4 py-2 rounded-full shadow-sm border border-oro/20" data-versiculo-texto="${v}">${textoHTML}</span>
                     </div>
                 `;
