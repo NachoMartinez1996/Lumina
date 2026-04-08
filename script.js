@@ -3446,10 +3446,6 @@ function esReferenciaBuscableEnBusqueda(capitulo, versiculo) {
     return (Number(capitulo) === 0 && Number(versiculo) === 0) || esVersiculoLeible(versiculo);
 }
 
-function esEntradaNarrableEnAudio(versiculo) {
-    return Number.isFinite(versiculo) && versiculo > 0;
-}
-
 function esVersiculoLeible(versiculo) {
     return Number.isInteger(versiculo) && versiculo >= 1;
 }
@@ -5284,7 +5280,7 @@ function construirListaVersiculosCapitulo(libro, capitulo) {
     const versiculosObj = bibleContent[libro]?.[capitulo] || {};
     const numerosVersiculos = Object.keys(versiculosObj)
         .map(Number)
-        .filter(esEntradaNarrableEnAudio)
+        .filter(esVersiculoLeible)
         .sort((a, b) => a - b);
 
     listaVersiculosEnCapitulo = numerosVersiculos.map(v => ({
@@ -5309,7 +5305,7 @@ function construirListaVersiculosLibro(libroNombre) {
         const versiculosObj = libroContenido[capitulo];
         const numerosVersiculos = Object.keys(versiculosObj)
             .map(Number)
-            .filter(esEntradaNarrableEnAudio)
+            .filter(esVersiculoLeible)
             .sort((a, b) => a - b);
 
         numerosVersiculos.forEach(v => {

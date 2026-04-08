@@ -2435,6 +2435,35 @@ body.dark .verse-card-leyendo .texto-biblico {
     color: #fef3c7 !important;
 }
 
+.verse-card-aclaracion-wrap {
+    transition: transform 0.18s ease, filter 0.18s ease;
+}
+
+.verse-card-aclaracion-wrap.verse-card-leyendo {
+    background: transparent !important;
+    border-left: none !important;
+    box-shadow: none !important;
+    transform: translateY(-1px);
+}
+
+.verse-card-aclaracion-wrap.verse-card-leyendo .verse-card-aclaracion {
+    background: linear-gradient(135deg, rgba(255, 248, 230, 0.96), rgba(255, 239, 189, 0.92)) !important;
+    color: #8a5a00 !important;
+    border-color: rgba(184, 134, 11, 0.38) !important;
+    box-shadow:
+        0 10px 24px rgba(184, 134, 11, 0.18),
+        0 0 20px rgba(184, 134, 11, 0.12) !important;
+}
+
+body.dark .verse-card-aclaracion-wrap.verse-card-leyendo .verse-card-aclaracion {
+    background: linear-gradient(135deg, rgba(52, 42, 18, 0.96), rgba(35, 29, 15, 0.94)) !important;
+    color: #f5d68a !important;
+    border-color: rgba(245, 214, 138, 0.35) !important;
+    box-shadow:
+        0 10px 28px rgba(0, 0, 0, 0.34),
+        0 0 24px rgba(250, 204, 21, 0.16) !important;
+}
+
 blockquote {
     border-left: 4px solid #d4af37;
     /* Un tono dorado sutil */
