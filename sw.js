@@ -1,4 +1,4 @@
-const VERSION_CACHE = '4.294.848';
+const VERSION_CACHE = '4.294.851';
 const CACHE_SHELL = `lumina-shell-${VERSION_CACHE}`;
 const CACHE_RUNTIME = `lumina-runtime-${VERSION_CACHE}`;
 const APP_SHELL = './index.html';
@@ -14,6 +14,42 @@ const archivosShell = [
   './android-chrome-512x512.png',
   './manifest.json'
 ];
+
+function esRecursoActualizable(request) {
+  const url = new URL(request.url);
+  const path = url.pathname.toLowerCase();
+
+  return (
+    request.destination === 'script' ||
+    request.destination === 'style' ||
+    request.destination === 'document' ||
+    path.endsWith('/index.html') ||
+    path.endsWith('/script.js') ||
+    path.endsWith('/style.css') ||
+    path.endsWith('/manifest.json') ||
+    path.endsWith('/biblia_catolica_completa.json') ||
+    path.endsWith('/catena_aurea_completa.json')
+  );
+}
+
+function obtenerCacheDestino(request) {
+  const url = new URL(request.url);
+  const path = url.pathname.toLowerCase();
+
+  if (
+    request.destination === 'script' ||
+    request.destination === 'style' ||
+    request.destination === 'document' ||
+    path.endsWith('/index.html') ||
+    path.endsWith('/script.js') ||
+    path.endsWith('/style.css') ||
+    path.endsWith('/manifest.json')
+  ) {
+    return CACHE_SHELL;
+  }
+
+  return CACHE_RUNTIME;
+}
 
 function esSolicitudHttp(request) {
   const url = new URL(request.url);
@@ -151,6 +187,17 @@ self.addEventListener('fetch', evento => {
   }
 
   evento.respondWith((async () => {
+    if (esRecursoActualizable(request)) {
+      try {
+        const respuestaRed = await fetch(request);
+        await guardarRespuesta(obtenerCacheDestino(request), request, respuestaRed.clone());
+        return respuestaRed;
+      } catch (error) {
+        const respuestaCache = await caches.match(request, { ignoreSearch: true });
+        return respuestaCache || Response.error();
+      }
+    }
+
     const respuestaCache = await caches.match(request, { ignoreSearch: true });
     if (respuestaCache) {
       return respuestaCache;

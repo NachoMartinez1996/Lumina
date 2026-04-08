@@ -454,6 +454,8 @@ let datosBibliaCargados = false;
 
 async function cargarBibliaJSON() {
     try {
+        bibleContent = {};
+        datosBibliaCargados = false;
         const response = await fetch("Biblia_Catolica_Completa.json");
         if (!response.ok) throw new Error("Error HTTP " + response.status);
         const data = await response.json();
@@ -2200,10 +2202,12 @@ function construirIndiceBusqueda() {
     for (let libro in bibleContent) {
         for (let cap in bibleContent[libro]) {
             for (let ver in bibleContent[libro][cap]) {
+                const versiculo = parseFloat(ver);
+                if (!esVersiculoLeible(versiculo)) continue;
                 indiceBusqueda.push({
                     libro,
                     capitulo: parseInt(cap, 10),
-                    versiculo: parseFloat(ver),
+                    versiculo,
                     texto: bibleContent[libro][cap][ver]
                 });
             }
@@ -2266,6 +2270,8 @@ function buscarComentarios(termino) {
         }
 
         if (!Number.isFinite(versiculo)) return;
+        if (!esReferenciaBuscableEnBusqueda(capitulo, versiculo)) return;
+        if (Number.isFinite(versiculoHasta) && !esVersiculoLeible(versiculoHasta)) return;
 
         comentarios.forEach((comentario, idx) => {
             if (!coincideTextoBusqueda(comentario?.texto, regex)) return;
@@ -2303,6 +2309,7 @@ function buscarNotas(termino) {
         const libro = partes.join('_');
 
         if (!libro || !Number.isFinite(capitulo) || !Number.isFinite(versiculo)) return;
+        if (!esReferenciaBuscableEnBusqueda(capitulo, versiculo)) return;
 
         notas.forEach((nota, idx) => {
             if (!coincideTextoBusqueda(nota?.texto, regex)) return;
@@ -3435,8 +3442,16 @@ function claveLeidoVersiculo(libro, capitulo, versiculo) {
     return `versiculo:${libro}_${capitulo}_${versiculo}`;
 }
 
+function esReferenciaBuscableEnBusqueda(capitulo, versiculo) {
+    return (Number(capitulo) === 0 && Number(versiculo) === 0) || esVersiculoLeible(versiculo);
+}
+
 function esVersiculoLeible(versiculo) {
     return Number.isInteger(versiculo) && versiculo >= 1;
+}
+
+function libroUsaAcotacionesEspeciales(libro) {
+    return libro === "Cantar de los Cantares";
 }
 
 function esClaveLeidoVersiculoNoLeible(clave) {
@@ -4022,7 +4037,7 @@ function actualizarBotonesLeidoLibros() {
 
 function toggleLeidoVersiculo(libro, capitulo, versiculo) {
     if (!esVersiculoLeible(versiculo)) {
-        lanzarToast('Esta aclaración no cuenta como versículo leído');
+        lanzarToast('Esta entrada no cuenta como versículo leído');
         return;
     }
 
@@ -4269,6 +4284,7 @@ function abrirLectura(capitulo) {
 
     const versiculosObj = bibleContent[libroActual]?.[capitulo] || {};
     const numerosVersiculos = Object.keys(versiculosObj).map(Number).sort((a, b) => a - b);
+    const usaAcotacionesEspeciales = libroUsaAcotacionesEspeciales(libroActual);
     if (numerosVersiculos.length > 0) {
         numerosVersiculos.forEach(v => {
             const textoOriginal = versiculosObj[v];
@@ -4278,7 +4294,7 @@ function abrirLectura(capitulo) {
             const esInicio = esVersiculoInicio(libroActual, capitulo, v);
             let verseHtml = "";
 
-            if (v < 1) {
+            if (usaAcotacionesEspeciales && v < 1) {
                 verseHtml = `
                     <div id="verse_${libroActual}_${capitulo}_${v}" class="verse-card bg-amber-50/50 dark:bg-gray-700/50 border-l-4 border-oro rounded-xl p-4 shadow-sm mb-6 cursor-pointer" onclick="abrirPanel('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)">
                         <div class="flex items-start gap-3">
@@ -4287,7 +4303,7 @@ function abrirLectura(capitulo) {
                         </div>
                     </div>
                 `;
-            } else if (v % 1 !== 0) {
+            } else if (usaAcotacionesEspeciales && v % 1 !== 0) {
                 verseHtml = `
                     <div id="verse_${libroActual}_${capitulo}_${v}" class="verse-card-aclaracion-wrap my-6 text-center cursor-pointer" onclick="abrirPanel('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)">
                         <span class="verse-card-aclaracion text-xs uppercase tracking-widest text-oro font-sans font-bold bg-santos/40 dark:bg-gray-800 px-4 py-2 rounded-full shadow-sm border border-oro/20" data-versiculo-texto="${v}">${textoHTML}</span>
@@ -4482,9 +4498,10 @@ function irAlInicio() {
 function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null) {
     const comentarios = obtenerComentarios(libro, capitulo, versiculo);
 
+    const usaAcotacionesEspeciales = libroUsaAcotacionesEspeciales(libro);
     let tituloRef = "";
-    if (versiculo < 1) tituloRef = `${libro} ${capitulo} (Introducción)`;
-    else if (versiculo % 1 !== 0) tituloRef = `${libro} ${capitulo} (Acotación)`;
+    if (usaAcotacionesEspeciales && versiculo < 1) tituloRef = `${libro} ${capitulo} (Introducción)`;
+    else if (usaAcotacionesEspeciales && versiculo % 1 !== 0) tituloRef = `${libro} ${capitulo} (Acotación)`;
     else tituloRef = `${libro} ${capitulo}, ${versiculo}`;
 
     document.getElementById('titulo-panel-versiculo').innerHTML = tituloRef;
@@ -5338,7 +5355,7 @@ function refrescarEstadoLecturaTrasCambio(libro) {
 
 function toggleLeidoVersiculo(libro, capitulo, versiculo) {
     if (!esVersiculoLeible(versiculo)) {
-        lanzarToast('Esta aclaración no cuenta como versículo leído');
+        lanzarToast('Esta entrada no cuenta como versículo leído');
         return;
     }
 
