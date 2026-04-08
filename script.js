@@ -4542,34 +4542,34 @@ function obtenerEstadoIndicadorConexion(listoParaOffline) {
     if (navigator.onLine) {
         if (listoParaOffline) {
             return {
-                texto: "Modo sin conexion disponible (en línea)",
-                tooltip: "Lumina ya guardo en este dispositivo la app y los datos esenciales para usarla sin internet.",
-                toast: "En línea. El modo sin conexion ya esta listo en este dispositivo.",
+                texto: "Modo sin conexión disponible (en línea)",
+                tooltip: "Lumina ya guardó en este dispositivo la app y los datos esenciales para usarla sin internet.",
+                toast: "En línea. El modo sin conexión ya está listo en este dispositivo.",
                 estado: "online-ready"
             };
         }
 
         return {
-            texto: "Preparando modo sin conexion...",
+            texto: "Preparando modo sin conexión...",
             tooltip: "Lumina sigue guardando los archivos esenciales para poder abrirse sin internet en este dispositivo.",
-            toast: "En línea. Lumina todavia esta preparando el modo sin conexion.",
+            toast: "En línea. Lumina todavía está preparando el modo sin conexión.",
             estado: "online-syncing"
         };
     }
 
     if (listoParaOffline) {
         return {
-            texto: "Sin conexion: usando contenido cacheado",
-            tooltip: "Sin conexion. Lumina esta usando el contenido esencial guardado en este dispositivo.",
-            toast: "Sin conexion. Estas usando la version guardada en este dispositivo.",
+            texto: "Sin conexión: usando contenido cacheado",
+            tooltip: "Sin conexión. Lumina está usando el contenido esencial guardado en este dispositivo.",
+            toast: "Sin conexión. Estás usando la versión guardada en este dispositivo.",
             estado: "offline-ready"
         };
     }
 
     return {
-        texto: "Sin conexion: falta contenido guardado",
-        tooltip: "Sin conexion, pero este dispositivo todavia no guardo todos los archivos esenciales para abrir Lumina offline.",
-        toast: "Sin conexion. A este dispositivo todavia le faltan archivos esenciales para abrir Lumina offline.",
+        texto: "Sin conexión: falta contenido guardado",
+        tooltip: "Sin conexión, pero este dispositivo todavía no guardó todos los archivos esenciales para abrir Lumina offline.",
+        toast: "Sin conexión. A este dispositivo todavía le faltan archivos esenciales para abrir Lumina offline.",
         estado: "offline-missing"
     };
 }
