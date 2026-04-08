@@ -4493,8 +4493,8 @@ function actualizarUIBotonModoDesierto() {
 
     if (descripcion) {
         descripcion.textContent = modoDesiertoActivo
-            ? 'Volvé a la versión completa de Lumina con header y footer visibles cuando quieras salir del foco de lectura.'
-            : 'Ocultá el header y el footer para leer con menos distracciones. La pluma queda visible para volver al menú cuando quieras.';
+            ? 'Volvé a la versión completa de Lumina con header y footer visibles cuando desees salir del foco de lectura.'
+            : 'Ocultá el header y el footer para sumergirte por completo en el texto. La pluma queda visible para volver a verlos cuando desees.';
     }
 
     if (plumaFlotante) {
