@@ -4484,11 +4484,11 @@ function actualizarUIBotonModoDesierto() {
     if (boton) {
         boton.classList.toggle('activa', modoDesiertoActivo);
         boton.setAttribute('aria-pressed', modoDesiertoActivo ? 'true' : 'false');
-        boton.setAttribute('title', modoDesiertoActivo ? 'Salir del modo desierto' : 'Activar modo desierto');
+        boton.setAttribute('title', modoDesiertoActivo ? 'Salir del desierto' : 'Entrar al desierto');
     }
 
     if (titulo) {
-        titulo.textContent = modoDesiertoActivo ? 'Salir del modo desierto' : 'Activar modo desierto';
+        titulo.textContent = modoDesiertoActivo ? 'Salir del desierto' : 'Entrar al desierto';
     }
 
     if (descripcion) {
