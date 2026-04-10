@@ -4117,6 +4117,14 @@ body.dark #vista-lectio {
     gap: 1rem;
 }
 
+.lectio-pasaje-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.7rem;
+}
+
 .lectio-pasaje-badge {
     display: inline-flex;
     align-items: center;
@@ -4142,6 +4150,17 @@ body.dark #vista-lectio {
     font-size: clamp(1.45rem, 2.5vw, 1.78rem);
     line-height: 1.9;
     font-weight: 500;
+}
+
+.btn-audio-lectio {
+    white-space: nowrap;
+}
+
+.btn-audio-lectio.en-reproduccion {
+    background: rgba(184, 134, 11, 0.14);
+    border-color: rgba(184, 134, 11, 0.22);
+    color: #8a6200;
+    box-shadow: inset 0 0 0 1px rgba(184, 134, 11, 0.16);
 }
 
 .lectio-pasaje-frase {
@@ -4398,6 +4417,13 @@ body.dark .lectio-bloque textarea {
 
 body.dark .lectio-bloque textarea::placeholder {
     color: #94a3b8;
+}
+
+body.dark .btn-audio-lectio.en-reproduccion {
+    background: rgba(245, 158, 11, 0.18);
+    border-color: rgba(245, 214, 138, 0.22);
+    color: #fde3a7;
+    box-shadow: inset 0 0 0 1px rgba(245, 214, 138, 0.16);
 }
 
 body.dark .lectio-pasaje-numero {

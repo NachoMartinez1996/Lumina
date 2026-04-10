@@ -1,4 +1,4 @@
-const VERSION_CACHE = '4.294.862';
+const VERSION_CACHE = '4.294.863';
 const CACHE_SHELL = `lumina-shell-${VERSION_CACHE}`;
 const CACHE_RUNTIME = `lumina-runtime-${VERSION_CACHE}`;
 const APP_SHELL = './index.html';

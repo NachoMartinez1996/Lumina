@@ -2760,12 +2760,21 @@ function renderizarPasajeLectioSeleccionado() {
     const referencia = document.getElementById('lectio-pasaje-referencia');
     const texto = document.getElementById('lectio-pasaje-texto');
     const badge = document.getElementById('lectio-pasaje-badge');
-    if (!tarjeta || !referencia || !texto || !badge) return false;
+    const botonAudio = document.getElementById('btn-escuchar-pasaje-lectio');
+    if (!tarjeta || !referencia || !texto || !badge || !botonAudio) return false;
+
+    if (btnAudioActivo === botonAudio && window.speechSynthesis.speaking) {
+        detenerConRestauracion();
+    }
 
     const { libro, capitulo, desde, hasta } = obtenerSeleccionLectioActual();
     const pasaje = obtenerPasajeLectio(libro, capitulo, desde, hasta);
 
     if (!libro || pasaje.length === 0) {
+        delete tarjeta.dataset.libro;
+        delete tarjeta.dataset.capitulo;
+        delete tarjeta.dataset.desde;
+        delete tarjeta.dataset.hasta;
         tarjeta.classList.add('hidden');
         badge.classList.add('hidden');
         badge.hidden = true;
@@ -2781,6 +2790,13 @@ function renderizarPasajeLectioSeleccionado() {
             ${pasaje.map(item => `<span class="lectio-pasaje-frase">${escapeHtml(item.texto)}</span>`).join(' ')}
         </p>
     `;
+    tarjeta.dataset.libro = libro;
+    tarjeta.dataset.capitulo = String(capitulo);
+    tarjeta.dataset.desde = String(desde);
+    tarjeta.dataset.hasta = String(hasta);
+    if (btnAudioActivo !== botonAudio) {
+        actualizarContenidoBotonAudioVersiculo(botonAudio, false);
+    }
     tarjeta.classList.remove('hidden');
     actualizarAyudaPasajeLectio();
     return true;
@@ -3604,6 +3620,52 @@ function escucharNota(texto, btn) {
     reproducirUtterance(utterance);
 }
 
+function escucharPasajeLectio(btn) {
+    if (!navegadorSoportaLectura()) {
+        alert('Tu navegador no admite lectura en voz alta.');
+        return;
+    }
+
+    const tarjeta = document.getElementById('lectio-pasaje-card');
+    const libro = tarjeta?.dataset.libro || '';
+    const capitulo = Number(tarjeta?.dataset.capitulo);
+    const desde = Number(tarjeta?.dataset.desde);
+    const hasta = Number(tarjeta?.dataset.hasta);
+    const pasaje = obtenerPasajeLectio(libro, capitulo, desde, hasta);
+    if (!libro || pasaje.length === 0) {
+        lanzarToast('Elegí un pasaje para escucharlo en la Lectio.');
+        return;
+    }
+
+    if (btnAudioActivo === btn && window.speechSynthesis.speaking) {
+        detenerConRestauracion();
+        return;
+    }
+
+    detenerConRestauracion();
+
+    const referencia = formatearReferenciaLectio(libro, capitulo, desde, hasta);
+    const contenido = `${referencia}. ${obtenerTextoPlanoPasajeLectio(libro, capitulo, desde, hasta)}`;
+    const utterance = crearUtteranceLectura(contenido);
+
+    btnAudioActivo = btn;
+    if (btn) cambiarAIconoPausa(btn);
+
+    utterance.onend = () => {
+        limpiarMonitorReproduccion();
+        if (btn) restaurarIconoParla(btn);
+        btnAudioActivo = null;
+    };
+
+    utterance.onerror = () => {
+        limpiarMonitorReproduccion();
+        if (btn) restaurarIconoParla(btn);
+        btnAudioActivo = null;
+    };
+
+    reproducirUtterance(utterance);
+}
+
 function compartirVersiculo(libro, capitulo, versiculo, texto) {
     const referencia = formatearReferenciaCompartida(libro, capitulo, versiculo);
     const textoLimpio = String(texto || '').trim();
@@ -3954,9 +4016,10 @@ function actualizarContenidoBotonAudioVersiculo(btn, reproduciendo) {
 
     const esBotonMenu = btn.classList.contains('verse-card-menu-item');
     const esBotonVersiculo = btn.classList.contains('btn-audio-versiculo');
-    const etiquetaBase = esBotonVersiculo ? 'versículo' : '';
+    const esBotonLectio = btn.classList.contains('btn-audio-lectio');
+    const etiquetaBase = esBotonLectio ? 'pasaje' : (esBotonVersiculo ? 'versículo' : '');
     const titulo = reproduciendo
-        ? 'Dejar de escuchar'
+        ? 'Detener audio'
         : etiquetaBase ? `Escuchar ${etiquetaBase}` : 'Escuchar';
     btn.title = titulo;
     btn.setAttribute('aria-label', titulo);
@@ -3966,6 +4029,13 @@ function actualizarContenidoBotonAudioVersiculo(btn, reproduciendo) {
         btn.innerHTML = reproduciendo
             ? '<i class="fas fa-stop menu-item-icono text-sm" aria-hidden="true"></i><span>Detener audio</span>'
             : '<i class="fas fa-volume-up menu-item-icono text-sm" aria-hidden="true"></i><span>Escuchar</span>';
+        return;
+    }
+
+    if (esBotonLectio) {
+        btn.innerHTML = reproduciendo
+            ? '<i class="fas fa-stop text-sm" aria-hidden="true"></i><span>Detener audio</span>'
+            : '<i class="fas fa-volume-up text-sm" aria-hidden="true"></i><span>Escuchar pasaje</span>';
         return;
     }
 
@@ -3995,6 +4065,11 @@ function detenerReproduccionesLuminaActivas() {
 }
 
 function limpiarEstadoLectura() {
+    if (btnAudioActivo) {
+        restaurarIconoParla(btnAudioActivo);
+        btnAudioActivo = null;
+    }
+
     document.querySelectorAll('.btn-audio-versiculo').forEach(btn => {
         btn.classList.remove('reproduciendo');
         actualizarContenidoBotonAudioVersiculo(btn, false);
@@ -6596,6 +6671,7 @@ window.onload = async () => {
     });
     document.getElementById('selector-lectio-hasta')?.addEventListener('change', () => actualizarAyudaPasajeLectio());
     document.getElementById('btn-abrir-pasaje-lectio')?.addEventListener('click', () => renderizarPasajeLectioSeleccionado());
+    document.getElementById('btn-escuchar-pasaje-lectio')?.addEventListener('click', (event) => escucharPasajeLectio(event.currentTarget));
     document.getElementById('btn-guardar-lectio')?.addEventListener('click', () => guardarLectioActual());
     document.getElementById('btn-nueva-lectio')?.addEventListener('click', () => limpiarHojaLectio(true));
     document.getElementById('btn-lectio-usar-contexto')?.addEventListener('click', () => usarContextoActualEnLectio());
