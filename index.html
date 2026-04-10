@@ -58,10 +58,10 @@
 
                     <button type="button" id="btn-favoritos"
                         class="header-favoritos-button text-sm font-sans text-gray-900 dark:text-gray-200 hover:text-oro font-semibold transition-colors flex items-center gap-1"
-                        aria-label="Abrir favoritos"
-                        title="Abrir favoritos">
+                        aria-label="Abrir guardados"
+                        title="Abrir guardados">
                         <i class="fas fa-star" aria-hidden="true"></i>
-                        <span class="header-favoritos-label">Favoritos</span>
+                        <span class="header-favoritos-label">Guardados</span>
                     </button>
 
                     <div class="header-concordancia flex items-center gap-2">
@@ -213,6 +213,120 @@
             </div>
         </main>
 
+        <main id="vista-lectio"
+            class="vista flex-1 overflow-hidden p-6 md:p-12 hidden absolute inset-0 z-10 transition-colors duration-300">
+            <div class="max-w-6xl mx-auto h-full min-h-0 flex flex-col gap-5">
+                <div class="lectio-top-bar flex flex-wrap items-center justify-between gap-3">
+                    <button type="button" onclick="volverDesdeLectio()"
+                        class="lectio-back-button text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-sans text-sm font-bold transition-colors inline-flex items-center gap-1">
+                        <i class="fas fa-arrow-left text-xs"></i> VOLVER
+                    </button>
+                    <button type="button" id="btn-lectio-usar-contexto"
+                        class="lectio-context-button text-sm font-sans font-bold px-4 py-2 rounded-full">
+                        <i class="fas fa-book-open mr-2"></i> Usar lectura actual
+                    </button>
+                </div>
+
+                <div class="lectio-layout flex-1 min-h-0">
+                    <section class="lectio-pane lectio-pane-editor">
+                        <div class="lectio-hero-card">
+                            <p class="lectio-hero-kicker">Oración con la Palabra</p>
+                            <h2 class="lectio-hero-title">Lectio Divina</h2>
+                            <p class="lectio-hero-texto">Elegí un pasaje, leelo en formato corrido y dejá por escrito lo
+                                que la Palabra va obrando en vos.</p>
+                        </div>
+
+                        <section class="lectio-config-card">
+                            <div class="lectio-config-grid">
+                                <label class="lectio-field">
+                                    <span>Libro</span>
+                                    <select id="selector-lectio-libro"
+                                        class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 font-sans text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-oro focus:border-oro transition outline-none shadow-sm"></select>
+                                </label>
+                                <label class="lectio-field">
+                                    <span>Capítulo</span>
+                                    <select id="selector-lectio-capitulo"
+                                        class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 font-sans text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-oro focus:border-oro transition outline-none shadow-sm"></select>
+                                </label>
+                                <label class="lectio-field">
+                                    <span>Desde</span>
+                                    <select id="selector-lectio-desde"
+                                        class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 font-sans text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-oro focus:border-oro transition outline-none shadow-sm"></select>
+                                </label>
+                                <label class="lectio-field">
+                                    <span>Hasta</span>
+                                    <select id="selector-lectio-hasta"
+                                        class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 font-sans text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-oro focus:border-oro transition outline-none shadow-sm"></select>
+                                </label>
+                            </div>
+                            <div class="lectio-config-actions">
+                                <button type="button" id="btn-abrir-pasaje-lectio" class="lectio-primary-button">
+                                    <i class="fas fa-feather-alt mr-2"></i> Abrir pasaje
+                                </button>
+                            </div>
+                            <p id="lectio-ayuda-pasaje" class="lectio-config-ayuda"></p>
+                        </section>
+
+                        <section id="lectio-pasaje-card" class="lectio-pasaje-card hidden">
+                            <div class="lectio-pasaje-head">
+                                <div>
+                                    <p class="lectio-pasaje-kicker">Pasaje elegido</p>
+                                    <h3 id="lectio-pasaje-referencia" class="lectio-pasaje-referencia"></h3>
+                                </div>
+                                <span id="lectio-pasaje-badge" class="lectio-pasaje-badge hidden"></span>
+                            </div>
+                            <div id="lectio-pasaje-texto" class="lectio-pasaje-texto"></div>
+                        </section>
+
+                        <section class="lectio-escritura-card">
+                            <div id="lectio-registro-activo" class="lectio-registro-activo hidden"></div>
+
+                            <div class="lectio-bloque">
+                                <h3>📖 LEER: ¿Qué dice el texto?</h3>
+                                <textarea id="lectio-leer" rows="5"
+                                    placeholder="Personajes, ambiente, mensaje central..."></textarea>
+                            </div>
+
+                            <div class="lectio-bloque">
+                                <h3>💭 MEDITAR: ¿Qué me dice Dios a mí, hoy?</h3>
+                                <textarea id="lectio-meditar" rows="5"
+                                    placeholder="¿Con quién me identifico? ¿Cómo interpela mi vida actual?"></textarea>
+                            </div>
+
+                            <div class="lectio-bloque">
+                                <h3>🙏 ORAR Y CONTEMPLAR: ¿Qué le respondo al Señor?</h3>
+                                <textarea id="lectio-orar" rows="5"
+                                    placeholder="Agradecimiento, súplica y mi propósito o conversión..."></textarea>
+                            </div>
+
+                            <div class="lectio-editor-actions">
+                                <button type="button" id="btn-guardar-lectio" class="lectio-primary-button">
+                                    Guardar Lectio
+                                </button>
+                                <button type="button" id="btn-nueva-lectio" class="lectio-secondary-button">
+                                    Nueva hoja
+                                </button>
+                            </div>
+                        </section>
+                    </section>
+
+                    <aside class="lectio-pane lectio-pane-registro">
+                        <div class="lectio-registro-card">
+                            <div class="lectio-registro-head">
+                                <div>
+                                    <p class="lectio-hero-kicker">Tu cuaderno</p>
+                                    <h3 class="lectio-registro-title">Lectio guardadas</h3>
+                                </div>
+                            </div>
+                            <p class="lectio-registro-texto">Cada Lectio queda guardada en este dispositivo y también entra
+                                en las copias de seguridad de Lumina.</p>
+                            <div id="lista-lectio-guardadas" class="space-y-3"></div>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+        </main>
+
         <!-- PANELES LATERALES (sin cambios) -->
         <div id="overlay-panel-lumina" class="hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]"
             onclick="cerrarPanelLumina()"></div>
@@ -230,27 +344,12 @@
                 </button>
             </div>
             <div class="flex-1 overflow-y-auto p-6 md:p-8 pt-6">
-                <button type="button" id="btn-modo-desierto"
-                    class="panel-lumina-cta panel-lumina-cta-stack panel-lumina-cta-desierto mb-5"
-                    onclick="toggleModoDesierto()" aria-pressed="false">
-                    <span class="panel-lumina-cta-icon" aria-hidden="true">🏜️</span>
-                    <span class="panel-lumina-cta-copy">
-                        <strong id="modo-desierto-titulo">Entrar al desierto</strong>
-                        <span id="modo-desierto-descripcion">Ocultá el header y el footer para sumergirte por completo en el texto. La pluma queda visible para volver a verlos cuando desees.</span>
-                    </span>
-                </button>
-
-                <button type="button" id="btn-texto-corrido"
-                    class="panel-lumina-cta panel-lumina-cta-stack panel-lumina-cta-texto-corrido mb-6"
-                    onclick="toggleTextoCorrido()" aria-pressed="false" disabled>
-                    <span class="panel-lumina-cta-icon" aria-hidden="true">📜</span>
-                    <span class="panel-lumina-cta-copy">
-                        <strong id="texto-corrido-titulo">Texto corrido</strong>
-                        <span id="texto-corrido-descripcion">Entrá al desierto para poder ocultar numeración y herramientas para una lectura puramente narrativa.</span>
-                    </span>
-                </button>
-
                 <div class="panel-lumina-nav mb-6">
+                    <button type="button" class="panel-lumina-link" data-lumina-seccion="modos"
+                        onclick="mostrarSeccionPanelLumina('modos')">
+                        <span aria-hidden="true">🕊️</span>
+                        <span>Modos y Oración</span>
+                    </button>
                     <button type="button" class="panel-lumina-link" data-lumina-seccion="conceptos"
                         onclick="mostrarSeccionPanelLumina('conceptos')">
                         <span aria-hidden="true">🔦</span>
@@ -277,7 +376,50 @@
                         <span>Ajustes y Resguardo</span>
                     </button>
                 </div>
+                <div class="panel-lumina-placeholder" data-lumina-placeholder>
+                    Elegí una sección para leer, orar, explorar o cuidar tus datos dentro de Lumina.
+                </div>
                 <div class="acerca-de-container panel-lumina-contenido">
+                    <div id="lumina-seccion-modos" class="hidden" data-lumina-contenido>
+                        <blockquote>
+                            A veces la Palabra pide estudio; otras, silencio, lentitud y respuesta del corazón.
+                        </blockquote>
+                        <p>Acá reunimos los modos de lectura más contemplativos y la experiencia de oración para que no
+                            queden dispersos en el menú.</p>
+
+                        <div class="panel-lumina-herramientas">
+                            <button type="button" id="btn-modo-desierto"
+                                class="panel-lumina-cta panel-lumina-cta-stack panel-lumina-cta-desierto"
+                                onclick="toggleModoDesierto()" aria-pressed="false">
+                                <span class="panel-lumina-cta-icon" aria-hidden="true">🏜️</span>
+                                <span class="panel-lumina-cta-copy">
+                                    <strong id="modo-desierto-titulo">Entrar al desierto</strong>
+                                    <span id="modo-desierto-descripcion">Ocultá el header y el footer para sumergirte por completo en el texto. La pluma queda visible para volver a verlos cuando desees.</span>
+                                </span>
+                            </button>
+
+                            <button type="button" id="btn-texto-corrido"
+                                class="panel-lumina-cta panel-lumina-cta-stack panel-lumina-cta-texto-corrido"
+                                onclick="toggleTextoCorrido()" aria-pressed="false" disabled>
+                                <span class="panel-lumina-cta-icon" aria-hidden="true">📜</span>
+                                <span class="panel-lumina-cta-copy">
+                                    <strong id="texto-corrido-titulo">Texto corrido</strong>
+                                    <span id="texto-corrido-descripcion">Entrá al desierto para poder ocultar numeración y herramientas para una lectura puramente narrativa.</span>
+                                </span>
+                            </button>
+
+                            <button type="button" id="btn-abrir-lectio"
+                                class="panel-lumina-cta panel-lumina-cta-stack panel-lumina-cta-lectio"
+                                onclick="abrirLectioDivina()">
+                                <span class="panel-lumina-cta-icon" aria-hidden="true">🕯️</span>
+                                <span class="panel-lumina-cta-copy">
+                                    <strong>Lectio Divina</strong>
+                                    <span>Elegí un pasaje, rezalo en formato corrido y guardá tu lectura orante para volver a ella cuando quieras.</span>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
                     <div id="lumina-seccion-sobre" class="hidden" data-lumina-contenido>
                         <blockquote>
                             "La tecnología, al igual que la filosofía, también puede ser sierva de la teología."
@@ -409,7 +551,7 @@
                                 <span class="panel-lumina-cta-icon" aria-hidden="true">💾</span>
                                 <span class="panel-lumina-cta-copy">
                                     <strong>Exportar mis datos</strong>
-                                    <span>Creá una copia de seguridad de tus notas y favoritos en un archivo que podés
+                                    <span>Creá una copia de seguridad de tu diario espiritual en un archivo que podés
                                         guardar donde quieras.</span>
                                 </span>
                             </button>
@@ -541,8 +683,8 @@
                     <div>
                         <h2
                             class="panel-sticky-title text-2xl font-bold mb-1 text-oro font-sans tracking-wide mt-0 pr-6 inline-flex items-center gap-2">
-                            <i class="fas fa-star" aria-hidden="true"></i>
-                            <span>Mis favoritos</span>
+                            <i class="fas fa-bookmark" aria-hidden="true"></i>
+                            <span>Guardados</span>
                         </h2>
                         <div class="h-0.5 w-12 bg-oro mb-0"></div>
                     </div>
@@ -555,8 +697,25 @@
                     </button>
                 </div>
             </div>
+            <div class="panel-guardados-tabs px-4 md:px-5 pt-3 pb-2">
+                <button type="button" id="tab-guardados-favoritos" class="panel-guardados-tab activa"
+                    aria-selected="true">
+                    <i class="fas fa-star" aria-hidden="true"></i>
+                    <span>Favoritos</span>
+                </button>
+                <button type="button" id="tab-guardados-colecciones" class="panel-guardados-tab"
+                    aria-selected="false">
+                    <i class="fas fa-layer-group" aria-hidden="true"></i>
+                    <span>Colecciones</span>
+                </button>
+            </div>
             <div class="flex-1 overflow-y-auto">
-                <div id="lista-favoritos" class="space-y-3 p-4 md:p-5 pt-0 pb-4"></div>
+                <div id="contenido-favoritos-guardados" class="p-4 md:p-5 pt-0 pb-4">
+                    <div id="lista-favoritos" class="space-y-3"></div>
+                </div>
+                <div id="contenido-colecciones-guardados" class="hidden p-4 md:p-5 pt-0 pb-4">
+                    <div id="lista-colecciones" class="space-y-3"></div>
+                </div>
             </div>
         </aside>
 
@@ -763,11 +922,11 @@
                 <div class="flex items-start justify-between gap-4 mb-6">
                     <div>
                         <p class="text-xs uppercase tracking-[0.35em] text-oro font-semibold mb-3">Palabra de entrada</p>
-                        <h3 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">Tu versículo de inicio</h3>
+                        <h3 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">Tu versículo de bienvenida</h3>
                     </div>
                     <button type="button" onclick="cerrarModalVersiculoInicio()"
                         class="text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                        aria-label="Cerrar versículo de inicio">
+                        aria-label="Cerrar versículo de bienvenida">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
                             </path>
@@ -793,6 +952,65 @@
                         class="px-5 py-3 rounded-full border border-rose-300/50 dark:border-rose-500/40 bg-rose-50/80 dark:bg-rose-900/20 text-rose-700 dark:text-rose-200 font-sans font-bold transition hover:bg-rose-100 dark:hover:bg-rose-900/30">
                         Desactivar
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="modal-colecciones"
+        class="fixed inset-0 z-[121] hidden items-center justify-center bg-black/60 backdrop-blur-md px-4 py-8"
+        onclick="cerrarModalColecciones()">
+        <div class="modal-colecciones-card relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-oro/30 shadow-2xl bg-[#fcfaf7] dark:bg-[#1a1d23]"
+            onclick="event.stopPropagation()">
+            <div
+                class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,214,102,0.22),transparent_52%),radial-gradient(circle_at_bottom,rgba(184,134,11,0.12),transparent_62%)]">
+            </div>
+            <div class="relative px-6 py-7 md:px-8 md:py-8">
+                <div class="flex items-start justify-between gap-4 mb-6">
+                    <div>
+                        <p id="coleccion-modal-etiqueta"
+                            class="text-xs uppercase tracking-[0.35em] text-oro font-semibold mb-3">Colecciones</p>
+                        <h3 id="coleccion-modal-titulo"
+                            class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">Agregar a colección</h3>
+                        <p id="coleccion-modal-subtitulo" class="mt-3 text-sm text-gray-600 dark:text-gray-400"></p>
+                    </div>
+                    <button type="button" onclick="cerrarModalColecciones()"
+                        class="text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        aria-label="Cerrar modal de colecciones">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="coleccion-modal-contexto" class="modal-colecciones-contexto hidden mb-6">
+                    <p id="coleccion-modal-referencia"
+                        class="text-sm font-sans font-bold uppercase tracking-[0.22em] text-oro mb-3"></p>
+                    <blockquote id="coleccion-modal-texto"
+                        class="text-lg leading-relaxed text-gray-800 dark:text-gray-100 font-serif italic"></blockquote>
+                </div>
+                <div id="bloque-opciones-colecciones-modal" class="mb-6">
+                    <div class="flex items-center justify-between gap-3 mb-3">
+                        <h4 class="text-sm font-sans font-bold uppercase tracking-[0.22em] text-gray-500 dark:text-gray-400">
+                            Elegí una colección
+                        </h4>
+                    </div>
+                    <div id="estado-colecciones-modal" class="text-sm text-gray-500 dark:text-gray-400 mb-3 hidden"></div>
+                    <div id="lista-colecciones-modal" class="space-y-3"></div>
+                </div>
+                <div class="modal-colecciones-form">
+                    <label for="input-nueva-coleccion"
+                        class="block text-sm font-sans font-bold uppercase tracking-[0.22em] text-gray-500 dark:text-gray-400 mb-3">
+                        Crear una nueva
+                    </label>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input type="text" id="input-nueva-coleccion" maxlength="60"
+                            placeholder="Ej.: Iglesia, Pascua, Retiro de confirmación"
+                            class="flex-1 rounded-2xl border border-oro/20 bg-white/80 dark:bg-gray-800/80 px-4 py-3 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-oro">
+                        <button type="button" id="btn-crear-coleccion-modal"
+                            class="px-5 py-3 rounded-2xl border border-oro/30 bg-oro text-white font-sans font-bold transition hover:bg-amber-700">
+                            Crear
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

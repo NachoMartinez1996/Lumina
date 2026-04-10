@@ -1007,6 +1007,13 @@ let estadoSeccionesFavoritos = {
     comentarios: false,
     notas: false
 };
+let coleccionesVersiculos = [];
+let panelGuardadosTabActiva = 'favoritos';
+let coleccionAbiertaPanelId = null;
+let contextoModalColecciones = null;
+let lectioDivinaRegistros = [];
+let lectioRegistroActivoId = null;
+let vistaRetornoLectio = 'vista-libros';
 let estadoSeccionesBusqueda = {
     versiculos: false,
     comentarios: false,
@@ -1015,12 +1022,16 @@ let estadoSeccionesBusqueda = {
 const CLAVE_MODO_DESIERTO = 'lumina_modo_desierto_v1';
 const CLAVE_TEXTO_CORRIDO = 'lumina_texto_corrido_v1';
 const CLAVE_VERSICULO_INICIO = 'lumina_versiculo_inicio_v1';
+const CLAVE_COLECCIONES_VERSICULOS = 'lumina_colecciones_versiculos_v1';
+const CLAVE_ULTIMA_COLECCION_VERSICULOS = 'lumina_ultima_coleccion_versiculos_v1';
+const CLAVE_LECTIO_DIVINA = 'lumina_lectio_divina_v1';
 let modoDesiertoActivo = false;
 let textoCorridoActivo = false;
 let versiculoInicioGuardado = null;
 let versiculoInicioMostradoEnSesion = false;
 let versiculoInicioPendienteTrasBienvenida = false;
 let leidos = new Set();
+let ultimaColeccionVersiculosId = null;
 // Lumina cuenta 76 libros en su canon interno: 73 del canon católico + 3 suplementarios.
 const TOTAL_BIBLIA_LUMINA = 76;
 let bibliaCompletaCelebrada = false;
@@ -1106,10 +1117,10 @@ function obtenerNodosVersiculoInicio(libro, capitulo, versiculo) {
 
 function actualizarBotonVersiculoInicioUI(libro, capitulo, versiculo) {
     const activo = esVersiculoInicio(libro, capitulo, versiculo);
-    const titulo = activo ? 'Quitar versículo de inicio' : 'Usar como versículo de inicio';
+    const titulo = activo ? 'Quitar versículo de bienvenida' : 'Usar como versículo de bienvenida';
     const label = activo
-        ? `Quitar ${formatearReferenciaCompartida(libro, capitulo, versiculo)} como versículo de inicio`
-        : `Usar ${formatearReferenciaCompartida(libro, capitulo, versiculo)} como versículo de inicio`;
+        ? `Quitar ${formatearReferenciaCompartida(libro, capitulo, versiculo)} como versículo de bienvenida`
+        : `Usar ${formatearReferenciaCompartida(libro, capitulo, versiculo)} como versículo de bienvenida`;
 
     obtenerNodosVersiculoInicio(libro, capitulo, versiculo).forEach(btn => {
         btn.classList.toggle('activa', activo);
@@ -1257,7 +1268,7 @@ function desactivarVersiculoInicio() {
     guardarVersiculoInicioGuardado();
     refrescarBotonesVersiculoInicio();
     cerrarModalVersiculoInicio();
-    lanzarToast('Versículo de inicio desactivado');
+    lanzarToast('Versículo de bienvenida desactivado');
 }
 
 function abrirVersiculoInicioGuardado() {
@@ -1424,6 +1435,280 @@ function guardarFavoritos() {
     localStorage.setItem("lumina_favoritos", JSON.stringify(Array.from(favoritos)));
 }
 
+function cargarColeccionesVersiculos() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(CLAVE_COLECCIONES_VERSICULOS) || '[]');
+        coleccionesVersiculos = Array.isArray(stored)
+            ? stored.map(normalizarColeccionVersiculos).filter(Boolean)
+            : [];
+    } catch (_) {
+        coleccionesVersiculos = [];
+    }
+
+    const ultimaId = String(localStorage.getItem(CLAVE_ULTIMA_COLECCION_VERSICULOS) || '').trim();
+    ultimaColeccionVersiculosId = coleccionesVersiculos.some(coleccion => coleccion.id === ultimaId) ? ultimaId : null;
+}
+
+function guardarColeccionesVersiculos() {
+    localStorage.setItem(CLAVE_COLECCIONES_VERSICULOS, JSON.stringify(coleccionesVersiculos));
+
+    if (ultimaColeccionVersiculosId) {
+        localStorage.setItem(CLAVE_ULTIMA_COLECCION_VERSICULOS, ultimaColeccionVersiculosId);
+    } else {
+        localStorage.removeItem(CLAVE_ULTIMA_COLECCION_VERSICULOS);
+    }
+}
+
+function generarIdLectioDivina() {
+    return `lectio_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function normalizarRegistroLectioDivina(item) {
+    if (!item || typeof item !== 'object') return null;
+
+    const libro = String(item.libro || '').trim();
+    const capitulo = Number(item.capitulo);
+    const desde = Number(item.desde);
+    const hasta = Number(item.hasta);
+
+    if (!libro || !Number.isFinite(capitulo) || capitulo <= 0 || !Number.isFinite(desde) || !Number.isFinite(hasta) || desde <= 0 || hasta < desde) {
+        return null;
+    }
+
+    return {
+        id: String(item.id || generarIdLectioDivina()),
+        libro,
+        capitulo,
+        desde,
+        hasta,
+        leer: String(item.leer || ''),
+        meditar: String(item.meditar || ''),
+        orar: String(item.orar || ''),
+        createdAt: typeof item.createdAt === 'string' && item.createdAt ? item.createdAt : new Date().toISOString(),
+        updatedAt: typeof item.updatedAt === 'string' && item.updatedAt ? item.updatedAt : new Date().toISOString()
+    };
+}
+
+function cargarLectioDivinaRegistros() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(CLAVE_LECTIO_DIVINA) || '[]');
+        lectioDivinaRegistros = Array.isArray(stored)
+            ? stored.map(normalizarRegistroLectioDivina).filter(Boolean)
+            : [];
+    } catch (_) {
+        lectioDivinaRegistros = [];
+    }
+}
+
+function guardarLectioDivinaRegistros() {
+    localStorage.setItem(CLAVE_LECTIO_DIVINA, JSON.stringify(lectioDivinaRegistros));
+}
+
+function generarIdColeccionVersiculos() {
+    return `coleccion_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function normalizarNombreColeccionVersiculos(nombre) {
+    return String(nombre || '').trim().replace(/\s+/g, ' ');
+}
+
+function obtenerClaveVersiculoColeccion(libro, capitulo, versiculo) {
+    return `${String(libro || '').trim()}_${Number(capitulo)}_${Number(versiculo)}`;
+}
+
+function normalizarEntradaColeccionVersiculos(item) {
+    if (!item || typeof item !== 'object') return null;
+
+    const libro = String(item.libro || '').trim();
+    const capitulo = Number(item.capitulo);
+    const versiculo = Number(item.versiculo);
+    const texto = String(item.texto || '').trim();
+
+    if (!libro || !Number.isFinite(capitulo) || capitulo <= 0 || !Number.isFinite(versiculo) || versiculo <= 0) {
+        return null;
+    }
+
+    return {
+        libro,
+        capitulo,
+        versiculo,
+        texto,
+        agregadoEn: typeof item.agregadoEn === 'string' && item.agregadoEn ? item.agregadoEn : new Date().toISOString()
+    };
+}
+
+function normalizarColeccionVersiculos(item) {
+    if (!item || typeof item !== 'object') return null;
+
+    const nombre = normalizarNombreColeccionVersiculos(item.nombre);
+    if (!nombre) return null;
+
+    const entradasNormalizadas = Array.isArray(item.versiculos)
+        ? item.versiculos.map(normalizarEntradaColeccionVersiculos).filter(Boolean)
+        : [];
+    const vistas = new Set();
+    const versiculos = entradasNormalizadas.filter(entrada => {
+        const clave = obtenerClaveVersiculoColeccion(entrada.libro, entrada.capitulo, entrada.versiculo);
+        if (vistas.has(clave)) return false;
+        vistas.add(clave);
+        return true;
+    });
+    const createdAt = typeof item.createdAt === 'string' && item.createdAt ? item.createdAt : new Date().toISOString();
+    const updatedAt = typeof item.updatedAt === 'string' && item.updatedAt ? item.updatedAt : createdAt;
+
+    return {
+        id: String(item.id || generarIdColeccionVersiculos()),
+        nombre,
+        createdAt,
+        updatedAt,
+        versiculos
+    };
+}
+
+function obtenerColeccionVersiculosPorId(coleccionId) {
+    return coleccionesVersiculos.find(coleccion => coleccion.id === coleccionId) || null;
+}
+
+function obtenerColeccionesVersiculosOrdenadas() {
+    return [...coleccionesVersiculos].sort((a, b) => {
+        const fechaA = Date.parse(a.updatedAt || a.createdAt || 0) || 0;
+        const fechaB = Date.parse(b.updatedAt || b.createdAt || 0) || 0;
+        return fechaB - fechaA || a.nombre.localeCompare(b.nombre, 'es');
+    });
+}
+
+function buscarColeccionVersiculosPorNombre(nombre) {
+    const nombreNormalizado = normalizarNombreColeccionVersiculos(nombre).toLocaleLowerCase('es');
+    if (!nombreNormalizado) return null;
+    return coleccionesVersiculos.find(
+        coleccion => normalizarNombreColeccionVersiculos(coleccion.nombre).toLocaleLowerCase('es') === nombreNormalizado
+    ) || null;
+}
+
+function crearColeccionVersiculos(nombre) {
+    const nombreNormalizado = normalizarNombreColeccionVersiculos(nombre);
+    if (!nombreNormalizado) {
+        return { coleccion: null, creada: false, mensaje: 'Poné un nombre para la colección' };
+    }
+
+    const existente = buscarColeccionVersiculosPorNombre(nombreNormalizado);
+    if (existente) {
+        return { coleccion: existente, creada: false, mensaje: 'Ya existe una colección con ese nombre' };
+    }
+
+    const ahora = new Date().toISOString();
+    const nuevaColeccion = {
+        id: generarIdColeccionVersiculos(),
+        nombre: nombreNormalizado,
+        createdAt: ahora,
+        updatedAt: ahora,
+        versiculos: []
+    };
+
+    coleccionesVersiculos = [nuevaColeccion, ...coleccionesVersiculos];
+    ultimaColeccionVersiculosId = nuevaColeccion.id;
+    guardarColeccionesVersiculos();
+    return { coleccion: nuevaColeccion, creada: true, mensaje: `Colección "${nombreNormalizado}" creada` };
+}
+
+function coleccionTieneVersiculo(coleccion, libro, capitulo, versiculo) {
+    if (!coleccion) return false;
+    const claveBuscada = obtenerClaveVersiculoColeccion(libro, capitulo, versiculo);
+    return coleccion.versiculos.some(item => obtenerClaveVersiculoColeccion(item.libro, item.capitulo, item.versiculo) === claveBuscada);
+}
+
+function agregarVersiculoAColeccion(coleccionId, libro, capitulo, versiculo, texto) {
+    const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
+    if (!coleccion) {
+        return { agregado: false, duplicado: false, coleccion: null, mensaje: 'No encontramos esa colección' };
+    }
+
+    if (coleccionTieneVersiculo(coleccion, libro, capitulo, versiculo)) {
+        ultimaColeccionVersiculosId = coleccion.id;
+        guardarColeccionesVersiculos();
+        return { agregado: false, duplicado: true, coleccion, mensaje: `Ese versículo ya está en "${coleccion.nombre}"` };
+    }
+
+    coleccion.versiculos.push({
+        libro,
+        capitulo,
+        versiculo,
+        texto: String(texto || '').trim(),
+        agregadoEn: new Date().toISOString()
+    });
+    coleccion.updatedAt = new Date().toISOString();
+    ultimaColeccionVersiculosId = coleccion.id;
+    guardarColeccionesVersiculos();
+
+    return { agregado: true, duplicado: false, coleccion, mensaje: `Versículo agregado a "${coleccion.nombre}"` };
+}
+
+function quitarVersiculoDeColeccion(coleccionId, libro, capitulo, versiculo) {
+    const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
+    if (!coleccion) return false;
+
+    const longitudAnterior = coleccion.versiculos.length;
+    coleccion.versiculos = coleccion.versiculos.filter(
+        item => obtenerClaveVersiculoColeccion(item.libro, item.capitulo, item.versiculo) !== obtenerClaveVersiculoColeccion(libro, capitulo, versiculo)
+    );
+
+    if (coleccion.versiculos.length === longitudAnterior) return false;
+
+    coleccion.updatedAt = new Date().toISOString();
+    guardarColeccionesVersiculos();
+    return true;
+}
+
+function eliminarColeccionVersiculos(coleccionId) {
+    const longitudAnterior = coleccionesVersiculos.length;
+    coleccionesVersiculos = coleccionesVersiculos.filter(coleccion => coleccion.id !== coleccionId);
+
+    if (coleccionesVersiculos.length === longitudAnterior) return false;
+
+    if (ultimaColeccionVersiculosId === coleccionId) {
+        ultimaColeccionVersiculosId = coleccionesVersiculos[0]?.id || null;
+    }
+
+    guardarColeccionesVersiculos();
+    return true;
+}
+
+function renombrarColeccionVersiculos(coleccionId, nuevoNombre) {
+    const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
+    if (!coleccion) {
+        return { ok: false, mensaje: 'No encontramos esa colección' };
+    }
+
+    const nombreNormalizado = normalizarNombreColeccionVersiculos(nuevoNombre);
+    if (!nombreNormalizado) {
+        return { ok: false, mensaje: 'Poné un nombre para la colección' };
+    }
+
+    const duplicada = coleccionesVersiculos.find(
+        item => item.id !== coleccionId
+            && normalizarNombreColeccionVersiculos(item.nombre).toLocaleLowerCase('es') === nombreNormalizado.toLocaleLowerCase('es')
+    );
+    if (duplicada) {
+        return { ok: false, mensaje: 'Ya existe otra colección con ese nombre' };
+    }
+
+    coleccion.nombre = nombreNormalizado;
+    coleccion.updatedAt = new Date().toISOString();
+    guardarColeccionesVersiculos();
+    return { ok: true, mensaje: `Colección renombrada a "${nombreNormalizado}"`, coleccion };
+}
+
+function formatearFechaColeccion(fechaIso) {
+    if (!fechaIso) return '';
+    const fecha = new Date(fechaIso);
+    if (Number.isNaN(fecha.getTime())) return '';
+    return fecha.toLocaleDateString('es-AR', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+    });
+}
+
 function obtenerClaveFavoritoVersiculo(libro, capitulo, versiculo) {
     return `versiculo:${libro}_${capitulo}_${versiculo}`;
 }
@@ -1473,7 +1758,7 @@ function toggleFavoritoVersiculo(libro, capitulo, versiculo) {
             stars.forEach(star => star.classList.remove('animacion-fav'));
         }, 300);
     }
-    if (document.getElementById('panel-favoritos').classList.contains('translate-x-full') === false) mostrarPanelFavoritos();
+    refrescarPanelGuardadosSiVisible();
 }
 function toggleFavoritoComentario(libro, capitulo, versiculo, tipo, idx) {
     const key = obtenerClaveFavoritoComentario(libro, capitulo, versiculo, tipo, idx);
@@ -1499,7 +1784,7 @@ function toggleFavoritoComentario(libro, capitulo, versiculo, tipo, idx) {
             stars.forEach(star => star.classList.remove('animacion-fav'));
         }, 300);
     }
-    if (document.getElementById('panel-favoritos').classList.contains('translate-x-full') === false) mostrarPanelFavoritos();
+    refrescarPanelGuardadosSiVisible();
 }
 function esFavoritoVersiculo(libro, capitulo, versiculo) {
     return favoritos.has(obtenerClaveFavoritoVersiculo(libro, capitulo, versiculo));
@@ -1845,8 +2130,31 @@ function crearSeccionBusqueda(clave, titulo, icono, items, crearItem, mensajeVac
     return crearSeccionPanel('busqueda', estadoSeccionesBusqueda, clave, titulo, icono, items, crearItem, mensajeVacio);
 }
 
-function mostrarPanelFavoritos() {
+function actualizarTabsPanelGuardados() {
+    const tabFavoritos = document.getElementById('tab-guardados-favoritos');
+    const tabColecciones = document.getElementById('tab-guardados-colecciones');
+    const contenidoFavoritos = document.getElementById('contenido-favoritos-guardados');
+    const contenidoColecciones = document.getElementById('contenido-colecciones-guardados');
+    const enFavoritos = panelGuardadosTabActiva !== 'colecciones';
+
+    if (tabFavoritos) {
+        tabFavoritos.classList.toggle('activa', enFavoritos);
+        tabFavoritos.setAttribute('aria-selected', enFavoritos ? 'true' : 'false');
+    }
+
+    if (tabColecciones) {
+        tabColecciones.classList.toggle('activa', !enFavoritos);
+        tabColecciones.setAttribute('aria-selected', !enFavoritos ? 'true' : 'false');
+    }
+
+    if (contenidoFavoritos) contenidoFavoritos.classList.toggle('hidden', !enFavoritos);
+    if (contenidoColecciones) contenidoColecciones.classList.toggle('hidden', enFavoritos);
+}
+
+function renderizarPanelFavoritosGuardados() {
     const listaDiv = document.getElementById('lista-favoritos');
+    if (!listaDiv) return;
+
     const favoritosClasificados = obtenerFavoritosClasificados();
     const totalFavoritos = favoritosClasificados.versiculos.length
         + favoritosClasificados.comentarios.length
@@ -1892,8 +2200,817 @@ function mostrarPanelFavoritos() {
             'Todavía no guardaste notas en favoritos.'
         )
     );
+}
 
+function obtenerVistaPreviaColeccion(coleccion, limite = 3) {
+    return coleccion.versiculos
+        .slice(0, limite)
+        .map(item => formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo));
+}
+
+function crearTarjetaColeccion(coleccion) {
+    const tarjeta = document.createElement('button');
+    tarjeta.type = 'button';
+    tarjeta.className = 'coleccion-card';
+
+    const vistaPrevia = obtenerVistaPreviaColeccion(coleccion);
+    tarjeta.innerHTML = `
+        <div class="coleccion-card-superior">
+            <div class="coleccion-card-titulo-wrap">
+                <p class="coleccion-card-titulo">${escapeHtml(coleccion.nombre)}</p>
+                <p class="coleccion-card-meta">Actualizada ${escapeHtml(formatearFechaColeccion(coleccion.updatedAt || coleccion.createdAt) || 'recién')}</p>
+            </div>
+            <span class="coleccion-card-cantidad">${coleccion.versiculos.length}</span>
+        </div>
+        <div class="coleccion-card-preview">
+            ${vistaPrevia.length > 0
+            ? vistaPrevia.map(item => `<span class="coleccion-card-chip"><i class="fas fa-book-open" aria-hidden="true"></i>${escapeHtml(item)}</span>`).join('')
+            : '<span class="coleccion-card-chip"><i class="fas fa-feather-alt" aria-hidden="true"></i>Colección vacía</span>'}
+        </div>
+    `;
+
+    tarjeta.addEventListener('click', () => mostrarPanelColecciones(coleccion.id));
+    return tarjeta;
+}
+
+function renderizarDetalleColeccion(coleccion, contenedor) {
+    const toolbar = document.createElement('div');
+    toolbar.className = 'coleccion-detalle-toolbar';
+
+    const botonVolver = document.createElement('button');
+    botonVolver.type = 'button';
+    botonVolver.className = 'coleccion-detalle-back';
+    botonVolver.innerHTML = '<i class="fas fa-arrow-left" aria-hidden="true"></i><span>Colecciones</span>';
+    botonVolver.addEventListener('click', () => mostrarPanelColecciones());
+
+    const acciones = document.createElement('div');
+    acciones.className = 'coleccion-detalle-toolbar-botones';
+
+    const botonRenombrar = document.createElement('button');
+    botonRenombrar.type = 'button';
+    botonRenombrar.className = 'coleccion-detalle-toolbar-btn';
+    botonRenombrar.innerHTML = '<i class="fas fa-pen" aria-hidden="true"></i><span>Renombrar</span>';
+    botonRenombrar.addEventListener('click', () => renombrarColeccionDesdePanel(coleccion.id));
+
+    const botonTexto = document.createElement('button');
+    botonTexto.type = 'button';
+    botonTexto.className = 'coleccion-detalle-toolbar-btn';
+    botonTexto.innerHTML = '<i class="fas fa-share-alt" aria-hidden="true"></i><span>Texto</span>';
+    botonTexto.addEventListener('click', () => compartirColeccionComoTexto(coleccion.id));
+
+    const botonPdf = document.createElement('button');
+    botonPdf.type = 'button';
+    botonPdf.className = 'coleccion-detalle-toolbar-btn';
+    botonPdf.innerHTML = '<i class="fas fa-file-pdf" aria-hidden="true"></i><span>PDF</span>';
+    botonPdf.addEventListener('click', () => exportarColeccionComoPDF(coleccion.id));
+
+    const botonEliminar = document.createElement('button');
+    botonEliminar.type = 'button';
+    botonEliminar.className = 'coleccion-detalle-toolbar-btn';
+    botonEliminar.innerHTML = '<i class="fas fa-trash" aria-hidden="true"></i><span>Eliminar</span>';
+    botonEliminar.addEventListener('click', () => eliminarColeccionDesdePanel(coleccion.id));
+
+    acciones.appendChild(botonRenombrar);
+    acciones.appendChild(botonTexto);
+    acciones.appendChild(botonPdf);
+    acciones.appendChild(botonEliminar);
+    toolbar.appendChild(botonVolver);
+    toolbar.appendChild(acciones);
+    contenedor.appendChild(toolbar);
+
+    const hero = document.createElement('section');
+    hero.className = 'coleccion-detalle-hero';
+    hero.innerHTML = `
+        <p class="coleccion-detalle-eyebrow">Colección de versículos</p>
+        <h3 class="coleccion-detalle-titulo">${escapeHtml(coleccion.nombre)}</h3>
+        <p class="coleccion-detalle-meta">${coleccion.versiculos.length} versículo${coleccion.versiculos.length === 1 ? '' : 's'} guardado${coleccion.versiculos.length === 1 ? '' : 's'} · Actualizada ${escapeHtml(formatearFechaColeccion(coleccion.updatedAt || coleccion.createdAt) || 'recién')}</p>
+    `;
+    contenedor.appendChild(hero);
+
+    if (coleccion.versiculos.length === 0) {
+        const vacio = document.createElement('div');
+        vacio.className = 'coleccion-detalle-vacio py-10';
+        vacio.innerHTML = 'Todavía no hay versículos en esta colección.<br>Podés sumarlos desde el botón <strong>+</strong> en la lectura.';
+        contenedor.appendChild(vacio);
+        return;
+    }
+
+    const lista = document.createElement('div');
+    lista.className = 'coleccion-detalle-lista mt-3';
+
+    coleccion.versiculos.forEach(item => {
+        const entrada = document.createElement('article');
+        entrada.className = 'coleccion-entrada';
+
+        const botonPrincipal = document.createElement('button');
+        botonPrincipal.type = 'button';
+        botonPrincipal.className = 'coleccion-entrada-principal';
+        botonPrincipal.innerHTML = `
+            <p class="coleccion-entrada-ref">${escapeHtml(formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo))}</p>
+            <p class="coleccion-entrada-texto">${escapeHtml(item.texto || '')}</p>
+            <p class="coleccion-entrada-meta">${escapeHtml(formatearFechaColeccion(item.agregadoEn) || '')}</p>
+        `;
+        botonPrincipal.addEventListener('click', () => {
+            cerrarPanel('panel-favoritos');
+            irAVersiculo(item.libro, item.capitulo, item.versiculo);
+        });
+
+        const botonQuitar = document.createElement('button');
+        botonQuitar.type = 'button';
+        botonQuitar.className = 'coleccion-entrada-remove';
+        botonQuitar.innerHTML = '<i class="fas fa-times" aria-hidden="true"></i>';
+        botonQuitar.setAttribute('aria-label', `Quitar ${formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo)} de ${coleccion.nombre}`);
+        botonQuitar.addEventListener('click', () => {
+            if (quitarVersiculoDeColeccion(coleccion.id, item.libro, item.capitulo, item.versiculo)) {
+                lanzarToast(`Quitado de "${coleccion.nombre}"`);
+                refrescarPanelGuardadosSiVisible();
+            }
+        });
+
+        entrada.appendChild(botonPrincipal);
+        entrada.appendChild(botonQuitar);
+        lista.appendChild(entrada);
+    });
+
+    contenedor.appendChild(lista);
+}
+
+function renderizarPanelColeccionesGuardados() {
+    const listaDiv = document.getElementById('lista-colecciones');
+    if (!listaDiv) return;
+
+    listaDiv.innerHTML = '';
+
+    if (coleccionAbiertaPanelId) {
+        const coleccion = obtenerColeccionVersiculosPorId(coleccionAbiertaPanelId);
+        if (!coleccion) {
+            coleccionAbiertaPanelId = null;
+            renderizarPanelColeccionesGuardados();
+            return;
+        }
+
+        renderizarDetalleColeccion(coleccion, listaDiv);
+        return;
+    }
+
+    const hero = document.createElement('section');
+    hero.className = 'panel-colecciones-hero';
+    hero.innerHTML = `
+        <div class="panel-colecciones-hero-copy">
+            <p class="panel-colecciones-hero-eyebrow">Por tema, curso o retiro</p>
+            <h3 class="panel-colecciones-hero-titulo">Armá tus colecciones</h3>
+            <p class="panel-colecciones-hero-texto">Guardá versículos por tema para no mezclar Iglesia, Pascua, sacramentos o el encuentro que estés preparando.</p>
+        </div>
+    `;
+
+    const botonNueva = document.createElement('button');
+    botonNueva.type = 'button';
+    botonNueva.className = 'panel-colecciones-cta';
+    botonNueva.innerHTML = '<i class="fas fa-plus" aria-hidden="true"></i><span>Nueva</span>';
+    botonNueva.addEventListener('click', abrirModalNuevaColeccion);
+    hero.appendChild(botonNueva);
+    listaDiv.appendChild(hero);
+
+    const colecciones = obtenerColeccionesVersiculosOrdenadas();
+
+    if (colecciones.length === 0) {
+        const vacio = document.createElement('div');
+        vacio.className = 'colecciones-vacio-global py-10';
+        vacio.innerHTML = 'Todavía no creaste colecciones.<br>Usá el botón <strong>+</strong> en un versículo para empezar.';
+        listaDiv.appendChild(vacio);
+        return;
+    }
+
+    colecciones.forEach(coleccion => listaDiv.appendChild(crearTarjetaColeccion(coleccion)));
+}
+
+function abrirPanelGuardados() {
+    if (panelGuardadosTabActiva === 'colecciones') {
+        renderizarPanelColeccionesGuardados();
+    } else {
+        renderizarPanelFavoritosGuardados();
+    }
+
+    actualizarTabsPanelGuardados();
     abrirPanelLateral('panel-favoritos');
+}
+
+function mostrarPanelFavoritos() {
+    panelGuardadosTabActiva = 'favoritos';
+    actualizarTabsPanelGuardados();
+    renderizarPanelFavoritosGuardados();
+    abrirPanelLateral('panel-favoritos');
+}
+
+function mostrarPanelColecciones(coleccionId = null) {
+    panelGuardadosTabActiva = 'colecciones';
+    coleccionAbiertaPanelId = coleccionId;
+    actualizarTabsPanelGuardados();
+    renderizarPanelColeccionesGuardados();
+    abrirPanelLateral('panel-favoritos');
+}
+
+function refrescarPanelGuardadosSiVisible() {
+    const panel = document.getElementById('panel-favoritos');
+    if (!panel || panel.classList.contains('translate-x-full')) return;
+
+    if (panelGuardadosTabActiva === 'colecciones') {
+        renderizarPanelColeccionesGuardados();
+    } else {
+        renderizarPanelFavoritosGuardados();
+    }
+
+    actualizarTabsPanelGuardados();
+}
+
+function obtenerColeccionesParaModal() {
+    const colecciones = obtenerColeccionesVersiculosOrdenadas();
+    if (!ultimaColeccionVersiculosId) return colecciones;
+
+    return colecciones.sort((a, b) => {
+        if (a.id === ultimaColeccionVersiculosId) return -1;
+        if (b.id === ultimaColeccionVersiculosId) return 1;
+        return 0;
+    });
+}
+
+function renderizarModalColecciones() {
+    const modal = document.getElementById('modal-colecciones');
+    const etiqueta = document.getElementById('coleccion-modal-etiqueta');
+    const titulo = document.getElementById('coleccion-modal-titulo');
+    const subtitulo = document.getElementById('coleccion-modal-subtitulo');
+    const bloqueContexto = document.getElementById('coleccion-modal-contexto');
+    const referencia = document.getElementById('coleccion-modal-referencia');
+    const texto = document.getElementById('coleccion-modal-texto');
+    const bloqueOpciones = document.getElementById('bloque-opciones-colecciones-modal');
+    const estado = document.getElementById('estado-colecciones-modal');
+    const lista = document.getElementById('lista-colecciones-modal');
+    const input = document.getElementById('input-nueva-coleccion');
+    const botonCrear = document.getElementById('btn-crear-coleccion-modal');
+    if (!modal || !titulo || !subtitulo || !bloqueContexto || !referencia || !texto || !bloqueOpciones || !estado || !lista || !input || !botonCrear) return;
+
+    const esAgregar = contextoModalColecciones?.modo === 'agregar';
+
+    etiqueta.textContent = esAgregar ? 'Colecciones' : 'Nueva colección';
+    titulo.textContent = esAgregar ? 'Agregar a colección' : 'Crear colección';
+    subtitulo.textContent = esAgregar
+        ? 'Elegí una colección existente o creá una nueva para este tema.'
+        : 'Creá una colección temática para agrupar versículos.';
+    botonCrear.textContent = esAgregar ? 'Crear y agregar' : 'Crear colección';
+    input.value = '';
+    lista.innerHTML = '';
+    estado.classList.add('hidden');
+    estado.textContent = '';
+    bloqueContexto.classList.toggle('hidden', !esAgregar);
+    bloqueOpciones.classList.toggle('hidden', !esAgregar);
+
+    if (esAgregar && contextoModalColecciones?.versiculo) {
+        const item = contextoModalColecciones.versiculo;
+        referencia.textContent = formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo);
+        texto.textContent = item.texto || '';
+
+        const colecciones = obtenerColeccionesParaModal();
+        if (colecciones.length === 0) {
+            estado.classList.remove('hidden');
+            estado.textContent = 'Todavía no tenés colecciones. Creá una y la usamos enseguida.';
+        } else {
+            colecciones.forEach(coleccion => {
+                const yaExiste = coleccionTieneVersiculo(coleccion, item.libro, item.capitulo, item.versiculo);
+                const opcion = document.createElement('button');
+                opcion.type = 'button';
+                opcion.className = 'coleccion-modal-opcion';
+                opcion.disabled = yaExiste;
+                opcion.innerHTML = `
+                    <span class="coleccion-modal-opcion-principal">
+                        <span class="coleccion-modal-opcion-titulo">${escapeHtml(coleccion.nombre)}</span>
+                        <span class="coleccion-modal-opcion-meta">${coleccion.versiculos.length} versículo${coleccion.versiculos.length === 1 ? '' : 's'}</span>
+                    </span>
+                    <span class="coleccion-modal-opcion-estado">${yaExiste ? 'Ya está' : (coleccion.id === ultimaColeccionVersiculosId ? 'Última' : 'Agregar')}</span>
+                `;
+                opcion.addEventListener('click', () => agregarVersiculoPendienteAColeccion(coleccion.id));
+                lista.appendChild(opcion);
+            });
+        }
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.classList.add('modal-colecciones-abierta');
+    requestAnimationFrame(() => input.focus());
+}
+
+function abrirModalAgregarVersiculoAColeccion(libro, capitulo, versiculo, texto) {
+    contextoModalColecciones = {
+        modo: 'agregar',
+        versiculo: {
+            libro,
+            capitulo,
+            versiculo,
+            texto: String(texto || '').trim()
+        }
+    };
+    renderizarModalColecciones();
+}
+
+function abrirModalNuevaColeccion() {
+    contextoModalColecciones = { modo: 'crear' };
+    renderizarModalColecciones();
+}
+
+function cerrarModalColecciones() {
+    const modal = document.getElementById('modal-colecciones');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.classList.remove('modal-colecciones-abierta');
+    contextoModalColecciones = null;
+}
+
+function agregarVersiculoPendienteAColeccion(coleccionId) {
+    if (contextoModalColecciones?.modo !== 'agregar' || !contextoModalColecciones.versiculo) return;
+
+    const item = contextoModalColecciones.versiculo;
+    const resultado = agregarVersiculoAColeccion(coleccionId, item.libro, item.capitulo, item.versiculo, item.texto);
+    lanzarToast(resultado.mensaje);
+    refrescarPanelGuardadosSiVisible();
+
+    if (resultado.agregado || resultado.duplicado) {
+        cerrarModalColecciones();
+        if (resultado.coleccion?.id) {
+            mostrarPanelColecciones(resultado.coleccion.id);
+        }
+    } else {
+        renderizarModalColecciones();
+    }
+}
+
+function crearColeccionDesdeModal() {
+    const input = document.getElementById('input-nueva-coleccion');
+    if (!input) return;
+
+    const resultado = crearColeccionVersiculos(input.value);
+
+    if (!resultado.coleccion) {
+        lanzarToast(resultado.mensaje);
+        input.focus();
+        return;
+    }
+
+    if (contextoModalColecciones?.modo === 'agregar') {
+        agregarVersiculoPendienteAColeccion(resultado.coleccion.id);
+        return;
+    }
+
+    cerrarModalColecciones();
+    lanzarToast(resultado.mensaje);
+    mostrarPanelColecciones(resultado.coleccion.id);
+}
+
+function renombrarColeccionDesdePanel(coleccionId) {
+    const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
+    if (!coleccion) return;
+
+    const nuevoNombre = window.prompt('Nuevo nombre para la colección:', coleccion.nombre);
+    if (nuevoNombre === null) return;
+
+    const resultado = renombrarColeccionVersiculos(coleccionId, nuevoNombre);
+    lanzarToast(resultado.mensaje);
+
+    if (!resultado.ok) return;
+
+    refrescarPanelGuardadosSiVisible();
+    if (panelGuardadosTabActiva === 'colecciones') {
+        renderizarPanelColeccionesGuardados();
+    }
+}
+
+function eliminarColeccionDesdePanel(coleccionId) {
+    const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
+    if (!coleccion) return;
+
+    const confirmar = window.confirm(`¿Eliminar la colección "${coleccion.nombre}"?`);
+    if (!confirmar) return;
+
+    if (eliminarColeccionVersiculos(coleccionId)) {
+        if (coleccionAbiertaPanelId === coleccionId) {
+            coleccionAbiertaPanelId = null;
+        }
+        lanzarToast(`Colección "${coleccion.nombre}" eliminada`);
+        refrescarPanelGuardadosSiVisible();
+        if (panelGuardadosTabActiva === 'colecciones') {
+            renderizarPanelColeccionesGuardados();
+        }
+    }
+}
+
+function esLibroEvangelio(libro) {
+    return EVANGELIOS_CELEBRACION.includes(libro);
+}
+
+function obtenerLectioDivinaPorId(id) {
+    return lectioDivinaRegistros.find(registro => registro.id === id) || null;
+}
+
+function obtenerLectioDivinaOrdenadas() {
+    return [...lectioDivinaRegistros].sort((a, b) => {
+        const fechaA = Date.parse(a.updatedAt || a.createdAt || 0) || 0;
+        const fechaB = Date.parse(b.updatedAt || b.createdAt || 0) || 0;
+        return fechaB - fechaA;
+    });
+}
+
+function formatearReferenciaLectio(libro, capitulo, desde, hasta) {
+    return Number(desde) === Number(hasta)
+        ? `${libro} ${capitulo},${desde}`
+        : `${libro} ${capitulo},${desde}-${hasta}`;
+}
+
+function formatearFechaLectio(fechaIso) {
+    if (!fechaIso) return '';
+    const fecha = new Date(fechaIso);
+    if (Number.isNaN(fecha.getTime())) return '';
+    return fecha.toLocaleString('es-AR', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function obtenerPasajeLectio(libro, capitulo, desde, hasta) {
+    const versiculos = obtenerVersiculosLeiblesCapitulo(libro, capitulo)
+        .filter(versiculo => versiculo >= desde && versiculo <= hasta);
+
+    return versiculos.map(versiculo => ({
+        versiculo,
+        texto: String(bibleContent[libro]?.[capitulo]?.[versiculo] || '').trim()
+    })).filter(item => item.texto);
+}
+
+function obtenerTextoPlanoPasajeLectio(libro, capitulo, desde, hasta) {
+    return obtenerPasajeLectio(libro, capitulo, desde, hasta)
+        .map(item => item.texto)
+        .join(' ');
+}
+
+function obtenerContextoInicialLectio() {
+    const primerLibro = obtenerTodosLosLibros()[0]?.nombre || 'Génesis';
+    const libro = libroActual || primerLibro;
+    const capitulos = obtenerListaCapitulos(libro);
+    const capitulo = capitulos.includes(capituloActual) ? capituloActual : capitulos[0];
+    const versiculos = obtenerVersiculosLeiblesCapitulo(libro, capitulo);
+    const desde = versiculos[0] || 1;
+    const hasta = versiculos[Math.min(versiculos.length - 1, 4)] || desde;
+
+    return { libro, capitulo, desde, hasta };
+}
+
+function poblarSelectorLectioLibro(libroSeleccionado) {
+    const selector = document.getElementById('selector-lectio-libro');
+    if (!selector) return;
+
+    const opciones = obtenerTodosLosLibros()
+        .map(libro => `<option value="${escapeHtml(libro.nombre)}">${escapeHtml(libro.nombre)}</option>`)
+        .join('');
+    selector.innerHTML = opciones;
+    selector.value = libroSeleccionado;
+}
+
+function poblarSelectorLectioCapitulo(libro, capituloSeleccionado) {
+    const selector = document.getElementById('selector-lectio-capitulo');
+    if (!selector) return;
+
+    const capitulos = obtenerListaCapitulos(libro);
+    selector.innerHTML = capitulos
+        .map(capitulo => `<option value="${capitulo}">${capitulo}</option>`)
+        .join('');
+    selector.value = String(capitulos.includes(Number(capituloSeleccionado)) ? Number(capituloSeleccionado) : capitulos[0]);
+}
+
+function poblarSelectoresLectioVersiculos(libro, capitulo, desdeSeleccionado = null, hastaSeleccionado = null) {
+    const selectorDesde = document.getElementById('selector-lectio-desde');
+    const selectorHasta = document.getElementById('selector-lectio-hasta');
+    if (!selectorDesde || !selectorHasta) return;
+
+    const versiculos = obtenerVersiculosLeiblesCapitulo(libro, capitulo);
+    if (versiculos.length === 0) {
+        selectorDesde.innerHTML = '';
+        selectorHasta.innerHTML = '';
+        return;
+    }
+
+    const desde = versiculos.includes(Number(desdeSeleccionado)) ? Number(desdeSeleccionado) : versiculos[0];
+    selectorDesde.innerHTML = versiculos
+        .map(versiculo => `<option value="${versiculo}">${versiculo}</option>`)
+        .join('');
+    selectorDesde.value = String(desde);
+
+    const versiculosHasta = versiculos.filter(versiculo => versiculo >= desde);
+    const indiceDefaultHasta = Math.min(versiculosHasta.length - 1, 4);
+    const hasta = versiculosHasta.includes(Number(hastaSeleccionado))
+        ? Number(hastaSeleccionado)
+        : (versiculosHasta[indiceDefaultHasta] || desde);
+
+    selectorHasta.innerHTML = versiculosHasta
+        .map(versiculo => `<option value="${versiculo}">${versiculo}</option>`)
+        .join('');
+    selectorHasta.value = String(hasta);
+}
+
+function aplicarSeleccionLectio(libro, capitulo, desde, hasta) {
+    const libros = obtenerTodosLosLibros().map(item => item.nombre);
+    const libroValido = libros.includes(libro) ? libro : (libros[0] || 'Génesis');
+    const capitulos = obtenerListaCapitulos(libroValido);
+    const capituloValido = capitulos.includes(Number(capitulo)) ? Number(capitulo) : capitulos[0];
+
+    poblarSelectorLectioLibro(libroValido);
+    poblarSelectorLectioCapitulo(libroValido, capituloValido);
+    poblarSelectoresLectioVersiculos(libroValido, capituloValido, desde, hasta);
+    actualizarAyudaPasajeLectio();
+}
+
+function obtenerSeleccionLectioActual() {
+    const libro = document.getElementById('selector-lectio-libro')?.value || '';
+    const capitulo = Number(document.getElementById('selector-lectio-capitulo')?.value);
+    const desde = Number(document.getElementById('selector-lectio-desde')?.value);
+    const hasta = Number(document.getElementById('selector-lectio-hasta')?.value);
+
+    return { libro, capitulo, desde, hasta };
+}
+
+function actualizarAyudaPasajeLectio() {
+    const ayuda = document.getElementById('lectio-ayuda-pasaje');
+    if (!ayuda) return;
+
+    const { libro, capitulo, desde, hasta } = obtenerSeleccionLectioActual();
+    if (!libro || !Number.isFinite(capitulo) || !Number.isFinite(desde) || !Number.isFinite(hasta)) {
+        ayuda.textContent = 'Elegí un pasaje para comenzar tu Lectio.';
+        return;
+    }
+
+    const total = Math.max(1, hasta - desde + 1);
+    ayuda.textContent = esLibroEvangelio(libro)
+        ? `${formatearReferenciaLectio(libro, capitulo, desde, hasta)}`
+        : `${formatearReferenciaLectio(libro, capitulo, desde, hasta)} · ${total} versículo${total === 1 ? '' : 's'} para la lectura orante.`;
+}
+
+function renderizarPasajeLectioSeleccionado() {
+    const tarjeta = document.getElementById('lectio-pasaje-card');
+    const referencia = document.getElementById('lectio-pasaje-referencia');
+    const texto = document.getElementById('lectio-pasaje-texto');
+    const badge = document.getElementById('lectio-pasaje-badge');
+    if (!tarjeta || !referencia || !texto || !badge) return false;
+
+    const { libro, capitulo, desde, hasta } = obtenerSeleccionLectioActual();
+    const pasaje = obtenerPasajeLectio(libro, capitulo, desde, hasta);
+
+    if (!libro || pasaje.length === 0) {
+        tarjeta.classList.add('hidden');
+        badge.classList.add('hidden');
+        badge.hidden = true;
+        return false;
+    }
+
+    referencia.textContent = formatearReferenciaLectio(libro, capitulo, desde, hasta);
+    badge.classList.remove('hidden');
+    badge.hidden = false;
+    badge.textContent = esLibroEvangelio(libro) ? 'Evangelio · sin comentarios' : `${pasaje.length} versículo${pasaje.length === 1 ? '' : 's'}`;
+    texto.innerHTML = `
+        <p>
+            ${pasaje.map(item => `<span class="lectio-pasaje-frase">${escapeHtml(item.texto)}</span>`).join(' ')}
+        </p>
+    `;
+    tarjeta.classList.remove('hidden');
+    actualizarAyudaPasajeLectio();
+    return true;
+}
+
+function obtenerResumenLectio(registro) {
+    const candidatos = [registro.leer, registro.meditar, registro.orar]
+        .map(valor => String(valor || '').trim())
+        .filter(Boolean);
+
+    if (candidatos.length === 0) {
+        return 'Sin texto todavía.';
+    }
+
+    return truncarTextoFavorito(candidatos[0], 150);
+}
+
+function actualizarUIRegistroActivoLectio() {
+    const banner = document.getElementById('lectio-registro-activo');
+    const botonGuardar = document.getElementById('btn-guardar-lectio');
+    if (!banner || !botonGuardar) return;
+
+    const registro = lectioRegistroActivoId ? obtenerLectioDivinaPorId(lectioRegistroActivoId) : null;
+    if (!registro) {
+        banner.classList.add('hidden');
+        banner.textContent = '';
+        botonGuardar.textContent = 'Guardar Lectio';
+        return;
+    }
+
+    banner.classList.remove('hidden');
+    banner.textContent = `Editando ${formatearReferenciaLectio(registro.libro, registro.capitulo, registro.desde, registro.hasta)} · ${formatearFechaLectio(registro.updatedAt || registro.createdAt)}`;
+    botonGuardar.textContent = 'Actualizar Lectio';
+}
+
+function renderizarListaLectioGuardadas() {
+    const lista = document.getElementById('lista-lectio-guardadas');
+    if (!lista) return;
+
+    lista.innerHTML = '';
+    const registros = obtenerLectioDivinaOrdenadas();
+
+    if (registros.length === 0) {
+        lista.innerHTML = '<div class="lectio-empty-state">Todavía no guardaste ninguna Lectio.<br>Cuando guardes una, va a aparecer acá tu cuaderno espiritual.</div>';
+        return;
+    }
+
+    registros.forEach(registro => {
+        const item = document.createElement('article');
+        item.className = `lectio-registro-item ${lectioRegistroActivoId === registro.id ? 'activa' : ''}`;
+        item.innerHTML = `
+            <button type="button" class="lectio-registro-open">
+                <p class="lectio-registro-ref">${escapeHtml(formatearReferenciaLectio(registro.libro, registro.capitulo, registro.desde, registro.hasta))}</p>
+                <p class="lectio-registro-fecha">${escapeHtml(formatearFechaLectio(registro.updatedAt || registro.createdAt))}</p>
+                <p class="lectio-registro-resumen">${escapeHtml(obtenerResumenLectio(registro))}</p>
+            </button>
+            <button type="button" class="lectio-registro-delete" aria-label="Eliminar Lectio guardada">
+                <i class="fas fa-trash-alt" aria-hidden="true"></i>
+            </button>
+        `;
+
+        item.querySelector('.lectio-registro-open')?.addEventListener('click', () => cargarLectioGuardada(registro.id));
+        item.querySelector('.lectio-registro-delete')?.addEventListener('click', () => eliminarLectioGuardada(registro.id));
+        lista.appendChild(item);
+    });
+}
+
+function cargarLectioGuardada(registroId) {
+    const registro = obtenerLectioDivinaPorId(registroId);
+    if (!registro) return;
+
+    aplicarSeleccionLectio(registro.libro, registro.capitulo, registro.desde, registro.hasta);
+    renderizarPasajeLectioSeleccionado();
+    document.getElementById('lectio-leer').value = registro.leer || '';
+    document.getElementById('lectio-meditar').value = registro.meditar || '';
+    document.getElementById('lectio-orar').value = registro.orar || '';
+    lectioRegistroActivoId = registro.id;
+    actualizarUIRegistroActivoLectio();
+    renderizarListaLectioGuardadas();
+    mostrarVista('vista-lectio');
+}
+
+function limpiarHojaLectio(mantenerPasaje = true) {
+    document.getElementById('lectio-leer').value = '';
+    document.getElementById('lectio-meditar').value = '';
+    document.getElementById('lectio-orar').value = '';
+    lectioRegistroActivoId = null;
+
+    if (!mantenerPasaje) {
+        const contexto = obtenerContextoInicialLectio();
+        aplicarSeleccionLectio(contexto.libro, contexto.capitulo, contexto.desde, contexto.hasta);
+        renderizarPasajeLectioSeleccionado();
+    }
+
+    actualizarUIRegistroActivoLectio();
+    renderizarListaLectioGuardadas();
+}
+
+function guardarLectioActual() {
+    const { libro, capitulo, desde, hasta } = obtenerSeleccionLectioActual();
+    const leer = String(document.getElementById('lectio-leer')?.value || '').trim();
+    const meditar = String(document.getElementById('lectio-meditar')?.value || '').trim();
+    const orar = String(document.getElementById('lectio-orar')?.value || '').trim();
+
+    if (!renderizarPasajeLectioSeleccionado()) {
+        lanzarToast('Elegí primero un pasaje válido');
+        return;
+    }
+
+    if (!leer && !meditar && !orar) {
+        lanzarToast('Escribí al menos una nota antes de guardar la Lectio');
+        return;
+    }
+
+    const ahora = new Date().toISOString();
+    const registroExistente = lectioRegistroActivoId ? obtenerLectioDivinaPorId(lectioRegistroActivoId) : null;
+
+    if (registroExistente) {
+        registroExistente.libro = libro;
+        registroExistente.capitulo = capitulo;
+        registroExistente.desde = desde;
+        registroExistente.hasta = hasta;
+        registroExistente.leer = leer;
+        registroExistente.meditar = meditar;
+        registroExistente.orar = orar;
+        registroExistente.updatedAt = ahora;
+    } else {
+        const nuevoRegistro = {
+            id: generarIdLectioDivina(),
+            libro,
+            capitulo,
+            desde,
+            hasta,
+            leer,
+            meditar,
+            orar,
+            createdAt: ahora,
+            updatedAt: ahora
+        };
+        lectioDivinaRegistros.unshift(nuevoRegistro);
+        lectioRegistroActivoId = nuevoRegistro.id;
+    }
+
+    guardarLectioDivinaRegistros();
+    actualizarUIRegistroActivoLectio();
+    renderizarListaLectioGuardadas();
+    lanzarToast(registroExistente ? 'Lectio actualizada' : 'Lectio guardada');
+}
+
+function eliminarLectioGuardada(registroId) {
+    const registro = obtenerLectioDivinaPorId(registroId);
+    if (!registro) return;
+
+    const confirmar = window.confirm(`¿Eliminar la Lectio de ${formatearReferenciaLectio(registro.libro, registro.capitulo, registro.desde, registro.hasta)}?`);
+    if (!confirmar) return;
+
+    lectioDivinaRegistros = lectioDivinaRegistros.filter(item => item.id !== registroId);
+    if (lectioRegistroActivoId === registroId) {
+        lectioRegistroActivoId = null;
+    }
+
+    guardarLectioDivinaRegistros();
+    actualizarUIRegistroActivoLectio();
+    renderizarListaLectioGuardadas();
+    lanzarToast('Lectio eliminada');
+}
+
+function usarContextoActualEnLectio() {
+    if (!libroActual || !capituloActual) {
+        lanzarToast('Abrí antes un libro o capítulo para usarlo como punto de partida');
+        return;
+    }
+
+    const versiculos = obtenerVersiculosLeiblesCapitulo(libroActual, capituloActual);
+    if (versiculos.length === 0) {
+        lanzarToast('Ese capítulo no tiene un pasaje leíble para la Lectio');
+        return;
+    }
+
+    const desde = versiculos[0];
+    const hasta = versiculos[Math.min(versiculos.length - 1, 4)] || desde;
+    aplicarSeleccionLectio(libroActual, capituloActual, desde, hasta);
+    renderizarPasajeLectioSeleccionado();
+    lanzarToast('Pasaje tomado de tu lectura actual');
+}
+
+function inicializarLectioDivina() {
+    const contexto = obtenerContextoInicialLectio();
+    aplicarSeleccionLectio(contexto.libro, contexto.capitulo, contexto.desde, contexto.hasta);
+    renderizarPasajeLectioSeleccionado();
+    actualizarUIRegistroActivoLectio();
+    renderizarListaLectioGuardadas();
+}
+
+function abrirLectioDivina() {
+    if (!datosBibliaCargados) {
+        lanzarToast('Esperá un instante mientras termina de cargar la Biblia');
+        return;
+    }
+
+    const vistaActiva = document.querySelector('.vista:not(.hidden)');
+    if (vistaActiva && vistaActiva.id !== 'vista-lectio') {
+        vistaRetornoLectio = vistaActiva.id;
+    }
+
+    if (!document.getElementById('selector-lectio-libro')?.options.length) {
+        inicializarLectioDivina();
+    }
+
+    renderizarListaLectioGuardadas();
+    actualizarUIRegistroActivoLectio();
+    renderizarPasajeLectioSeleccionado();
+    mostrarVista('vista-lectio');
+    cerrarPanelLumina();
+}
+
+function volverDesdeLectio() {
+    const destino = vistaRetornoLectio && vistaRetornoLectio !== 'vista-lectio' ? vistaRetornoLectio : 'vista-libros';
+
+    if (destino === 'vista-lectura' && libroActual && capituloActual) {
+        abrirLectura(capituloActual);
+        return;
+    }
+
+    if (destino === 'vista-capitulos' && libroActual) {
+        abrirCapitulos(libroActual, obtenerCantidadCapitulos(libroActual));
+        return;
+    }
+
+    irAlInicio();
 }
 
 // --------------------------------------------------------------
@@ -2512,6 +3629,173 @@ function formatearReferenciaCompartida(libro, capitulo, versiculo) {
     return libroLimpio;
 }
 
+function compartirColeccionComoTexto(coleccionId) {
+    const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
+    if (!coleccion) {
+        lanzarToast('No encontramos esa colección');
+        return;
+    }
+
+    if (coleccion.versiculos.length === 0) {
+        lanzarToast('La colección está vacía');
+        return;
+    }
+
+    const encabezado = `Colección: ${coleccion.nombre}`;
+    const cuerpo = coleccion.versiculos
+        .map(item => `${formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo)}\n${String(item.texto || '').trim()}`)
+        .join('\n\n');
+    const contenido = `${encabezado}\n\n${cuerpo}\n\n- Compartido desde Lumina`;
+    compartirTexto(contenido, `Colección: ${coleccion.nombre}`);
+}
+
+function exportarColeccionComoPDF(coleccionId) {
+    const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
+    if (!coleccion) {
+        lanzarToast('No encontramos esa colección');
+        return;
+    }
+
+    if (coleccion.versiculos.length === 0) {
+        lanzarToast('La colección está vacía');
+        return;
+    }
+
+    const ventana = window.open('', '_blank', 'noopener,noreferrer');
+    if (!ventana) {
+        alert('Tu navegador bloqueó la vista para PDF. Permití ventanas emergentes e intentá de nuevo.');
+        return;
+    }
+
+    const fecha = new Date().toLocaleDateString('es-AR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    });
+    const entradasHtml = coleccion.versiculos.map((item, index) => `
+        <article class="entrada">
+            <div class="entrada-numero">${index + 1}</div>
+            <div class="entrada-contenido">
+                <p class="entrada-ref">${escapeHtml(formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo))}</p>
+                <p class="entrada-texto">${escapeHtml(item.texto || '')}</p>
+            </div>
+        </article>
+    `).join('');
+
+    ventana.document.write(`
+        <!DOCTYPE html>
+        <html lang="es-ar">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>${escapeHtml(coleccion.nombre)} - Lumina</title>
+            <style>
+                :root {
+                    color-scheme: light;
+                    --oro: #b8860b;
+                    --tinta: #231b13;
+                    --fondo: #fcfaf7;
+                    --borde: #dfd2bd;
+                    --muted: #7b6a58;
+                }
+                * { box-sizing: border-box; }
+                body {
+                    margin: 0;
+                    padding: 2.2rem;
+                    font-family: "Georgia", serif;
+                    background: var(--fondo);
+                    color: var(--tinta);
+                }
+                .cabecera {
+                    margin-bottom: 1.8rem;
+                    padding-bottom: 1.2rem;
+                    border-bottom: 2px solid rgba(184, 134, 11, 0.24);
+                }
+                .eyebrow {
+                    margin: 0 0 0.45rem;
+                    font: 700 0.75rem/1.4 system-ui, sans-serif;
+                    letter-spacing: 0.28em;
+                    text-transform: uppercase;
+                    color: var(--oro);
+                }
+                h1 {
+                    margin: 0;
+                    font-size: 2rem;
+                    line-height: 1.15;
+                }
+                .meta {
+                    margin: 0.6rem 0 0;
+                    color: var(--muted);
+                    font: 600 0.92rem/1.5 system-ui, sans-serif;
+                }
+                .entrada {
+                    display: flex;
+                    gap: 1rem;
+                    align-items: flex-start;
+                    padding: 1rem 0;
+                    border-bottom: 1px solid rgba(184, 134, 11, 0.14);
+                    break-inside: avoid;
+                }
+                .entrada-numero {
+                    width: 2rem;
+                    height: 2rem;
+                    border-radius: 999px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(184, 134, 11, 0.14);
+                    color: var(--oro);
+                    font: 800 0.9rem/1 system-ui, sans-serif;
+                    flex-shrink: 0;
+                }
+                .entrada-ref {
+                    margin: 0 0 0.45rem;
+                    color: var(--oro);
+                    font: 800 0.88rem/1.45 system-ui, sans-serif;
+                    letter-spacing: 0.04em;
+                    text-transform: uppercase;
+                }
+                .entrada-texto {
+                    margin: 0;
+                    font-size: 1.05rem;
+                    line-height: 1.75;
+                }
+                .pie {
+                    margin-top: 1.8rem;
+                    color: var(--muted);
+                    font: 600 0.82rem/1.5 system-ui, sans-serif;
+                    text-align: right;
+                }
+                @page {
+                    margin: 1.4cm;
+                }
+                @media print {
+                    body {
+                        padding: 0;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <header class="cabecera">
+                <p class="eyebrow">Colección de Lumina</p>
+                <h1>${escapeHtml(coleccion.nombre)}</h1>
+                <p class="meta">${coleccion.versiculos.length} versículo${coleccion.versiculos.length === 1 ? '' : 's'} · Preparado el ${escapeHtml(fecha)}</p>
+            </header>
+            <main>${entradasHtml}</main>
+            <footer class="pie">Generado desde Lumina</footer>
+        </body>
+        </html>
+    `);
+    ventana.document.close();
+    ventana.focus();
+    ventana.onload = () => {
+        setTimeout(() => ventana.print(), 250);
+    };
+
+    lanzarToast('Se abrió la vista para guardar o compartir el PDF');
+}
+
 function limpiarAutorComentario(autor) {
     return String(autor || "")
         .replace(/^comentario de\s+/i, "")
@@ -2655,16 +3939,46 @@ function cambiarAIconoPausa(btn) {
     if (!btn) return;
     btn.classList.add('en-reproduccion');
     btn.dataset.reproduciendo = 'true';
-    btn.innerHTML = '<i class="fas fa-stop"></i>';
-    btn.title = 'Dejar de escuchar';
+    actualizarContenidoBotonAudioVersiculo(btn, true);
 }
 
 function restaurarIconoParla(btn) {
     if (!btn) return;
     btn.classList.remove('en-reproduccion');
     btn.dataset.reproduciendo = 'false';
-    btn.innerHTML = '<i class="fas fa-volume-up text-sm"></i>';
-    btn.title = 'Escuchar';
+    actualizarContenidoBotonAudioVersiculo(btn, false);
+}
+
+function actualizarContenidoBotonAudioVersiculo(btn, reproduciendo) {
+    if (!btn) return;
+
+    const esBotonMenu = btn.classList.contains('verse-card-menu-item');
+    const esBotonVersiculo = btn.classList.contains('btn-audio-versiculo');
+    const etiquetaBase = esBotonVersiculo ? 'versículo' : '';
+    const titulo = reproduciendo
+        ? 'Dejar de escuchar'
+        : etiquetaBase ? `Escuchar ${etiquetaBase}` : 'Escuchar';
+    btn.title = titulo;
+    btn.setAttribute('aria-label', titulo);
+    btn.setAttribute('aria-pressed', reproduciendo ? 'true' : 'false');
+
+    if (esBotonMenu && esBotonVersiculo) {
+        btn.innerHTML = reproduciendo
+            ? '<i class="fas fa-stop menu-item-icono text-sm" aria-hidden="true"></i><span>Detener audio</span>'
+            : '<i class="fas fa-volume-up menu-item-icono text-sm" aria-hidden="true"></i><span>Escuchar</span>';
+        return;
+    }
+
+    if (esBotonVersiculo) {
+        btn.innerHTML = reproduciendo
+            ? '<span class="audio-icon" aria-hidden="true">⏹</span>'
+            : '<span class="audio-icon" aria-hidden="true">🔊</span>';
+        return;
+    }
+
+    btn.innerHTML = reproduciendo
+        ? '<i class="fas fa-stop text-sm" aria-hidden="true"></i>'
+        : '<i class="fas fa-volume-up text-sm" aria-hidden="true"></i>';
 }
 
 function detenerConRestauracion() {
@@ -2683,9 +3997,7 @@ function detenerReproduccionesLuminaActivas() {
 function limpiarEstadoLectura() {
     document.querySelectorAll('.btn-audio-versiculo').forEach(btn => {
         btn.classList.remove('reproduciendo');
-        btn.setAttribute('aria-pressed', 'false');
-        btn.title = 'Escuchar versículo';
-        btn.innerHTML = '<span class="audio-icon" aria-hidden="true">🔊</span>';
+        actualizarContenidoBotonAudioVersiculo(btn, false);
     });
 }
 
@@ -3260,10 +4572,7 @@ function escucharVersiculo(libro, capitulo, versiculo, texto) {
 
         if (btn) {
             btn.classList.add('reproduciendo');
-            btn.setAttribute('aria-pressed', 'true');
-            btn.title = 'Dejar de escuchar';
-            // Mantenemos el ícono de stop/cuadrado
-            btn.innerHTML = '<span class="audio-icon" aria-hidden="true">⏹</span>';
+            actualizarContenidoBotonAudioVersiculo(btn, true);
         }
 
         utterance.onstart = () => {
@@ -4227,12 +5536,173 @@ function volverAVistaCapitulosActual() {
     });
 }
 
+function obtenerIdMenuAccionesVersiculo(libro, capitulo, versiculo) {
+    return `verse_menu_${sanearIdDom(`${libro}_${capitulo}_${versiculo}`)}`;
+}
+
+function limpiarPosicionMenuAccionesVersiculo(menu) {
+    if (!menu) return;
+    menu.classList.remove('verse-card-menu-upward');
+    menu.style.maxHeight = '';
+}
+
+function actualizarTarjetasMenuAccionesVersiculo(menuActivoId = null) {
+    document.querySelectorAll('.verse-card').forEach(tarjeta => {
+        const menu = tarjeta.querySelector('.verse-card-menu');
+        const activa = !!menuActivoId && menu?.id === menuActivoId;
+        tarjeta.classList.toggle('verse-card-menu-open', activa);
+    });
+}
+
+function posicionarMenuAccionesVersiculo(menu, boton) {
+    if (!menu || menu.classList.contains('hidden')) return;
+
+    limpiarPosicionMenuAccionesVersiculo(menu);
+
+    const contenedorScroll = menu.closest('#scroll-versiculos');
+    const limiteRect = contenedorScroll?.getBoundingClientRect?.() || { top: 0, bottom: window.innerHeight };
+    const botonRect = boton?.getBoundingClientRect?.() || menu.parentElement?.getBoundingClientRect?.() || menu.getBoundingClientRect();
+    const alturaMenu = menu.getBoundingClientRect().height;
+    const margen = 16;
+    const espacioAbajo = Math.max(0, limiteRect.bottom - botonRect.bottom - margen);
+    const espacioArriba = Math.max(0, botonRect.top - limiteRect.top - margen);
+    const abrirHaciaArriba = alturaMenu > espacioAbajo && espacioArriba > espacioAbajo;
+    const espacioDisponible = abrirHaciaArriba ? espacioArriba : espacioAbajo;
+
+    menu.classList.toggle('verse-card-menu-upward', abrirHaciaArriba);
+
+    if (espacioDisponible > 0 && alturaMenu > espacioDisponible) {
+        menu.style.maxHeight = `${Math.max(96, Math.floor(espacioDisponible))}px`;
+    }
+}
+
+function cerrarMenusAccionesVersiculo(exceptoId = null) {
+    document.querySelectorAll('.verse-card-menu').forEach(menu => {
+        const mantener = !!exceptoId && menu.id === exceptoId;
+        if (!mantener) {
+            limpiarPosicionMenuAccionesVersiculo(menu);
+        }
+        menu.classList.toggle('hidden', !mantener);
+    });
+
+    document.querySelectorAll('.btn-verse-menu[aria-controls]').forEach(boton => {
+        const expandido = !!exceptoId && boton.getAttribute('aria-controls') === exceptoId;
+        boton.setAttribute('aria-expanded', expandido ? 'true' : 'false');
+    });
+
+    actualizarTarjetasMenuAccionesVersiculo(exceptoId);
+}
+
+function toggleMenuAccionesVersiculo(event, menuId, boton) {
+    event?.stopPropagation();
+    const menu = document.getElementById(menuId);
+    if (!menu) return;
+
+    const estabaOculto = menu.classList.contains('hidden');
+    cerrarMenusAccionesVersiculo(estabaOculto ? menuId : null);
+
+    if (estabaOculto) {
+        requestAnimationFrame(() => posicionarMenuAccionesVersiculo(menu, boton));
+    }
+
+    if (!estabaOculto && boton) {
+        boton.setAttribute('aria-expanded', 'false');
+    }
+}
+
+function construirAccionesVersiculoHtml(libro, capitulo, versiculo, textoOriginal, favorito, leido, esInicio) {
+    const menuId = obtenerIdMenuAccionesVersiculo(libro, capitulo, versiculo);
+    const referencia = formatearReferenciaCompartida(libro, capitulo, versiculo);
+    const libroLiteral = JSON.stringify(libro);
+    const textoLiteral = JSON.stringify(textoOriginal || '');
+    const menuLiteral = JSON.stringify(menuId);
+    const accionFavorito = favorito ? 'Quitar de favoritos' : 'Agregar a favoritos';
+    const accionLeido = leido ? 'Marcar como no leído' : 'Marcar como leído';
+    const accionInicio = esInicio ? 'Quitar versículo de bienvenida' : 'Usar como versículo de bienvenida';
+
+    return `
+        <div class="verse-card-acciones flex gap-1 items-center flex-shrink-0">
+            <button type="button"
+                class="btn-versiculo-coleccion text-gray-400 hover:text-oro transition"
+                onclick='event.stopPropagation(); abrirModalAgregarVersiculoAColeccion(${libroLiteral}, ${capitulo}, ${versiculo}, ${textoLiteral}); return false;'
+                title="Agregar a una colección"
+                aria-label="Agregar ${escapeHtml(referencia)} a una colección">
+                <i class="fas fa-plus"></i>
+            </button>
+            <button type="button"
+                id="star_${libro}_${capitulo}_${versiculo}"
+                data-favorito-versiculo="${obtenerIdentificadorFavoritoVersiculo(libro, capitulo, versiculo)}"
+                class="estrella-fav ${favorito ? 'activa' : ''} text-gray-400 hover:text-oro transition p-1"
+                onclick='event.stopPropagation(); toggleFavoritoVersiculo(${libroLiteral}, ${capitulo}, ${versiculo}); return false;'
+                title="${accionFavorito}"
+                aria-label="${accionFavorito} ${escapeHtml(referencia)}"
+                aria-pressed="${favorito ? 'true' : 'false'}">${favorito ? '★' : '☆'}</button>
+            <div class="verse-card-menu-wrap">
+                <button type="button"
+                    class="btn-verse-menu text-gray-400 hover:text-oro transition"
+                    onclick='toggleMenuAccionesVersiculo(event, ${menuLiteral}, this); return false;'
+                    title="Más acciones"
+                    aria-label="Más acciones para ${escapeHtml(referencia)}"
+                    aria-haspopup="menu"
+                    aria-controls="${menuId}"
+                    aria-expanded="false">
+                    <i class="fas fa-ellipsis-h"></i>
+                </button>
+                <div id="${menuId}" class="verse-card-menu hidden" onclick="event.stopPropagation()">
+                    <button type="button"
+                        data-versiculo-inicio="${libro}_${capitulo}_${versiculo}"
+                        data-libro-versiculo-inicio="${libro.replace(/"/g, '&quot;')}"
+                        data-capitulo-versiculo-inicio="${capitulo}"
+                        data-versiculo-versiculo-inicio="${versiculo}"
+                        class="verse-card-menu-item ${esInicio ? 'activa' : ''}"
+                        onclick='event.stopPropagation(); toggleVersiculoInicio(${libroLiteral}, ${capitulo}, ${versiculo}, ${textoLiteral}); cerrarMenusAccionesVersiculo(); return false;'
+                        title="${accionInicio}"
+                        aria-label="${accionInicio} ${escapeHtml(referencia)}"
+                        aria-pressed="${esInicio ? 'true' : 'false'}">
+                        <i class="fas fa-door-open menu-item-icono" aria-hidden="true"></i>
+                        <span>${esInicio ? 'Quitar versículo de bienvenida' : 'Usar como versículo de bienvenida'}</span>
+                    </button>
+                    <button type="button"
+                        id="audio_${libro}_${capitulo}_${versiculo}"
+                        class="verse-card-menu-item btn-audio-versiculo"
+                        onclick='event.stopPropagation(); cerrarMenusAccionesVersiculo(); escucharVersiculo(${libroLiteral}, ${capitulo}, ${versiculo}, ${textoLiteral}, this); return false;'
+                        title="Escuchar versículo"
+                        aria-label="Escuchar ${escapeHtml(referencia)}"
+                        aria-pressed="false">
+                        <i class="fas fa-volume-up menu-item-icono text-sm" aria-hidden="true"></i>
+                        <span>Escuchar</span>
+                    </button>
+                    <button type="button"
+                        class="verse-card-menu-item"
+                        onclick='event.stopPropagation(); cerrarMenusAccionesVersiculo(); compartirVersiculo(${libroLiteral}, ${capitulo}, ${versiculo}, ${textoLiteral}); return false;'
+                        title="Compartir versículo"
+                        aria-label="Compartir ${escapeHtml(referencia)}">
+                        <i class="fas fa-share-alt menu-item-icono" aria-hidden="true"></i>
+                        <span>Compartir</span>
+                    </button>
+                    <button type="button"
+                        id="read_${libro}_${capitulo}_${versiculo}"
+                        class="verse-card-menu-item btn-leido-versiculo ${leido ? 'activo text-emerald-600 dark:text-emerald-400' : ''}"
+                        onclick='event.stopPropagation(); cerrarMenusAccionesVersiculo(); toggleLeidoVersiculo(${libroLiteral}, ${capitulo}, ${versiculo}); return false;'
+                        title="${accionLeido}"
+                        aria-label="${accionLeido} ${escapeHtml(referencia)}"
+                        aria-pressed="${leido ? 'true' : 'false'}">
+                        <i class="fas ${leido ? 'fa-check-circle' : 'fa-circle'} icono-leido menu-item-icono text-sm" aria-hidden="true"></i>
+                        <span>${leido ? 'Marcar como no leído' : 'Marcar como leído'}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 function abrirLectura(capitulo) {
     capituloActual = capitulo;
     document.getElementById('titulo-lectura').innerText = libroActual;
     document.getElementById('subtitulo-capitulo').innerHTML = `Capítulo ${capitulo}`;
     const contenedor = document.getElementById('contenedor-versiculos');
     contenedor.innerHTML = '';
+    cerrarMenusAccionesVersiculo();
     const lecturaActualVisible = versiculoActualEnLectura
         && versiculoActualEnLectura.libro === libroActual
         && versiculoActualEnLectura.capitulo === capitulo;
@@ -4305,6 +5775,7 @@ function abrirLectura(capitulo) {
             const favorito = esFavoritoVersiculo(libroActual, capitulo, v);
             const leido = esVersiculoLeido(libroActual, capitulo, v);
             const esInicio = esVersiculoInicio(libroActual, capitulo, v);
+            const accionesVersiculo = construirAccionesVersiculoHtml(libroActual, capitulo, v, textoOriginal, favorito, leido, esInicio);
             let verseHtml = "";
 
             if (usaAcotacionesEspeciales && v < 1) {
@@ -4330,24 +5801,7 @@ function abrirLectura(capitulo) {
                             <div class="flex-1 cursor-pointer" onclick="abrirPanel('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)">
                                 <p class="text-gray-700 dark:text-gray-300 leading-relaxed text-base md:text-lg texto-biblico" data-versiculo-texto="${v}">${textoHTML}</p>
                             </div>
-                            <div class="verse-card-acciones flex gap-2 items-center flex-shrink-0">
-                                <button type="button"
-                                    data-versiculo-inicio="${libroActual}_${capitulo}_${v}"
-                                    data-libro-versiculo-inicio="${libroActual.replace(/"/g, '&quot;')}"
-                                    data-capitulo-versiculo-inicio="${capitulo}"
-                                    data-versiculo-versiculo-inicio="${v}"
-                                    class="btn-versiculo-inicio ${esInicio ? 'activa' : ''} text-gray-400 hover:text-oro transition p-1"
-                                    onclick="event.stopPropagation(); toggleVersiculoInicio('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`); return false;"
-                                    title="${esInicio ? 'Quitar versículo de inicio' : 'Usar como versículo de inicio'}"
-                                    aria-label="${esInicio ? 'Quitar versículo de inicio' : 'Usar como versículo de inicio'} ${formatearReferenciaCompartida(libroActual, capitulo, v)}"
-                                    aria-pressed="${esInicio ? 'true' : 'false'}">
-                                    <i class="fas fa-door-open"></i>
-                                </button>
-                                <span id="star_${libroActual}_${capitulo}_${v}" data-favorito-versiculo="${obtenerIdentificadorFavoritoVersiculo(libroActual, capitulo, v)}" class="estrella-fav ${favorito ? 'activa' : ''} cursor-pointer text-gray-400 hover:text-oro transition" onclick="event.stopPropagation(); toggleFavoritoVersiculo('${libroActual}', ${capitulo}, ${v}); return false;" title="Agregar a favoritos">${favorito ? '★' : '☆'}</span>
-                                <button id="audio_${libroActual}_${capitulo}_${v}" class="btn-audio-versiculo text-gray-400 hover:text-oro transition p-1" onclick="event.stopPropagation(); escucharVersiculo('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`, this)" title="Escuchar versículo" aria-label="Escuchar versículo ${v}" aria-pressed="false"><i class="fas fa-volume-up text-sm"></i></button>
-                                <button onclick="event.stopPropagation(); compartirVersiculo('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)" class="text-gray-400 hover:text-oro transition p-1" title="Compartir versículo"><i class="fas fa-share-alt"></i></button>
-                                <button id="read_${libroActual}_${capitulo}_${v}" class="btn-leido-versiculo text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition p-1 ${leido ? 'activo text-emerald-600 dark:text-emerald-400' : ''}" onclick="event.stopPropagation(); toggleLeidoVersiculo('${libroActual}', ${capitulo}, ${v}); return false;" title="${leido ? 'Marcar como no leído' : 'Marcar como leído'}" aria-label="${leido ? 'Marcar como no leído' : 'Marcar como leído'} ${v}" aria-pressed="${leido ? 'true' : 'false'}"><i class="fas ${leido ? 'fa-check-circle' : 'fa-circle'} icono-leido text-sm"></i></button>
-                            </div>
+                            ${accionesVersiculo}
                         </div>
                     </div>
                 `;
@@ -5078,12 +6532,15 @@ window.onload = async () => {
     await registrarServiceWorker();
 
     cargarFavoritos();
+    cargarColeccionesVersiculos();
+    cargarLectioDivinaRegistros();
     cargarNotasPersonales();
     cargarLeidos();
     cargarVersiculoInicioGuardado();
     inicializarIndice();
     poblarSelectoresRapidos();
     mostrarVista('vista-libros');
+    actualizarTabsPanelGuardados();
 
     document.getElementById('contenedor-versiculos').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin mr-2"></i> Cargando la Palabra y la Tradición...</div>';
     await Promise.all([
@@ -5095,6 +6552,7 @@ window.onload = async () => {
     initDarkMode();
     aplicarModoDesierto(localStorage.getItem(CLAVE_MODO_DESIERTO) === 'true', { guardar: false });
     aplicarTextoCorrido(localStorage.getItem(CLAVE_TEXTO_CORRIDO) === 'true', { guardar: false });
+    inicializarLectioDivina();
 
     const toggle = document.getElementById('toggle-concordancia');
     const saved = localStorage.getItem('lumina_concordancia');
@@ -5108,8 +6566,42 @@ window.onload = async () => {
         refrescarConcordanciaVistaActual();
     });
 
-    document.getElementById('btn-favoritos').addEventListener('click', () => mostrarPanelFavoritos());
+    document.getElementById('btn-favoritos').addEventListener('click', () => abrirPanelGuardados());
     document.getElementById('estado-offline')?.addEventListener('click', () => mostrarDetalleEstadoConexion());
+    document.getElementById('tab-guardados-favoritos')?.addEventListener('click', () => mostrarPanelFavoritos());
+    document.getElementById('tab-guardados-colecciones')?.addEventListener('click', () => mostrarPanelColecciones(coleccionAbiertaPanelId));
+    document.getElementById('btn-crear-coleccion-modal')?.addEventListener('click', () => crearColeccionDesdeModal());
+    document.getElementById('input-nueva-coleccion')?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            crearColeccionDesdeModal();
+        }
+    });
+    document.getElementById('selector-lectio-libro')?.addEventListener('change', (event) => {
+        const libro = event.target.value;
+        const capitulo = obtenerListaCapitulos(libro)[0];
+        const versiculos = obtenerVersiculosLeiblesCapitulo(libro, capitulo);
+        aplicarSeleccionLectio(libro, capitulo, versiculos[0] || 1, versiculos[Math.min(versiculos.length - 1, 4)] || (versiculos[0] || 1));
+    });
+    document.getElementById('selector-lectio-capitulo')?.addEventListener('change', (event) => {
+        const libro = document.getElementById('selector-lectio-libro')?.value || '';
+        const capitulo = Number(event.target.value);
+        const versiculos = obtenerVersiculosLeiblesCapitulo(libro, capitulo);
+        aplicarSeleccionLectio(libro, capitulo, versiculos[0] || 1, versiculos[Math.min(versiculos.length - 1, 4)] || (versiculos[0] || 1));
+    });
+    document.getElementById('selector-lectio-desde')?.addEventListener('change', () => {
+        const { libro, capitulo, desde, hasta } = obtenerSeleccionLectioActual();
+        poblarSelectoresLectioVersiculos(libro, capitulo, desde, hasta);
+        actualizarAyudaPasajeLectio();
+    });
+    document.getElementById('selector-lectio-hasta')?.addEventListener('change', () => actualizarAyudaPasajeLectio());
+    document.getElementById('btn-abrir-pasaje-lectio')?.addEventListener('click', () => renderizarPasajeLectioSeleccionado());
+    document.getElementById('btn-guardar-lectio')?.addEventListener('click', () => guardarLectioActual());
+    document.getElementById('btn-nueva-lectio')?.addEventListener('click', () => limpiarHojaLectio(true));
+    document.getElementById('btn-lectio-usar-contexto')?.addEventListener('click', () => usarContextoActualEnLectio());
+    document.addEventListener('click', () => cerrarMenusAccionesVersiculo());
+    document.getElementById('scroll-versiculos')?.addEventListener('scroll', () => cerrarMenusAccionesVersiculo());
+    window.addEventListener('resize', () => cerrarMenusAccionesVersiculo());
 
     const busquedaInput = document.getElementById('busqueda-input');
     const busquedaInputMovil = document.getElementById('busqueda-input-movil');
@@ -5192,12 +6684,14 @@ window.onload = async () => {
 
     verificarBienvenida();
     intentarMostrarVersiculoInicio();
-    inicializarGesEtosPanelesLaterales();
+    inicializarGestosPanelesLaterales();
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             versiculoInicioPendienteTrasBienvenida = false;
             cerrarModalBienvenida(false);
             cerrarModalVersiculoInicio();
+            cerrarModalColecciones();
+            cerrarMenusAccionesVersiculo();
             cerrarPanelLumina();
             cerrarPanelActivoLateral();
         }
@@ -5610,6 +7104,10 @@ async function ejecutarResetLumina() {
         notasPersonales = {};
         favoritos = new Set();
         leidos = new Set();
+        coleccionesVersiculos = [];
+        ultimaColeccionVersiculosId = null;
+        lectioDivinaRegistros = [];
+        lectioRegistroActivoId = null;
         concordanciaActiva = false;
         bibliaCompletaCelebrada = false;
         marcarNuevaVersionLuminaDisponible(false);
