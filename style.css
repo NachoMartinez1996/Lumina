@@ -2604,6 +2604,41 @@ body:not(.dark) .btn-audio-versiculo .audio-label {
     color: #e5e7eb;
 }
 
+.verse-card-menu .btn-audio-versiculo {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    justify-content: flex-start;
+    flex-shrink: 1;
+    border: none;
+    border-radius: 0.85rem;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: inherit !important;
+}
+
+.verse-card-menu .btn-audio-versiculo:hover {
+    background: rgba(184, 134, 11, 0.08) !important;
+    color: #8a6a17 !important;
+}
+
+.verse-card-menu .btn-audio-versiculo.reproduciendo {
+    background: rgba(184, 134, 11, 0.12) !important;
+    color: #8a6a17 !important;
+    box-shadow: inset 0 0 0 1px rgba(184, 134, 11, 0.18) !important;
+}
+
+.dark .verse-card-menu .btn-audio-versiculo:hover {
+    background: rgba(245, 158, 11, 0.12) !important;
+    color: #f3cf77 !important;
+}
+
+.dark .verse-card-menu .btn-audio-versiculo.reproduciendo {
+    background: rgba(245, 158, 11, 0.16) !important;
+    color: #f3cf77 !important;
+    box-shadow: inset 0 0 0 1px rgba(245, 214, 138, 0.16) !important;
+}
+
 .btn-leer-capitulo {
     border: 1px solid var(--lumina-border);
     background-color: var(--lumina-paper);

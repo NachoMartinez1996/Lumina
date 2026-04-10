@@ -4081,7 +4081,7 @@ function desbloquearSpeechSynthesis() {
     }
 }
 
-function dividirTextoParaLectura(texto, maxChars = esDispositivoMovilLectura() ? 280 : 360) {
+function dividirTextoParaLectura(texto, maxChars = esDispositivoMovilLectura() ? 320 : 360) {
     const limpio = String(texto || '').replace(/\s+/g, ' ').trim();
     if (!limpio) return [];
     if (limpio.length <= maxChars) return [limpio];
@@ -4165,7 +4165,7 @@ function reproducirUtterance(utterance) {
     const token = ++tokenLecturaActiva;
     let arranco = false;
     let indice = 0;
-    const demoraEntreFragmentos = esDispositivoMovilLectura() ? 60 : 30;
+    const demoraEntreFragmentos = esDispositivoMovilLectura() ? 20 : 30;
 
     if (timeoutLecturaActiva) {
         clearTimeout(timeoutLecturaActiva);
@@ -4282,7 +4282,7 @@ function reproducirSecuenciaVersiculos(secuencia, opciones = {}) {
     }
 
     const {
-        pausaEntreVersiculosMs = esDispositivoMovilLectura() ? 110 : 60,
+        pausaEntreVersiculosMs = esDispositivoMovilLectura() ? 80 : 60,
         onPrimerInicio,
         onFin,
         onError
