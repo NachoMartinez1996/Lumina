@@ -462,6 +462,9 @@ body:not(.dark) #lista-favoritos {
 }
 
 #lista-favoritos .favoritos-seccion {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
     border: 1px solid rgba(184, 134, 11, 0.16);
     border-radius: 1.25rem;
     overflow: hidden;
@@ -541,6 +544,12 @@ body:not(.dark) #lista-favoritos {
 }
 
 #lista-favoritos .favoritos-seccion-contenido {
+    min-height: 0;
+    max-height: clamp(14rem, 42vh, 28rem);
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
     padding: 0 1rem 1rem;
     border-top: 1px solid rgba(184, 134, 11, 0.12);
 }
@@ -2106,15 +2115,38 @@ body.dark .progreso-burbuja {
     }
 
     .progreso-capitulo-vista .relative.w-full.pt-6,
-    .progreso-biblia-vista .relative.w-full.pt-6,
     .progreso-testamento-vista .relative.w-full.pt-6 {
         padding-top: 2rem !important;
     }
 
     .progreso-capitulo-vista .w-full.h-2,
-    .progreso-biblia-vista .w-full.h-2,
     .progreso-testamento-vista .w-full.h-2 {
         height: 0.4rem;
+    }
+
+    .progreso-biblia-track-wrap {
+        padding-top: 2.35rem;
+        padding-bottom: 1.65rem;
+    }
+
+    .progreso-biblia-track-wrap .w-full.h-2 {
+        height: 0.4rem;
+    }
+
+    .progreso-burbuja-biblia {
+        bottom: 0;
+        min-width: 2.25rem;
+        transform: translate(-50%, 108%);
+    }
+
+    .progreso-peregrino-figura {
+        width: 2.3rem;
+        height: 2.3rem;
+    }
+
+    .progreso-peregrino-figura svg {
+        width: 1.2rem;
+        height: 1.2rem;
     }
 
     .progreso-libro-shell {
@@ -2216,8 +2248,88 @@ body.dark .progreso-libro-capitulos .progreso-burbuja-libro::after {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.88));
 }
 
+.progreso-biblia-track-wrap {
+    position: relative;
+    padding-top: 2.95rem;
+    padding-bottom: 2.05rem;
+}
+
+.progreso-burbuja,
+.progreso-peregrino {
+    transition: left 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.progreso-peregrino {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    z-index: 3;
+    pointer-events: none;
+}
+
+.progreso-peregrino-figura {
+    width: 2.7rem;
+    height: 2.7rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid rgba(184, 134, 11, 0.22);
+    background:
+        radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95), rgba(255, 241, 214, 0.96)),
+        linear-gradient(135deg, rgba(255, 248, 231, 0.98), rgba(255, 232, 185, 0.96));
+    color: #8a6200;
+    box-shadow:
+        0 10px 20px rgba(184, 134, 11, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    animation: peregrino-balanceo 2.6s ease-in-out infinite;
+}
+
+.progreso-peregrino-figura svg {
+    width: 1.45rem;
+    height: 1.45rem;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.progreso-burbuja-biblia {
+    z-index: 2;
+    top: auto;
+    bottom: 0;
+    transform: translate(-50%, 110%);
+}
+
 body.dark .progreso-biblia-card {
     background: linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(30, 41, 59, 0.85));
+}
+
+body.dark .progreso-peregrino-figura {
+    border-color: rgba(250, 204, 21, 0.2);
+    background:
+        radial-gradient(circle at 30% 30%, rgba(101, 78, 27, 0.95), rgba(59, 43, 13, 0.96)),
+        linear-gradient(135deg, rgba(56, 43, 16, 0.96), rgba(71, 53, 13, 0.94));
+    color: #fde68a;
+    box-shadow:
+        0 12px 22px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+body.dark .progreso-burbuja-biblia::after {
+    border-top-color: rgba(250, 204, 21, 0.28);
+    border-left-color: rgba(250, 204, 21, 0.28);
+}
+
+@keyframes peregrino-balanceo {
+    0%,
+    100% {
+        transform: translateY(0) rotate(-2deg);
+    }
+
+    50% {
+        transform: translateY(-2px) rotate(2deg);
+    }
 }
 
 body.biblia-completa-activa #vista-libros {
@@ -4152,6 +4264,21 @@ body.dark #vista-lectio {
     font-weight: 500;
 }
 
+.lectio-pasaje-lista {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.lectio-pasaje-versiculo {
+    margin: 0;
+    padding: 1rem 1.1rem;
+    border-radius: 1.15rem;
+    border: 1px solid rgba(184, 134, 11, 0.14);
+    border-left: 4px solid rgba(184, 134, 11, 0.42);
+    background: rgba(255, 252, 246, 0.88);
+    box-shadow: 0 10px 22px rgba(78, 60, 33, 0.05);
+}
+
 .btn-audio-lectio {
     white-space: nowrap;
 }
@@ -4323,6 +4450,7 @@ body.dark #vista-lectio {
     margin: 0.5rem 0 0;
     color: #43372a;
     line-height: 1.6;
+    white-space: pre-line;
 }
 
 .lectio-empty-state {
@@ -4424,6 +4552,13 @@ body.dark .btn-audio-lectio.en-reproduccion {
     border-color: rgba(245, 214, 138, 0.22);
     color: #fde3a7;
     box-shadow: inset 0 0 0 1px rgba(245, 214, 138, 0.16);
+}
+
+body.dark .lectio-pasaje-versiculo {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(245, 214, 138, 0.1);
+    border-left-color: rgba(245, 214, 138, 0.3);
+    box-shadow: 0 16px 28px rgba(0, 0, 0, 0.16);
 }
 
 body.dark .lectio-pasaje-numero {

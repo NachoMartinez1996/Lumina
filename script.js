@@ -1463,6 +1463,27 @@ function generarIdLectioDivina() {
     return `lectio_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function obtenerPrefijoRespuestaLectio(tipo) {
+    switch (tipo) {
+        case 'leer':
+            return '📖';
+        case 'meditar':
+            return '💭';
+        case 'orar':
+            return '🙏';
+        default:
+            return '•';
+    }
+}
+
+function normalizarRespuestaLectio(tipo, texto) {
+    const limpio = String(texto || '').trim();
+    if (!limpio) return '';
+
+    const sinPrefijo = limpio.replace(/^(?:•|-|\*|📖|💭|🙏)\s*/u, '').trim();
+    return `${obtenerPrefijoRespuestaLectio(tipo)} ${sinPrefijo}`;
+}
+
 function normalizarRegistroLectioDivina(item) {
     if (!item || typeof item !== 'object') return null;
 
@@ -1481,9 +1502,9 @@ function normalizarRegistroLectioDivina(item) {
         capitulo,
         desde,
         hasta,
-        leer: String(item.leer || ''),
-        meditar: String(item.meditar || ''),
-        orar: String(item.orar || ''),
+        leer: normalizarRespuestaLectio('leer', item.leer),
+        meditar: normalizarRespuestaLectio('meditar', item.meditar),
+        orar: normalizarRespuestaLectio('orar', item.orar),
         createdAt: typeof item.createdAt === 'string' && item.createdAt ? item.createdAt : new Date().toISOString(),
         updatedAt: typeof item.updatedAt === 'string' && item.updatedAt ? item.updatedAt : new Date().toISOString()
     };
@@ -2786,9 +2807,9 @@ function renderizarPasajeLectioSeleccionado() {
     badge.hidden = false;
     badge.textContent = esLibroEvangelio(libro) ? 'Evangelio · sin comentarios' : `${pasaje.length} versículo${pasaje.length === 1 ? '' : 's'}`;
     texto.innerHTML = `
-        <p>
-            ${pasaje.map(item => `<span class="lectio-pasaje-frase">${escapeHtml(item.texto)}</span>`).join(' ')}
-        </p>
+        <div class="lectio-pasaje-lista">
+            ${pasaje.map(item => `<p class="lectio-pasaje-versiculo" aria-label="Versículo ${item.versiculo}">${escapeHtml(item.texto)}</p>`).join('')}
+        </div>
     `;
     tarjeta.dataset.libro = libro;
     tarjeta.dataset.capitulo = String(capitulo);
@@ -2811,7 +2832,7 @@ function obtenerResumenLectio(registro) {
         return 'Sin texto todavía.';
     }
 
-    return truncarTextoFavorito(candidatos[0], 150);
+    return 'Tocá esta Lectio para abrir tus respuestas.';
 }
 
 function actualizarUIRegistroActivoLectio() {
@@ -2897,9 +2918,9 @@ function limpiarHojaLectio(mantenerPasaje = true) {
 
 function guardarLectioActual() {
     const { libro, capitulo, desde, hasta } = obtenerSeleccionLectioActual();
-    const leer = String(document.getElementById('lectio-leer')?.value || '').trim();
-    const meditar = String(document.getElementById('lectio-meditar')?.value || '').trim();
-    const orar = String(document.getElementById('lectio-orar')?.value || '').trim();
+    const leer = normalizarRespuestaLectio('leer', document.getElementById('lectio-leer')?.value || '');
+    const meditar = normalizarRespuestaLectio('meditar', document.getElementById('lectio-meditar')?.value || '');
+    const orar = normalizarRespuestaLectio('orar', document.getElementById('lectio-orar')?.value || '');
 
     if (!renderizarPasajeLectioSeleccionado()) {
         lanzarToast('Elegí primero un pasaje válido');
@@ -2941,6 +2962,9 @@ function guardarLectioActual() {
     }
 
     guardarLectioDivinaRegistros();
+    document.getElementById('lectio-leer').value = leer;
+    document.getElementById('lectio-meditar').value = meditar;
+    document.getElementById('lectio-orar').value = orar;
     actualizarUIRegistroActivoLectio();
     renderizarListaLectioGuardadas();
     lanzarToast(registroExistente ? 'Lectio actualizada' : 'Lectio guardada');
@@ -3711,24 +3735,7 @@ function compartirColeccionComoTexto(coleccionId) {
     compartirTexto(contenido, `Colección: ${coleccion.nombre}`);
 }
 
-function exportarColeccionComoPDF(coleccionId) {
-    const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
-    if (!coleccion) {
-        lanzarToast('No encontramos esa colección');
-        return;
-    }
-
-    if (coleccion.versiculos.length === 0) {
-        lanzarToast('La colección está vacía');
-        return;
-    }
-
-    const ventana = window.open('', '_blank', 'noopener,noreferrer');
-    if (!ventana) {
-        alert('Tu navegador bloqueó la vista para PDF. Permití ventanas emergentes e intentá de nuevo.');
-        return;
-    }
-
+function generarHtmlColeccionParaPDF(coleccion) {
     const fecha = new Date().toLocaleDateString('es-AR', {
         day: 'numeric',
         month: 'long',
@@ -3744,13 +3751,13 @@ function exportarColeccionComoPDF(coleccionId) {
         </article>
     `).join('');
 
-    ventana.document.write(`
+    return `
         <!DOCTYPE html>
         <html lang="es-ar">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>${escapeHtml(coleccion.nombre)} - Lumina</title>
+          <title></title> 
             <style>
                 :root {
                     color-scheme: light;
@@ -3845,17 +3852,104 @@ function exportarColeccionComoPDF(coleccionId) {
                 <p class="meta">${coleccion.versiculos.length} versículo${coleccion.versiculos.length === 1 ? '' : 's'} · Preparado el ${escapeHtml(fecha)}</p>
             </header>
             <main>${entradasHtml}</main>
-            <footer class="pie">Generado desde Lumina</footer>
+            <footer class="pie"></footer>
         </body>
         </html>
-    `);
-    ventana.document.close();
-    ventana.focus();
-    ventana.onload = () => {
-        setTimeout(() => ventana.print(), 250);
+    `;
+}
+
+function abrirImpresionColeccion(html) {
+    const iframe = document.createElement('iframe');
+    if (!iframe) return false;
+
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.tabIndex = -1;
+    Object.assign(iframe.style, {
+        position: 'fixed',
+        right: '0',
+        bottom: '0',
+        width: '1px',
+        height: '1px',
+        border: '0',
+        opacity: '0',
+        pointerEvents: 'none'
+    });
+
+    let impresionLanzada = false;
+    const limpiar = () => {
+        setTimeout(() => iframe.remove(), 1200);
     };
 
-    lanzarToast('Se abrió la vista para guardar o compartir el PDF');
+    const lanzarImpresion = () => {
+        if (impresionLanzada) return;
+        impresionLanzada = true;
+
+        const destino = iframe.contentWindow;
+        if (!destino || typeof destino.print !== 'function') {
+            limpiar();
+            lanzarToast('No se pudo abrir el diálogo para PDF en este navegador');
+            return;
+        }
+
+        try {
+            destino.onafterprint = () => limpiar();
+        } catch (_) {
+            // Algunos navegadores móviles no permiten asignar este callback.
+        }
+
+        setTimeout(() => {
+            try {
+                destino.focus();
+                destino.print();
+                limpiar();
+            } catch (error) {
+                console.error('No se pudo abrir el diálogo de impresión:', error);
+                limpiar();
+                lanzarToast('No se pudo abrir el diálogo para PDF en este navegador');
+            }
+        }, 280);
+    };
+
+    iframe.onload = lanzarImpresion;
+    document.body.appendChild(iframe);
+
+    if ('srcdoc' in iframe) {
+        iframe.srcdoc = html;
+    } else {
+        const doc = iframe.contentWindow?.document;
+        if (!doc) {
+            iframe.remove();
+            return false;
+        }
+        doc.open();
+        doc.write(html);
+        doc.close();
+        setTimeout(lanzarImpresion, 280);
+    }
+
+    return true;
+}
+
+function exportarColeccionComoPDF(coleccionId) {
+    const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
+    if (!coleccion) {
+        lanzarToast('No encontramos esa colección');
+        return;
+    }
+
+    if (coleccion.versiculos.length === 0) {
+        lanzarToast('La colección está vacía');
+        return;
+    }
+
+    const html = generarHtmlColeccionParaPDF(coleccion);
+    const inicioCorrecto = abrirImpresionColeccion(html);
+    if (!inicioCorrecto) {
+        lanzarToast('No se pudo preparar la exportación a PDF');
+        return;
+    }
+
+    lanzarToast('Se abrió el diálogo para guardar o compartir el PDF');
 }
 
 function limpiarAutorComentario(autor) {
@@ -5011,6 +5105,10 @@ function limitarPorcentajeBurbuja(porcentaje) {
     return Math.max(4, Math.min(96, porcentaje));
 }
 
+function limitarPorcentajePeregrino(porcentaje) {
+    return Math.max(5, Math.min(95, porcentaje));
+}
+
 function claseBarraProgresoBiblioteca() {
     return 'h-full rounded-full bg-gradient-to-r from-amber-500 via-emerald-500 to-emerald-400 transition-all duration-300';
 }
@@ -5112,22 +5210,65 @@ function actualizarProgresoBibliaVista() {
     if (!contenedor) return;
 
     const { total, leidos, porcentaje } = obtenerProgresoBiblia();
-    contenedor.innerHTML = `
-        <div class="progreso-biblia-card rounded-3xl p-5 md:p-6">
-            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-                <div>
-                    <div class="text-xs uppercase tracking-wider font-sans font-bold text-gray-500 dark:text-gray-400 mb-1">Progreso bíblico</div>
+    const porcentajeLimitado = limitarPorcentajeBurbuja(porcentaje);
+    const porcentajePeregrino = limitarPorcentajePeregrino(porcentaje);
+    const tarjetaExistente = contenedor.querySelector('.progreso-biblia-card');
+
+    if (!tarjetaExistente) {
+        contenedor.innerHTML = `
+            <div class="progreso-biblia-card rounded-3xl p-5 md:p-6">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                    <div>
+                        <div class="text-xs uppercase tracking-wider font-sans font-bold text-gray-500 dark:text-gray-400 mb-1">Progreso bíblico</div>
+                    </div>
+                    <div data-progreso-texto-biblia class="texto-progreso-biblia text-sm font-sans font-bold text-gray-700 dark:text-gray-200">${leidos}/${total}</div>
                 </div>
-                <div class="texto-progreso-biblia text-sm font-sans font-bold text-gray-700 dark:text-gray-200">${leidos}/${total}</div>
-            </div>
-            <div class="relative w-full pt-6">
-                <div class="w-full h-2 rounded-full overflow-hidden bg-black/10 dark:bg-white/10">
-                    <div data-progreso-barra-biblia class="h-full rounded-full bg-gradient-to-r from-amber-500 via-emerald-500 to-emerald-400 transition-all duration-300" style="width: ${porcentaje}%"></div>
+                <div class="progreso-biblia-track-wrap relative w-full">
+                    <div data-progreso-peregrino-biblia class="progreso-peregrino" style="left: ${porcentajePeregrino}%">
+                        <div class="progreso-peregrino-figura" aria-hidden="true">
+                            <svg viewBox="0 0 32 32" fill="none">
+                                <circle cx="17" cy="6.5" r="3.5"></circle>
+                                <path d="M17 10.8L15.5 16.2L12.5 19.4"></path>
+                                <path d="M16.8 11L21.5 15.2L24.8 13.6"></path>
+                                <path d="M15.7 16L19.2 20.2L17.6 27"></path>
+                                <path d="M15.2 16.1L10.8 27"></path>
+                                <path d="M23.2 11.2L23.8 27"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="w-full h-2 rounded-full overflow-hidden bg-black/10 dark:bg-white/10">
+                        <div data-progreso-barra-biblia class="h-full rounded-full bg-gradient-to-r from-amber-500 via-emerald-500 to-emerald-400 transition-all duration-300" style="width: ${porcentaje}%"></div>
+                    </div>
+                    <div data-progreso-burbuja-biblia class="progreso-burbuja progreso-burbuja-biblia" style="left: ${porcentajeLimitado}%">${porcentaje}%</div>
                 </div>
-                <div data-progreso-burbuja-biblia class="progreso-burbuja" style="left: ${limitarPorcentajeBurbuja(porcentaje)}%">${porcentaje}%</div>
             </div>
-        </div>
-    `;
+        `;
+        verificarEventoBibliaCompleta();
+        return;
+    }
+
+    const texto = tarjetaExistente.querySelector('[data-progreso-texto-biblia]');
+    const barra = tarjetaExistente.querySelector('[data-progreso-barra-biblia]');
+    const burbuja = tarjetaExistente.querySelector('[data-progreso-burbuja-biblia]');
+    const peregrino = tarjetaExistente.querySelector('[data-progreso-peregrino-biblia]');
+
+    if (texto) {
+        texto.textContent = `${leidos}/${total}`;
+    }
+
+    if (barra) {
+        barra.style.width = `${porcentaje}%`;
+    }
+
+    if (burbuja) {
+        burbuja.style.left = `${porcentajeLimitado}%`;
+        burbuja.textContent = `${porcentaje}%`;
+    }
+
+    if (peregrino) {
+        peregrino.style.left = `${porcentajePeregrino}%`;
+    }
+
     verificarEventoBibliaCompleta();
 }
 
