@@ -927,8 +927,90 @@ function irAVersiculo(libro, capitulo, versiculo, origen = '') {
 // --------------------------------------------------------------
 let comentariosDB = { __ranges: [] };
 let datosComentariosCargados = false;
+let secuenciaComentariosDB = 0;
 
-async function cargarComentariosJSON() {
+function limpiarTextoComentarioTradicion(texto) {
+    return String(texto || '')
+        .replace(/\r\n?/g, '\n')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+}
+
+function crearComentarioTradicion(autor, texto) {
+    const textoLimpio = limpiarTextoComentarioTradicion(texto);
+    if (!textoLimpio) return null;
+
+    return {
+        autor: autor || 'Tradición',
+        texto: textoLimpio,
+        orden: secuenciaComentariosDB++
+    };
+}
+
+function agregarComentarioTradicion(key, autor, texto) {
+    const comentario = crearComentarioTradicion(autor, texto);
+    if (!comentario) return;
+
+    if (!comentariosDB[key]) comentariosDB[key] = [];
+    comentariosDB[key].push(comentario);
+}
+
+function registrarComentarioTradicionEnRango(libro, capitulo, desde, hasta, autor, texto) {
+    const rangeKey = `${libro}_${capitulo}_${desde}-${hasta}`;
+    const esNuevoRango = !comentariosDB[rangeKey];
+
+    agregarComentarioTradicion(rangeKey, autor, texto);
+
+    if (esNuevoRango) {
+        comentariosDB.__ranges.push({
+            libro,
+            capitulo,
+            desde,
+            hasta,
+            key: rangeKey
+        });
+    }
+}
+
+function obtenerCapituloPrefacio(libro, capitulo = 0) {
+    return libro === 'Salmos' ? Number(capitulo) || 0 : 0;
+}
+
+function obtenerClavePrefacio(libro, capitulo = 0) {
+    const capituloPrefacio = obtenerCapituloPrefacio(libro, capitulo);
+    return capituloPrefacio > 0
+        ? `${libro}_${capituloPrefacio}_prefacio`
+        : `${libro}_prefacio`;
+}
+
+function obtenerComentariosPrefacio(libro, capitulo = 0) {
+    const comentarios = comentariosDB[obtenerClavePrefacio(libro, capitulo)];
+    return Array.isArray(comentarios) ? comentarios : [];
+}
+
+function tienePrefacio(libro, capitulo = 0) {
+    return obtenerComentariosPrefacio(libro, capitulo).length > 0;
+}
+
+function esReferenciaPrefacioTradicion(capitulo, versiculo) {
+    return Number(versiculo) === 0;
+}
+
+function formatearReferenciaPrefacio(libro, capitulo = 0) {
+    const capituloPrefacio = obtenerCapituloPrefacio(libro, capitulo);
+    return capituloPrefacio > 0
+        ? `${libro} ${capituloPrefacio} (Prefacio)`
+        : `${libro} (Prefacio)`;
+}
+
+function formatearReferenciaComentarioTradicion(libro, capitulo, versiculo) {
+    return esReferenciaPrefacioTradicion(capitulo, versiculo)
+        ? formatearReferenciaPrefacio(libro, capitulo)
+        : formatearReferenciaCompartida(libro, capitulo, versiculo);
+}
+
+async function cargarComentariosCatenaJSON() {
     try {
         const response = await fetch("Catena_Aurea_Completa.json");
         if (!response.ok) throw new Error("No se encontró el archivo de la Catena Aurea");
@@ -950,51 +1032,190 @@ async function cargarComentariosJSON() {
             let parte = ref.replace(libroMatch[0], '').trim();
 
             if (parte.includes("(Prefacio)")) {
-                let key = `${libro}_prefacio`;
-                if (!comentariosDB[key]) comentariosDB[key] = [];
-                comentariosDB[key].push({ autor: item.Autor, texto: item.Texto_Comentario });
-            } else {
-                let matchCapituloVersos = parte.match(/,?\s*(\d+):([\d\-]+)/);
-                if (matchCapituloVersos) {
-                    let capitulo = parseInt(matchCapituloVersos[1]);
-                    let versosStr = matchCapituloVersos[2];
-                    let rango = versosStr.split('-').map(v => parseInt(v));
-
-                    if (rango.length === 1 || rango[0] === rango[1]) {
-                        let key = `${libro}_${capitulo}_${rango[0]}`;
-                        if (!comentariosDB[key]) comentariosDB[key] = [];
-                        comentariosDB[key].push({ autor: item.Autor, texto: item.Texto_Comentario });
-                    } else {
-                        let rangeKey = `${libro}_${capitulo}_${rango[0]}-${rango[1]}`;
-                        if (!comentariosDB[rangeKey]) comentariosDB[rangeKey] = [];
-                        comentariosDB[rangeKey].push({ autor: item.Autor, texto: item.Texto_Comentario });
-                        comentariosDB.__ranges.push({
-                            libro: libro,
-                            capitulo: capitulo,
-                            desde: rango[0],
-                            hasta: rango[1],
-                            key: rangeKey
-                        });
-                    }
-                }
+                agregarComentarioTradicion(obtenerClavePrefacio(libro), item.Autor, item.Texto_Comentario);
+                return;
             }
+
+            let matchCapituloVersos = parte.match(/,?\s*(\d+):([\d\-]+)/);
+            if (!matchCapituloVersos) return;
+
+            let capitulo = parseInt(matchCapituloVersos[1], 10);
+            let versosStr = matchCapituloVersos[2];
+            let rango = versosStr.split('-').map(v => parseInt(v, 10));
+
+            if (rango.length === 1 || rango[0] === rango[1]) {
+                agregarComentarioTradicion(`${libro}_${capitulo}_${rango[0]}`, item.Autor, item.Texto_Comentario);
+                return;
+            }
+
+            registrarComentarioTradicionEnRango(libro, capitulo, rango[0], rango[1], item.Autor, item.Texto_Comentario);
         });
-        datosComentariosCargados = true;
+
         console.log("Comentarios de la Catena Aurea cargados en la memoria.");
+        return true;
     } catch (err) {
-        console.error("Aviso: Aún no hay archivo JSON de comentarios o hubo un error:", err);
+        console.error("Aviso: no se pudo cargar la Catena Aurea:", err);
+        return false;
     }
 }
 
+function normalizarTextoMetaSalmo(texto) {
+    return String(texto || '')
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function esLineaMetaSalmoAgustin(linea) {
+    const limpio = String(linea || '').trim();
+    if (!limpio) return true;
+
+    const normalizado = normalizarTextoMetaSalmo(limpio);
+
+    if (/^\[[^\]]+\]$/.test(limpio)) return true;
+    if (/^[A-ZÁÉÍÓÚÜÑ0-9 .,:;!?'"()\-]+$/.test(limpio) && limpio.length <= 40) return true;
+
+    return /^(revision|traduccion|traductor|sermon(?:\s|$)|continuacion del sermon|cartago\b|hipona\b|entre (?:el|los anos)\b|despues del\b|en el ano\b|sobre el salmo\b|motivo por el que|prologo\b)/.test(normalizado);
+}
+
+function limpiarLineaComentarioSalmoAgustin(linea) {
+    return String(linea || '')
+        .replace(/^\s*[\dIl]+\.?\s*\[v\.[^\]]+\]\.?\s*/i, '')
+        .replace(/^\s*[\dIl]+\.?\s*/, '')
+        .trim();
+}
+
+function extraerRangoVersiculosSalmoAgustin(linea) {
+    const match = String(linea || '').match(/\[v\.\s*([^\]]+)\]/i);
+    if (!match) return null;
+
+    let valor = match[1]
+        .replace(/â€”/g, '-')
+        .replace(/[—–]/g, '-')
+        .replace(/\s+/g, '')
+        .replace(/[lI]/g, '1')
+        .replace(/^\-+/, '')
+        .replace(/\.+$/, '');
+
+    if (/^\d+\.\d+$/.test(valor)) {
+        valor = valor.replace('.', '-');
+    }
+
+    const rangoMatch = valor.match(/^(\d+)(?:-(\d+))?$/);
+    if (!rangoMatch) return null;
+
+    const desde = parseInt(rangoMatch[1], 10);
+    const hasta = parseInt(rangoMatch[2] || rangoMatch[1], 10);
+
+    if (!Number.isFinite(desde) || !Number.isFinite(hasta)) return null;
+
+    return {
+        desde: Math.min(desde, hasta),
+        hasta: Math.max(desde, hasta)
+    };
+}
+
+function guardarBloqueComentarioSalmoAgustin(capitulo, rango, lineas) {
+    const texto = limpiarTextoComentarioTradicion(lineas.join('\n\n'));
+    if (!texto) return;
+
+    if (!rango) {
+        agregarComentarioTradicion(obtenerClavePrefacio('Salmos', capitulo), 'San Agustín', texto);
+        return;
+    }
+
+    if (rango.desde === rango.hasta) {
+        agregarComentarioTradicion(`Salmos_${capitulo}_${rango.desde}`, 'San Agustín', texto);
+        return;
+    }
+
+    registrarComentarioTradicionEnRango('Salmos', capitulo, rango.desde, rango.hasta, 'San Agustín', texto);
+}
+
+function procesarSegmentoAgustinSalmo(capitulo, lineas) {
+    let rangoActual = null;
+    let buffer = [];
+
+    const cerrarBloque = () => {
+        if (buffer.length === 0) return;
+        guardarBloqueComentarioSalmoAgustin(capitulo, rangoActual, buffer);
+        buffer = [];
+    };
+
+    lineas.forEach(lineaOriginal => {
+        const linea = String(lineaOriginal || '').trim();
+        if (!linea || esLineaMetaSalmoAgustin(linea)) return;
+
+        const rango = extraerRangoVersiculosSalmoAgustin(linea);
+        if (rango) {
+            cerrarBloque();
+            rangoActual = rango;
+            const contenido = limpiarLineaComentarioSalmoAgustin(linea);
+            if (contenido) buffer.push(contenido);
+            return;
+        }
+
+        const contenido = limpiarLineaComentarioSalmoAgustin(linea);
+        if (!contenido) return;
+        buffer.push(contenido);
+    });
+
+    cerrarBloque();
+}
+
+async function cargarComentariosAgustinSalmosJSON() {
+    try {
+        const response = await fetch("agustin_salmos.json");
+        if (!response.ok) throw new Error("No se encontró el archivo de los salmos comentados por San Agustín");
+        const data = await response.json();
+
+        Object.entries(data).forEach(([clave, lineas]) => {
+            const matchSalmo = clave.match(/^Salmo_(\d+)/i);
+            if (!matchSalmo || !Array.isArray(lineas)) return;
+
+            const capitulo = parseInt(matchSalmo[1], 10);
+            if (!Number.isFinite(capitulo)) return;
+
+            procesarSegmentoAgustinSalmo(capitulo, lineas);
+        });
+
+        console.log("Comentarios de San Agustín sobre los Salmos cargados en la memoria.");
+        return true;
+    } catch (err) {
+        console.error("Aviso: no se pudo cargar el JSON de Agus para los Salmos:", err);
+        return false;
+    }
+}
+
+async function cargarComentariosJSON() {
+    comentariosDB = { __ranges: [] };
+    secuenciaComentariosDB = 0;
+
+    const resultados = await Promise.all([
+        cargarComentariosCatenaJSON(),
+        cargarComentariosAgustinSalmosJSON()
+    ]);
+
+    datosComentariosCargados = resultados.some(Boolean);
+}
+
 function obtenerComentarios(libro, capitulo, versiculo) {
-    let key = `${libro}_${capitulo}_${versiculo}`;
-    if (comentariosDB[key]) return comentariosDB[key];
+    const comentarios = [];
+    const key = `${libro}_${capitulo}_${versiculo}`;
+
+    if (Array.isArray(comentariosDB[key])) {
+        comentarios.push(...comentariosDB[key]);
+    }
+
     for (let r of (comentariosDB.__ranges || [])) {
         if (r.libro === libro && r.capitulo === capitulo && versiculo >= r.desde && versiculo <= r.hasta) {
-            return comentariosDB[r.key];
+            comentarios.push(...(comentariosDB[r.key] || []));
         }
     }
-    return [];
+
+    return comentarios.sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
 }
 
 // --------------------------------------------------------------
@@ -1831,8 +2052,8 @@ function actualizarFavoritoComentarioUI(libro, capitulo, versiculo, tipo, idx) {
     const esFavorito = esFavoritoComentario(libro, capitulo, versiculo, tipo, idx);
     const textoAccion = esFavorito ? 'Quitar de favoritos' : 'Agregar a favoritos';
     const descripcion = tipo === 'personal' ? 'nota' : 'comentario';
-    const referencia = (Number(capitulo) === 0 && Number(versiculo) === 0)
-        ? `${libro} (Prefacio)`
+    const referencia = esReferenciaPrefacioTradicion(capitulo, versiculo)
+        ? formatearReferenciaPrefacio(libro, capitulo)
         : formatearReferenciaCompartida(libro, capitulo, versiculo);
     const label = referencia
         ? `${textoAccion} ${descripcion} de ${referencia}`
@@ -1901,8 +2122,8 @@ function obtenerFavoritosClasificados() {
         if (!Number.isInteger(idx)) continue;
 
         if (tipo === 'tradicion') {
-            const comentarios = (capitulo === 0 && versiculo === 0)
-                ? (comentariosDB[`${libro}_prefacio`] || [])
+            const comentarios = esReferenciaPrefacioTradicion(capitulo, versiculo)
+                ? obtenerComentariosPrefacio(libro, capitulo)
                 : obtenerComentarios(libro, capitulo, versiculo);
             const comentario = comentarios[idx];
             if (!comentario) continue;
@@ -1912,7 +2133,7 @@ function obtenerFavoritosClasificados() {
                 capitulo,
                 versiculo,
                 idx,
-                prefacio: capitulo === 0 && versiculo === 0,
+                prefacio: esReferenciaPrefacioTradicion(capitulo, versiculo),
                 autor: comentario.autor || 'Tradición',
                 texto: comentario.texto || ''
             });
@@ -1999,8 +2220,8 @@ function abrirFavoritoAnotacion(libro, capitulo, versiculo, tipo, idx) {
     cerrarPanel('panel-busqueda');
     cerrarPanel('panel-favoritos');
 
-    if (tipo === 'tradicion' && capitulo === 0 && versiculo === 0) {
-        abrirPrefacio(libro);
+    if (tipo === 'tradicion' && esReferenciaPrefacioTradicion(capitulo, versiculo)) {
+        abrirPrefacio(libro, capitulo);
         return;
     }
 
@@ -2018,8 +2239,8 @@ function abrirFavoritoAnotacion(libro, capitulo, versiculo, tipo, idx) {
 
 function crearBotonFavoritoComentario(item) {
     const referencia = item.prefacio
-        ? `${item.libro} (Prefacio)`
-        : formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo);
+        ? formatearReferenciaPrefacio(item.libro, item.capitulo)
+        : formatearReferenciaComentarioTradicion(item.libro, item.capitulo, item.versiculo);
     const favorito = esFavoritoComentario(item.libro, item.capitulo, item.versiculo, 'tradicion', item.idx);
     const accionFavorito = favorito ? 'Quitar de favoritos' : 'Agregar a favoritos';
     const identificadorFavorito = obtenerIdentificadorFavoritoComentario(item.libro, item.capitulo, item.versiculo, 'tradicion', item.idx);
@@ -3189,13 +3410,15 @@ function obtenerFragmentoBusqueda(texto, termino, maximo = 180) {
 }
 
 function formatearReferenciaResultadoBusqueda(item) {
-    if (item.prefacio) return `${item.libro} (Prefacio)`;
+    if (item.prefacio) return formatearReferenciaPrefacio(item.libro, item.capitulo);
 
     if (Number.isFinite(item.versiculoHasta) && item.versiculoHasta > item.versiculo) {
         return `${item.libro} ${item.capitulo},${item.versiculo}-${item.versiculoHasta}`;
     }
 
-    return formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo);
+    return item.tipoFavorito === 'tradicion'
+        ? formatearReferenciaComentarioTradicion(item.libro, item.capitulo, item.versiculo)
+        : formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo);
 }
 
 function configurarTarjetaResultadoBusqueda(tarjeta, onOpen) {
@@ -3391,12 +3614,16 @@ function buscarComentarios(termino) {
         if (clave === '__ranges' || !Array.isArray(comentarios) || comentarios.length === 0) return;
 
         if (clave.endsWith('_prefacio')) {
-            const libro = clave.slice(0, -9);
+            const matchPrefacio = clave.match(/^(.*?)(?:_(\d+))?_prefacio$/);
+            if (!matchPrefacio) return;
+
+            const libro = matchPrefacio[1];
+            const capitulo = parseInt(matchPrefacio[2] || '0', 10);
             comentarios.forEach((comentario, idx) => {
                 if (!coincideTextoBusqueda(comentario?.texto, regex)) return;
                 resultados.push({
                     libro,
-                    capitulo: 0,
+                    capitulo,
                     versiculo: 0,
                     idx,
                     prefacio: true,
@@ -3960,7 +4187,7 @@ function limpiarAutorComentario(autor) {
 
 function compartirComentario(libro, capitulo, versiculo, autor, texto) {
     const autorLimpio = limpiarAutorComentario(autor);
-    const referencia = formatearReferenciaCompartida(libro, capitulo, versiculo);
+    const referencia = formatearReferenciaComentarioTradicion(libro, capitulo, versiculo);
     const textoLimpio = String(texto || '').trim();
     const encabezado = referencia
         ? `Comentario de ${autorLimpio}, de ${referencia}:`
@@ -5644,6 +5871,10 @@ function escapeHtml(str) {
     });
 }
 
+function renderizarTextoComentarioHtml(texto) {
+    return escapeHtml(texto).replace(/\n/g, '<br>');
+}
+
 function inicializarIndice() {
     return inicializarIndiceV2();
 }
@@ -5677,35 +5908,42 @@ function poblarSelectoresRapidos() {
     });
 }
 
-function abrirPrefacio(libro) {
-    const key = `${libro}_prefacio`;
-    const comentarios = comentariosDB[key] || [];
-    document.getElementById('titulo-panel-versiculo').innerHTML = `${libro} - Prefacio`;
+function abrirPrefacio(libro, capitulo = 0) {
+    const capituloPrefacio = obtenerCapituloPrefacio(libro, capitulo);
+    const comentarios = obtenerComentariosPrefacio(libro, capituloPrefacio);
+    const referenciaPrefacio = formatearReferenciaPrefacio(libro, capituloPrefacio);
+    const esPrefacioSalmo = libro === 'Salmos' && capituloPrefacio > 0;
+
+    document.getElementById('titulo-panel-versiculo').innerHTML = referenciaPrefacio;
+    document.getElementById('cita-panel-sticky').innerHTML = '';
+
     const panelHtml = `
         <div class="mb-5 p-4 bg-amber-50/40 dark:bg-gray-700 rounded-lg border-l-4 border-oro">
-            <p class="text-sm font-serif italic text-gray-700 dark:text-gray-300">Comentarios introductorios de los Padres y Doctores sobre ${libro}.</p>
+            <p class="text-sm font-serif italic text-gray-700 dark:text-gray-300">${esPrefacioSalmo
+            ? `Antes de entrar versículo por versículo, acá queda lo que San Agustín comenta en general sobre ${libro} ${capituloPrefacio}.`
+            : `Comentarios introductorios de los Padres y Doctores sobre ${libro}.`}</p>
         </div>
-        <div class="text-xs font-sans text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2"><i class="fas fa-feather-alt"></i> Tradición sobre el Evangelio</div>
+        <div class="text-xs font-sans text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2"><i class="fas fa-feather-alt"></i> ${esPrefacioSalmo ? 'Tradición sobre el salmo' : 'Tradición sobre el Evangelio'}</div>
     ` + (comentarios.length === 0 ? `<div class="text-gray-600 dark:text-gray-400 italic font-sans text-center py-10">Comentarios del prefacio en preparación.</div>` : comentarios.map((c, idx) => {
-        const esFav = esFavoritoComentario(libro, 0, 0, 'tradicion', idx);
+        const esFav = esFavoritoComentario(libro, capituloPrefacio, 0, 'tradicion', idx);
         const accionFavorito = esFav ? 'Quitar de favoritos' : 'Agregar a favoritos';
-        const identificadorFavorito = obtenerIdentificadorFavoritoComentario(libro, 0, 0, 'tradicion', idx);
+        const identificadorFavorito = obtenerIdentificadorFavoritoComentario(libro, capituloPrefacio, 0, 'tradicion', idx);
         return `
         <div class="border-l-4 border-oro/30 pl-4 py-2">
             <div class="flex justify-between items-start">
                 <h3 class="font-bold text-xs text-oro">${escapeHtml(c.autor)}</h3>
-                <button id="star_com_${libro}_0_0_tradicion_${idx}"
+                <button id="star_com_${libro}_${capituloPrefacio}_0_tradicion_${idx}"
                         data-favorito-comentario="${identificadorFavorito}"
-                        onclick="toggleFavoritoComentario('${libro}', 0, 0, 'tradicion', ${idx})"
+                        onclick="toggleFavoritoComentario('${libro}', ${capituloPrefacio}, 0, 'tradicion', ${idx})"
                         class="estrella-fav-comentario ${esFav ? 'activa' : ''} transition"
                         title="${accionFavorito}"
-                        aria-label="${accionFavorito} comentario del prefacio de ${escapeHtml(libro)}"
+                        aria-label="${accionFavorito} comentario de ${escapeHtml(referenciaPrefacio)}"
                         aria-pressed="${esFav ? 'true' : 'false'}"><i class="fas fa-star"></i></button>
             </div>
-            <p class="text-gray-700 dark:text-gray-300 text-sm mt-2">${escapeHtml(c.texto)}</p>
+            <p class="text-gray-700 dark:text-gray-300 text-sm mt-2">${renderizarTextoComentarioHtml(c.texto)}</p>
             <button class="btn-compartir-comentario mt-2 text-xs text-oro hover:underline flex items-center gap-1"
                     data-libro="${libro.replace(/"/g, '&quot;')}"
-                    data-capitulo="0"
+                    data-capitulo="${capituloPrefacio}"
                     data-versiculo="0"
                     data-autor="${escapeHtml(c.autor).replace(/"/g, '&quot;')}"
                     data-texto="${escapeHtml(c.texto).replace(/"/g, '&quot;')}">
@@ -5726,7 +5964,54 @@ function abrirPrefacio(libro) {
             );
         };
     });
+
+    const tabTrad = document.getElementById('tab-tradicion');
+    const tabPers = document.getElementById('tab-personales');
+    const divTrad = document.getElementById('contenido-panel-tradicion');
+    const divPers = document.getElementById('contenido-panel-personales');
+    tabTrad.classList.add('border-b-2', 'border-oro', 'text-oro');
+    tabTrad.classList.remove('text-gray-500', 'dark:text-gray-400');
+    tabPers.classList.remove('border-b-2', 'border-oro', 'text-oro');
+    tabPers.classList.add('text-gray-500', 'dark:text-gray-400');
+    divTrad.classList.remove('hidden');
+    divPers.classList.add('hidden');
+
     abrirPanelLateral('panel-comentarios');
+}
+
+function asegurarBotonPrefacioLectura() {
+    const filaAcciones = document.getElementById('subtitulo-capitulo')?.parentElement;
+    if (!filaAcciones) return null;
+
+    let boton = document.getElementById('btn-prefacio-lectura');
+    if (boton) return boton;
+
+    boton = document.createElement('button');
+    boton.type = 'button';
+    boton.id = 'btn-prefacio-lectura';
+    boton.className = 'btn-leer-capitulo transition-all flex items-center gap-2 text-sm font-bold px-3 py-1 rounded-full hidden';
+    boton.innerHTML = '<i class="fas fa-scroll"></i> PREFACIO';
+    filaAcciones.appendChild(boton);
+    return boton;
+}
+
+function actualizarBotonPrefacioLectura(libro, capitulo) {
+    const boton = asegurarBotonPrefacioLectura();
+    if (!boton) return;
+
+    const capituloPrefacio = obtenerCapituloPrefacio(libro, capitulo);
+    const visible = tienePrefacio(libro, capituloPrefacio);
+    boton.classList.toggle('hidden', !visible);
+
+    if (!visible) {
+        boton.onclick = null;
+        return;
+    }
+
+    const referencia = formatearReferenciaPrefacio(libro, capituloPrefacio);
+    boton.title = `Abrir ${referencia}`;
+    boton.setAttribute('aria-label', `Abrir ${referencia}`);
+    boton.onclick = () => abrirPrefacio(libro, capituloPrefacio);
 }
 
 function abrirCapitulos(nombreLibro, cantidadCapitulos) {
@@ -5916,6 +6201,7 @@ function abrirLectura(capitulo) {
     capituloActual = capitulo;
     document.getElementById('titulo-lectura').innerText = libroActual;
     document.getElementById('subtitulo-capitulo').innerHTML = `Capítulo ${capitulo}`;
+    actualizarBotonPrefacioLectura(libroActual, capitulo);
     const contenedor = document.getElementById('contenedor-versiculos');
     contenedor.innerHTML = '';
     cerrarMenusAccionesVersiculo();
@@ -6195,10 +6481,25 @@ function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null)
         </div>
     `;
 
+    const capituloPrefacio = obtenerCapituloPrefacio(libro, capitulo);
+    const tienePrefacioContextual = tienePrefacio(libro, capituloPrefacio);
+
     let tradicionHtml = `<div class="text-xs font-sans text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3"><i class="fas fa-feather-alt"></i> Tradición de los Padres y Doctores</div>`;
 
+    if (tienePrefacioContextual) {
+        const referenciaPrefacio = formatearReferenciaPrefacio(libro, capituloPrefacio);
+        tradicionHtml += `
+            <button type="button"
+                    class="prefacio-btn w-full mb-5 py-3 rounded-xl shadow-sm transition-all font-sans font-bold text-sm flex items-center justify-center gap-2"
+                    onclick="abrirPrefacio('${libro}', ${capituloPrefacio})"
+                    aria-label="Abrir ${escapeHtml(referenciaPrefacio)}">
+                <i class="fas fa-scroll" aria-hidden="true"></i> Ver ${escapeHtml(referenciaPrefacio)}
+            </button>
+        `;
+    }
+
     if (comentarios.length === 0) {
-        tradicionHtml += `<div class="text-gray-600 dark:text-gray-400 italic font-sans text-center py-10">Aún no se han cargado comentarios de la Tradición para este pasaje.<br> Recemos para que un alma caratitativa me los haga llegar.</div>`;
+        tradicionHtml += `<div class="text-gray-600 dark:text-gray-400 italic font-sans text-center py-10">Aún no se han cargado comentarios de la Tradición para este pasaje.<br> Recemos para que un alma caritativa me los haga llegar.</div>`;
     } else {
         tradicionHtml += comentarios.map((c, idx) => {
             const esFav = esFavoritoComentario(libro, capitulo, versiculo, 'tradicion', idx);
@@ -6210,8 +6511,8 @@ function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null)
                     <h3 class="font-bold text-xs text-oro">${escapeHtml(c.autor)}</h3>
                     <div class="flex gap-2 items-center">
                         <button class="btn-audio-comentario text-gray-600 dark:text-gray-400 hover:text-oro transition p-1" 
-                                data-autor="${c.autor.replace(/"/g, '&quot;')}"
-                                data-texto="${c.texto.replace(/"/g, '&quot;')}"
+                                data-autor="${escapeHtml(c.autor).replace(/"/g, '&quot;')}"
+                                data-texto="${escapeHtml(c.texto).replace(/"/g, '&quot;')}"
                                 title="Escuchar comentario">
                             <i class="fas fa-volume-up text-sm"></i>
                         </button>
@@ -6220,13 +6521,13 @@ function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null)
                                 onclick="toggleFavoritoComentario('${libro}', ${capitulo}, ${versiculo}, 'tradicion', ${idx})" 
                                 class="estrella-fav-comentario ${esFav ? 'activa' : ''} transition"
                                 title="${accionFavorito}"
-                                aria-label="${accionFavorito} comentario de ${escapeHtml(formatearReferenciaCompartida(libro, capitulo, versiculo))}"
+                                aria-label="${accionFavorito} comentario de ${escapeHtml(formatearReferenciaComentarioTradicion(libro, capitulo, versiculo))}"
                                 aria-pressed="${esFav ? 'true' : 'false'}">
                             <i class="fas fa-star"></i>
                         </button>
                     </div>
                 </div>
-                <p class="text-gray-700 dark:text-gray-300 text-sm mt-2">${escapeHtml(c.texto)}</p>
+                <p class="text-gray-700 dark:text-gray-300 text-sm mt-2">${renderizarTextoComentarioHtml(c.texto)}</p>
                 <button class="btn-compartir-comentario mt-2 text-xs text-oro hover:underline flex items-center gap-1"
                         data-libro="${libro.replace(/"/g, '&quot;')}"
                         data-capitulo="${capitulo}"
@@ -6566,7 +6867,8 @@ const RECURSOS_OFFLINE_ESENCIALES = [
     './script.js',
     './lumina.css',
     './Biblia_Catolica_Completa.json',
-    './Catena_Aurea_Completa.json'
+    './Catena_Aurea_Completa.json',
+    './agustin_salmos.json'
 ];
 
 function marcarNuevaVersionLuminaDisponible(disponible) {

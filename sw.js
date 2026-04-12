@@ -1,4 +1,4 @@
-const VERSION_CACHE = '4.294.870';
+const VERSION_CACHE = '4.295.000';
 const CACHE_SHELL = `lumina-shell-${VERSION_CACHE}`;
 const CACHE_RUNTIME = `lumina-runtime-${VERSION_CACHE}`;
 const APP_SHELL = './index.html';
@@ -28,7 +28,8 @@ function esRecursoActualizable(request) {
     path.endsWith('/style.css') ||
     path.endsWith('/manifest.json') ||
     path.endsWith('/biblia_catolica_completa.json') ||
-    path.endsWith('/catena_aurea_completa.json')
+    path.endsWith('/catena_aurea_completa.json') ||
+    path.endsWith('/agustin_salmos.json')
   );
 }
 
