@@ -7227,23 +7227,47 @@ window.onload = async () => {
     }
 };
 
-function compartirLumina() {
-    // Verificamos si el celular soporta esta función nativa
+// 1. Abre el modal y genera el QR
+function abrirModalCompartir() {
+    const modal = document.getElementById('modal-compartir');
+    const contenedorQR = document.getElementById('contenedor-qr');
+    
+    // Mostramos el modal
+    modal.classList.remove('hidden');
+
+    // Solo generamos el QR si está vacío (para no dibujarlo 20 veces)
+    if (contenedorQR.innerHTML === "") {
+        new QRCode(contenedorQR, {
+            text: "https://nachomartinez1996.github.io/Lumina/",
+            width: 200,
+            height: 200,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H // Alta corrección para que se lea fácil
+        });
+    }
+}
+
+// 2. Cierra el modal
+function cerrarModalCompartir() {
+    document.getElementById('modal-compartir').classList.add('hidden');
+}
+
+// 3. Tu función original, intacta (llamada desde el botón del modal)
+function compartirEnlaceLumina() {
     if (navigator.share) {
         navigator.share({
             title: 'Lumina - La Tradición Iluminando la Palabra',
-            text: 'Estoy leyendo el Evangelio con los comentarios de los Padres de la Iglesia. ¡Te invito a descubrir Lumina!',
-            url: 'https://nachomartinez1996.github.io/Lumina/' // Reemplazá con tu enlace real
+            text: 'Estoy leyendo la Palabra con los comentarios de los Padres de la Iglesia. ¡Te invito a descubrir Lumina!',
+            url: 'https://nachomartinez1996.github.io/Lumina/' 
         })
-            .then(() => console.log('Gracias por compartir la Luz'))
-            .catch((error) => console.log('Error al compartir', error));
+        .then(() => console.log('Gracias por compartir la Luz'))
+        .catch((error) => console.log('Error al compartir', error));
     } else {
-        // Plan B por si están en una compu vieja: copiar al portapapeles
         navigator.clipboard.writeText('https://nachomartinez1996.github.io/Lumina/');
         alert('¡Enlace copiado! Ya podés pegarlo y compartir la Luz.');
     }
 }
-
 // ========== FUNCIONES PARA RESALTAR VERSÍCULOS EN REPRODUCCIÓN ==========
 function resaltarVersiculo(libro, capitulo, versiculo) {
     if (
