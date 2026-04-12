@@ -2332,6 +2332,7 @@ function crearSeccionPanel(claseBase, estadoStore, clave, titulo, icono, items, 
         const expandida = estadoStore[clave] !== false;
         toggle.setAttribute('aria-expanded', expandida ? 'true' : 'false');
         contenido.hidden = !expandida;
+        seccion.classList.toggle('seccion-expandida', expandida);
     };
 
     toggle.innerHTML = `
@@ -3296,13 +3297,19 @@ function obtenerTerminoBusquedaActual() {
     const busquedaPanel = document.getElementById('busqueda-panel-input');
     const busquedaDesktop = document.getElementById('busqueda-input');
     const busquedaMovil = document.getElementById('busqueda-input-movil');
-
-    return normalizarTerminoBusqueda(
-        busquedaPanel?.value ||
-        busquedaDesktop?.value ||
-        busquedaMovil?.value ||
+    const candidatos = [
+        busquedaPanel?.value,
+        busquedaDesktop?.value,
+        busquedaMovil?.value,
         terminoBusquedaActual
-    );
+    ];
+
+    for (const candidato of candidatos) {
+        const termino = normalizarTerminoBusqueda(candidato);
+        if (termino) return termino;
+    }
+
+    return '';
 }
 
 function sincronizarInputsBusqueda(valor, origen = null) {
@@ -3544,6 +3551,7 @@ function renderizarResultadosBusqueda(contenedor, resultados) {
         notas: false
     };
 
+    contenedor.classList.add('busqueda-con-resultados');
     contenedor.innerHTML = '';
     contenedor.appendChild(
         crearSeccionBusqueda(
@@ -3754,6 +3762,7 @@ function mostrarResultadosBusqueda(termino) {
 
     if (contenedor) {
         if (!terminoNormalizado || resultados.total === 0) {
+            contenedor.classList.remove('busqueda-con-resultados');
             contenedor.innerHTML = renderizarEstadoBusquedaVacio(terminoNormalizado);
         } else {
             renderizarResultadosBusqueda(contenedor, resultados);
@@ -3778,6 +3787,7 @@ function limpiarBusqueda(cerrarPanelResultados = false) {
     }
 
     if (contenedor) {
+        contenedor.classList.remove('busqueda-con-resultados');
         contenedor.innerHTML = renderizarEstadoBusquedaVacio('');
     }
 
@@ -4418,7 +4428,7 @@ function detenerLectura() {
     vozActiva = null;
     limpiarEstadoLectura();
     limpiarResaltadoVersiculo();
-   actualizarBotonesReproduccionListas();
+    actualizarBotonesReproduccionListas();
 }
 
 function normalizarTextoParaLectura(texto) {
@@ -5925,10 +5935,10 @@ function abrirPrefacio(libro, capitulo = 0) {
         </div>
         <div class="text-xs font-sans text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2"><i class="fas fa-feather-alt"></i> ${esPrefacioSalmo ? 'Tradición sobre el salmo' : 'Tradición sobre el Evangelio'}</div>
     ` + (comentarios.length === 0 ? `<div class="text-gray-600 dark:text-gray-400 italic font-sans text-center py-10">Comentarios del prefacio en preparación.</div>` : comentarios.map((c, idx) => {
-        const esFav = esFavoritoComentario(libro, capituloPrefacio, 0, 'tradicion', idx);
-        const accionFavorito = esFav ? 'Quitar de favoritos' : 'Agregar a favoritos';
-        const identificadorFavorito = obtenerIdentificadorFavoritoComentario(libro, capituloPrefacio, 0, 'tradicion', idx);
-        return `
+                const esFav = esFavoritoComentario(libro, capituloPrefacio, 0, 'tradicion', idx);
+                const accionFavorito = esFav ? 'Quitar de favoritos' : 'Agregar a favoritos';
+                const identificadorFavorito = obtenerIdentificadorFavoritoComentario(libro, capituloPrefacio, 0, 'tradicion', idx);
+                return `
         <div class="border-l-4 border-oro/30 pl-4 py-2">
             <div class="flex justify-between items-start">
                 <h3 class="font-bold text-xs text-oro">${escapeHtml(c.autor)}</h3>
@@ -6459,7 +6469,6 @@ function irAlInicio() {
         if (input) input.value = "";
     });
 
-    terminoBusquedaActual = '';
     mostrarBuscadorMovil(false);
     actualizarEstadoControlesBusqueda();
 }
@@ -7186,6 +7195,7 @@ window.onload = async () => {
 
     const contenedorBusqueda = document.getElementById('contenido-busqueda');
     if (contenedorBusqueda) {
+        contenedorBusqueda.classList.remove('busqueda-con-resultados');
         contenedorBusqueda.innerHTML = renderizarEstadoBusquedaVacio('');
     }
     const contadorBusqueda = document.getElementById('contador-busqueda');
@@ -7231,7 +7241,7 @@ window.onload = async () => {
 function abrirModalCompartir() {
     const modal = document.getElementById('modal-compartir');
     const contenedorQR = document.getElementById('contenedor-qr');
-    
+
     // Mostramos el modal
     modal.classList.remove('hidden');
 
@@ -7241,9 +7251,9 @@ function abrirModalCompartir() {
             text: "https://nachomartinez1996.github.io/Lumina/",
             width: 200,
             height: 200,
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.H // Alta corrección para que se lea fácil
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H // Alta corrección para que se lea fácil
         });
     }
 }
@@ -7259,10 +7269,10 @@ function compartirEnlaceLumina() {
         navigator.share({
             title: 'Lumina - La Tradición Iluminando la Palabra',
             text: 'Estoy leyendo la Palabra con los comentarios de los Padres de la Iglesia. ¡Te invito a descubrir Lumina!',
-            url: 'https://nachomartinez1996.github.io/Lumina/' 
+            url: 'https://nachomartinez1996.github.io/Lumina/'
         })
-        .then(() => console.log('Gracias por compartir la Luz'))
-        .catch((error) => console.log('Error al compartir', error));
+            .then(() => console.log('Gracias por compartir la Luz'))
+            .catch((error) => console.log('Error al compartir', error));
     } else {
         navigator.clipboard.writeText('https://nachomartinez1996.github.io/Lumina/');
         alert('¡Enlace copiado! Ya podés pegarlo y compartir la Luz.');
