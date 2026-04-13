@@ -735,7 +735,11 @@ function esPanelLateralDerecha(id) {
 function obtenerPanelLateralActivoDerecha() {
     return PANELES_LATERALES_DERECHA
         .map(id => document.getElementById(id))
-        .find(panel => panel && !panel.classList.contains('translate-x-full')) || null;
+        .find(panel => {
+            if (!panel || panel.classList.contains('translate-x-full')) return false;
+            if (panel.id === 'panel-busqueda' && panel.classList.contains('panel-busqueda-asomado')) return false;
+            return true;
+        }) || null;
 }
 
 function actualizarOverlayPanelesDerecha() {
@@ -747,6 +751,53 @@ function actualizarOverlayPanelesDerecha() {
     overlay.setAttribute('aria-hidden', hayPanelActivo ? 'false' : 'true');
 }
 
+function tieneResultadosBusquedaActivos() {
+    return document.getElementById('contenido-busqueda')?.classList.contains('busqueda-con-resultados')
+        && !!terminoBusquedaActual.trim();
+}
+
+function ocultarPanelBusquedaCompleto() {
+    const panel = document.getElementById('panel-busqueda');
+    if (!panel) return;
+
+    panel.classList.remove('panel-busqueda-asomado');
+    panel.classList.add('translate-x-full');
+
+    const tirador = panel.querySelector('.panel-busqueda-tirador');
+    if (tirador) tirador.hidden = true;
+}
+
+function cerrarPanelBusquedaAsomado() {
+    const panel = document.getElementById('panel-busqueda');
+    if (!panel) return;
+
+    if (!tieneResultadosBusquedaActivos()) {
+        ocultarPanelBusquedaCompleto();
+        actualizarOverlayPanelesDerecha();
+        return;
+    }
+
+    panel.classList.add('panel-busqueda-asomado');
+    panel.classList.remove('translate-x-full');
+
+    const tirador = panel.querySelector('.panel-busqueda-tirador');
+    if (tirador && panel.dataset.abiertoAlMenosUnaVez === 'true') {
+        tirador.hidden = false;
+    }
+
+    actualizarOverlayPanelesDerecha();
+}
+
+function cerrarPanelBusquedaCompleto() {
+    if (tieneResultadosBusquedaActivos()) {
+        cerrarPanelBusquedaAsomado();
+        return;
+    }
+
+    ocultarPanelBusquedaCompleto();
+    actualizarOverlayPanelesDerecha();
+}
+
 function abrirPanelLateral(id) {
     const panel = document.getElementById(id);
     if (!panel) return;
@@ -756,7 +807,11 @@ function abrirPanelLateral(id) {
         if (!panelActual || panelId === id) return;
         panelActual.style.transform = '';
         panelActual.classList.remove('panel-lateral-arrastrando');
-        panelActual.classList.add('translate-x-full');
+        if (panelId === 'panel-busqueda') {
+            ocultarPanelBusquedaCompleto();
+        } else {
+            panelActual.classList.add('translate-x-full');
+        }
     });
 
     cerrarPanelLumina();
@@ -764,6 +819,12 @@ function abrirPanelLateral(id) {
     panel.style.transform = '';
     panel.classList.remove('panel-lateral-arrastrando');
     panel.classList.remove('translate-x-full');
+    if (id === 'panel-busqueda') {
+        panel.classList.remove('panel-busqueda-asomado');
+        panel.dataset.abiertoAlMenosUnaVez = 'true';
+        const tirador = panel.querySelector('.panel-busqueda-tirador');
+        if (tirador) tirador.hidden = true;
+    }
     actualizarOverlayPanelesDerecha();
 }
 
@@ -772,6 +833,15 @@ function cerrarPanelActivoLateral() {
     if (panelActivo) {
         cerrarPanel(panelActivo.id);
     }
+}
+
+function inicializarTiradorPanelBusqueda() {
+    const tirador = document.querySelector('#panel-busqueda .panel-busqueda-tirador');
+    if (!tirador) return;
+
+    tirador.addEventListener('click', () => {
+        abrirPanelLateral('panel-busqueda');
+    });
 }
 
 function inicializarGestosPanelesLaterales() {
@@ -1758,6 +1828,48 @@ function obtenerClaveVersiculoColeccion(libro, capitulo, versiculo) {
     return `${String(libro || '').trim()}_${Number(capitulo)}_${Number(versiculo)}`;
 }
 
+function normalizarModoOrdenColeccion(modo) {
+    return modo === 'manual' ? 'manual' : 'biblico';
+}
+
+function compararEntradasColeccionSegunBiblia(a, b) {
+    const ordenLibroA = ORDEN_LIBROS_BIBLICOS.get(a.libro);
+    const ordenLibroB = ORDEN_LIBROS_BIBLICOS.get(b.libro);
+
+    if (ordenLibroA !== ordenLibroB) {
+        if (Number.isFinite(ordenLibroA) && Number.isFinite(ordenLibroB)) {
+            return ordenLibroA - ordenLibroB;
+        }
+        if (Number.isFinite(ordenLibroA)) return -1;
+        if (Number.isFinite(ordenLibroB)) return 1;
+        return String(a.libro || '').localeCompare(String(b.libro || ''), 'es');
+    }
+
+    if (Number(a.capitulo) !== Number(b.capitulo)) {
+        return Number(a.capitulo) - Number(b.capitulo);
+    }
+
+    if (Number(a.versiculo) !== Number(b.versiculo)) {
+        return Number(a.versiculo) - Number(b.versiculo);
+    }
+
+    return String(a.texto || '').localeCompare(String(b.texto || ''), 'es');
+}
+
+function ordenarVersiculosColeccionSegunBiblia(versiculos) {
+    return [...versiculos].sort(compararEntradasColeccionSegunBiblia);
+}
+
+function obtenerVersiculosColeccionOrdenados(coleccion) {
+    if (!coleccion) return [];
+    if (coleccion.modoOrden === 'manual') return [...coleccion.versiculos];
+    return ordenarVersiculosColeccionSegunBiblia(coleccion.versiculos);
+}
+
+function coleccionUsaOrdenManual(coleccion) {
+    return normalizarModoOrdenColeccion(coleccion?.modoOrden) === 'manual';
+}
+
 function normalizarEntradaColeccionVersiculos(item) {
     if (!item || typeof item !== 'object') return null;
 
@@ -1784,6 +1896,7 @@ function normalizarColeccionVersiculos(item) {
 
     const nombre = normalizarNombreColeccionVersiculos(item.nombre);
     if (!nombre) return null;
+    const modoOrden = normalizarModoOrdenColeccion(item.modoOrden);
 
     const entradasNormalizadas = Array.isArray(item.versiculos)
         ? item.versiculos.map(normalizarEntradaColeccionVersiculos).filter(Boolean)
@@ -1803,7 +1916,8 @@ function normalizarColeccionVersiculos(item) {
         nombre,
         createdAt,
         updatedAt,
-        versiculos
+        modoOrden,
+        versiculos: modoOrden === 'manual' ? versiculos : ordenarVersiculosColeccionSegunBiblia(versiculos)
     };
 }
 
@@ -1844,6 +1958,7 @@ function crearColeccionVersiculos(nombre) {
         nombre: nombreNormalizado,
         createdAt: ahora,
         updatedAt: ahora,
+        modoOrden: 'biblico',
         versiculos: []
     };
 
@@ -1871,13 +1986,17 @@ function agregarVersiculoAColeccion(coleccionId, libro, capitulo, versiculo, tex
         return { agregado: false, duplicado: true, coleccion, mensaje: `Ese versículo ya está en "${coleccion.nombre}"` };
     }
 
-    coleccion.versiculos.push({
+    const nuevaEntrada = {
         libro,
         capitulo,
         versiculo,
         texto: String(texto || '').trim(),
         agregadoEn: new Date().toISOString()
-    });
+    };
+
+    coleccion.versiculos = coleccionUsaOrdenManual(coleccion)
+        ? [...coleccion.versiculos, nuevaEntrada]
+        : ordenarVersiculosColeccionSegunBiblia([...coleccion.versiculos, nuevaEntrada]);
     coleccion.updatedAt = new Date().toISOString();
     ultimaColeccionVersiculosId = coleccion.id;
     guardarColeccionesVersiculos();
@@ -1938,6 +2057,53 @@ function renombrarColeccionVersiculos(coleccionId, nuevoNombre) {
     coleccion.updatedAt = new Date().toISOString();
     guardarColeccionesVersiculos();
     return { ok: true, mensaje: `Colección renombrada a "${nombreNormalizado}"`, coleccion };
+}
+
+function moverVersiculoEnColeccion(coleccionId, libro, capitulo, versiculo, direccion) {
+    const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
+    if (!coleccion) return { ok: false, coleccion: null };
+
+    const desplazamiento = direccion === 'arriba'
+        ? -1
+        : direccion === 'abajo'
+            ? 1
+            : 0;
+    if (!desplazamiento) return { ok: false, coleccion };
+
+    const versiculosOrdenados = obtenerVersiculosColeccionOrdenados(coleccion);
+    const claveBuscada = obtenerClaveVersiculoColeccion(libro, capitulo, versiculo);
+    const indiceActual = versiculosOrdenados.findIndex(
+        item => obtenerClaveVersiculoColeccion(item.libro, item.capitulo, item.versiculo) === claveBuscada
+    );
+    if (indiceActual === -1) return { ok: false, coleccion };
+
+    const nuevoIndice = indiceActual + desplazamiento;
+    if (nuevoIndice < 0 || nuevoIndice >= versiculosOrdenados.length) {
+        return { ok: false, coleccion };
+    }
+
+    [versiculosOrdenados[indiceActual], versiculosOrdenados[nuevoIndice]] = [versiculosOrdenados[nuevoIndice], versiculosOrdenados[indiceActual]];
+
+    coleccion.versiculos = versiculosOrdenados;
+    coleccion.modoOrden = 'manual';
+    coleccion.updatedAt = new Date().toISOString();
+    ultimaColeccionVersiculosId = coleccion.id;
+    guardarColeccionesVersiculos();
+    return { ok: true, coleccion };
+}
+
+function restablecerOrdenBiblicoColeccion(coleccionId) {
+    const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
+    if (!coleccion) {
+        return { ok: false, mensaje: 'No encontramos esa colección' };
+    }
+
+    coleccion.versiculos = ordenarVersiculosColeccionSegunBiblia(coleccion.versiculos);
+    coleccion.modoOrden = 'biblico';
+    coleccion.updatedAt = new Date().toISOString();
+    ultimaColeccionVersiculosId = coleccion.id;
+    guardarColeccionesVersiculos();
+    return { ok: true, mensaje: `Orden bíblico restaurado en "${coleccion.nombre}"`, coleccion };
 }
 
 function formatearFechaColeccion(fechaIso) {
@@ -2446,9 +2612,26 @@ function renderizarPanelFavoritosGuardados() {
 }
 
 function obtenerVistaPreviaColeccion(coleccion, limite = 3) {
-    return coleccion.versiculos
+    return obtenerVersiculosColeccionOrdenados(coleccion)
         .slice(0, limite)
         .map(item => formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo));
+}
+
+function crearBotonAccionColeccion(icono, titulo, detalle, onClick, claseExtra = '') {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = `coleccion-detalle-toolbar-btn ${claseExtra}`.trim();
+    boton.innerHTML = `
+        <span class="coleccion-detalle-toolbar-btn-icono" aria-hidden="true">
+            <i class="fas ${icono}"></i>
+        </span>
+        <span class="coleccion-detalle-toolbar-btn-copy">
+            <span class="coleccion-detalle-toolbar-btn-titulo">${escapeHtml(titulo)}</span>
+            <span class="coleccion-detalle-toolbar-btn-meta">${escapeHtml(detalle)}</span>
+        </span>
+    `;
+    boton.addEventListener('click', onClick);
+    return boton;
 }
 
 function crearTarjetaColeccion(coleccion) {
@@ -2485,50 +2668,92 @@ function renderizarDetalleColeccion(coleccion, contenedor) {
     botonVolver.className = 'coleccion-detalle-back';
     botonVolver.innerHTML = '<i class="fas fa-arrow-left" aria-hidden="true"></i><span>Colecciones</span>';
     botonVolver.addEventListener('click', () => mostrarPanelColecciones());
-
-    const acciones = document.createElement('div');
-    acciones.className = 'coleccion-detalle-toolbar-botones';
-
-    const botonRenombrar = document.createElement('button');
-    botonRenombrar.type = 'button';
-    botonRenombrar.className = 'coleccion-detalle-toolbar-btn';
-    botonRenombrar.innerHTML = '<i class="fas fa-pen" aria-hidden="true"></i><span>Renombrar</span>';
-    botonRenombrar.addEventListener('click', () => renombrarColeccionDesdePanel(coleccion.id));
-
-    const botonTexto = document.createElement('button');
-    botonTexto.type = 'button';
-    botonTexto.className = 'coleccion-detalle-toolbar-btn';
-    botonTexto.innerHTML = '<i class="fas fa-share-alt" aria-hidden="true"></i><span>Texto</span>';
-    botonTexto.addEventListener('click', () => compartirColeccionComoTexto(coleccion.id));
-
-    const botonPdf = document.createElement('button');
-    botonPdf.type = 'button';
-    botonPdf.className = 'coleccion-detalle-toolbar-btn';
-    botonPdf.innerHTML = '<i class="fas fa-file-pdf" aria-hidden="true"></i><span>PDF</span>';
-    botonPdf.addEventListener('click', () => exportarColeccionComoPDF(coleccion.id));
-
-    const botonEliminar = document.createElement('button');
-    botonEliminar.type = 'button';
-    botonEliminar.className = 'coleccion-detalle-toolbar-btn';
-    botonEliminar.innerHTML = '<i class="fas fa-trash" aria-hidden="true"></i><span>Eliminar</span>';
-    botonEliminar.addEventListener('click', () => eliminarColeccionDesdePanel(coleccion.id));
-
-    acciones.appendChild(botonRenombrar);
-    acciones.appendChild(botonTexto);
-    acciones.appendChild(botonPdf);
-    acciones.appendChild(botonEliminar);
     toolbar.appendChild(botonVolver);
-    toolbar.appendChild(acciones);
     contenedor.appendChild(toolbar);
 
     const hero = document.createElement('section');
     hero.className = 'coleccion-detalle-hero';
+    const usaOrdenManual = coleccionUsaOrdenManual(coleccion);
     hero.innerHTML = `
         <p class="coleccion-detalle-eyebrow">Colección de versículos</p>
         <h3 class="coleccion-detalle-titulo">${escapeHtml(coleccion.nombre)}</h3>
         <p class="coleccion-detalle-meta">${coleccion.versiculos.length} versículo${coleccion.versiculos.length === 1 ? '' : 's'} guardado${coleccion.versiculos.length === 1 ? '' : 's'} · Actualizada ${escapeHtml(formatearFechaColeccion(coleccion.updatedAt || coleccion.createdAt) || 'recién')}</p>
+        <div class="coleccion-detalle-orden">
+            <span class="coleccion-detalle-orden-badge">${usaOrdenManual ? 'Orden manual' : 'Orden bíblico automático'}</span>
+            <p class="coleccion-detalle-orden-texto">${usaOrdenManual
+            ? 'Las flechas están marcando la secuencia. Si querés, podés volver al orden bíblico desde la barra superior.'
+            : 'Los versículos se acomodan solos según su aparición en la Biblia. Si querés afinar el recorrido, usá las flechas.'}</p>
+        </div>
     `;
     contenedor.appendChild(hero);
+
+    const accionesPanel = document.createElement('section');
+    accionesPanel.className = 'coleccion-detalle-acciones-panel';
+    accionesPanel.innerHTML = `
+        <p class="coleccion-detalle-acciones-eyebrow">Herramientas</p>
+        <p class="coleccion-detalle-acciones-texto">Organizá, compartí o exportá esta colección desde un solo lugar.</p>
+    `;
+
+    const acciones = document.createElement('div');
+    acciones.className = 'coleccion-detalle-toolbar-botones';
+
+    acciones.appendChild(
+        crearBotonAccionColeccion(
+            'fa-pen',
+            'Renombrar',
+            'Cambiá el nombre de la colección.',
+            () => renombrarColeccionDesdePanel(coleccion.id)
+        )
+    );
+
+    acciones.appendChild(
+        crearBotonAccionColeccion(
+            'fa-share-alt',
+            'Compartir texto',
+            'Copiá la colección en formato simple.',
+            () => compartirColeccionComoTexto(coleccion.id)
+        )
+    );
+
+    acciones.appendChild(
+        crearBotonAccionColeccion(
+            'fa-file-pdf',
+            'Exportar PDF',
+            'Prepará una hoja imprimible tipo retiro.',
+            () => exportarColeccionComoPDF(coleccion.id)
+        )
+    );
+
+    if (usaOrdenManual) {
+        acciones.appendChild(
+            crearBotonAccionColeccion(
+                'fa-list-ol',
+                'Orden bíblico',
+                'Volvé al orden automático de la Biblia.',
+                () => {
+                    const resultado = restablecerOrdenBiblicoColeccion(coleccion.id);
+                    lanzarToast(resultado.mensaje);
+                    refrescarPanelGuardadosSiVisible();
+                }
+            )
+        );
+    }
+
+    const accionesPeligro = document.createElement('div');
+    accionesPeligro.className = 'coleccion-detalle-toolbar-peligro';
+    accionesPeligro.appendChild(
+        crearBotonAccionColeccion(
+            'fa-trash',
+            'Eliminar colección',
+            'Borrá esta colección completa del dispositivo.',
+            () => eliminarColeccionDesdePanel(coleccion.id),
+            'coleccion-detalle-toolbar-btn-peligro'
+        )
+    );
+
+    accionesPanel.appendChild(acciones);
+    accionesPanel.appendChild(accionesPeligro);
+    contenedor.appendChild(accionesPanel);
 
     if (coleccion.versiculos.length === 0) {
         const vacio = document.createElement('div');
@@ -2541,7 +2766,9 @@ function renderizarDetalleColeccion(coleccion, contenedor) {
     const lista = document.createElement('div');
     lista.className = 'coleccion-detalle-lista mt-3';
 
-    coleccion.versiculos.forEach(item => {
+    const versiculosOrdenados = obtenerVersiculosColeccionOrdenados(coleccion);
+
+    versiculosOrdenados.forEach((item, index) => {
         const entrada = document.createElement('article');
         entrada.className = 'coleccion-entrada';
 
@@ -2558,6 +2785,37 @@ function renderizarDetalleColeccion(coleccion, contenedor) {
             irAVersiculo(item.libro, item.capitulo, item.versiculo);
         });
 
+        const accionesEntrada = document.createElement('div');
+        accionesEntrada.className = 'coleccion-entrada-acciones';
+
+        const botonSubir = document.createElement('button');
+        botonSubir.type = 'button';
+        botonSubir.className = 'coleccion-entrada-mover';
+        botonSubir.innerHTML = '<i class="fas fa-chevron-up" aria-hidden="true"></i>';
+        botonSubir.disabled = index === 0;
+        botonSubir.title = 'Mover hacia arriba';
+        botonSubir.setAttribute('aria-label', `Mover ${formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo)} hacia arriba`);
+        botonSubir.addEventListener('click', () => {
+            const resultado = moverVersiculoEnColeccion(coleccion.id, item.libro, item.capitulo, item.versiculo, 'arriba');
+            if (resultado.ok) {
+                refrescarPanelGuardadosSiVisible();
+            }
+        });
+
+        const botonBajar = document.createElement('button');
+        botonBajar.type = 'button';
+        botonBajar.className = 'coleccion-entrada-mover';
+        botonBajar.innerHTML = '<i class="fas fa-chevron-down" aria-hidden="true"></i>';
+        botonBajar.disabled = index === versiculosOrdenados.length - 1;
+        botonBajar.title = 'Mover hacia abajo';
+        botonBajar.setAttribute('aria-label', `Mover ${formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo)} hacia abajo`);
+        botonBajar.addEventListener('click', () => {
+            const resultado = moverVersiculoEnColeccion(coleccion.id, item.libro, item.capitulo, item.versiculo, 'abajo');
+            if (resultado.ok) {
+                refrescarPanelGuardadosSiVisible();
+            }
+        });
+
         const botonQuitar = document.createElement('button');
         botonQuitar.type = 'button';
         botonQuitar.className = 'coleccion-entrada-remove';
@@ -2571,7 +2829,10 @@ function renderizarDetalleColeccion(coleccion, contenedor) {
         });
 
         entrada.appendChild(botonPrincipal);
-        entrada.appendChild(botonQuitar);
+        accionesEntrada.appendChild(botonSubir);
+        accionesEntrada.appendChild(botonBajar);
+        accionesEntrada.appendChild(botonQuitar);
+        entrada.appendChild(accionesEntrada);
         lista.appendChild(entrada);
     });
 
@@ -3280,9 +3541,103 @@ function volverDesdeLectio() {
 // --------------------------------------------------------------
 let indiceBusqueda = [];
 let terminoBusquedaActual = '';
+const FILTRO_BUSQUEDA_TODOS = '__todos__';
+const FILTRO_BUSQUEDA_EVANGELIO = '__evangelio__';
+let filtroLibroBusquedaActual = FILTRO_BUSQUEDA_TODOS;
 
 function normalizarTerminoBusqueda(termino) {
     return (termino || '').trim().replace(/\s+/g, ' ');
+}
+
+function normalizarFiltroLibroBusqueda(filtro) {
+    const valor = String(filtro || '').trim();
+
+    if (!valor || valor === FILTRO_BUSQUEDA_TODOS) return FILTRO_BUSQUEDA_TODOS;
+    if (valor === FILTRO_BUSQUEDA_EVANGELIO) return FILTRO_BUSQUEDA_EVANGELIO;
+
+    return ORDEN_LIBROS_BIBLICOS.has(valor) ? valor : FILTRO_BUSQUEDA_TODOS;
+}
+
+function obtenerEtiquetaFiltroLibroBusqueda(filtro = filtroLibroBusquedaActual) {
+    const valorNormalizado = normalizarFiltroLibroBusqueda(filtro);
+    if (valorNormalizado === FILTRO_BUSQUEDA_TODOS) return 'Toda la Biblia';
+    if (valorNormalizado === FILTRO_BUSQUEDA_EVANGELIO) return 'Evangelio';
+    return valorNormalizado;
+}
+
+function poblarSelectorFiltroLibroBusqueda() {
+    const selector = document.getElementById('busqueda-filtro-libro');
+    if (!selector) return;
+
+    const valorActual = normalizarFiltroLibroBusqueda(selector.value || filtroLibroBusquedaActual);
+    selector.innerHTML = '';
+
+    const atajos = document.createElement('optgroup');
+    atajos.label = 'Atajos';
+
+    const opcionTodos = document.createElement('option');
+    opcionTodos.value = FILTRO_BUSQUEDA_TODOS;
+    opcionTodos.textContent = 'Toda la Biblia';
+    atajos.appendChild(opcionTodos);
+
+    const opcionEvangelio = document.createElement('option');
+    opcionEvangelio.value = FILTRO_BUSQUEDA_EVANGELIO;
+    opcionEvangelio.textContent = 'Evangelio';
+    atajos.appendChild(opcionEvangelio);
+
+    selector.appendChild(atajos);
+
+    Object.entries(canonBiblico).forEach(([testamento, libros]) => {
+        const grupo = document.createElement('optgroup');
+        grupo.label = testamento;
+
+        libros.forEach(libro => {
+            const opcion = document.createElement('option');
+            opcion.value = libro.nombre;
+            opcion.textContent = libro.nombre;
+            grupo.appendChild(opcion);
+        });
+
+        selector.appendChild(grupo);
+    });
+
+    filtroLibroBusquedaActual = valorActual;
+    selector.value = valorActual;
+}
+
+function sincronizarSelectorFiltroLibroBusqueda() {
+    const selector = document.getElementById('busqueda-filtro-libro');
+    if (!selector) return;
+    if (selector.value !== filtroLibroBusquedaActual) {
+        selector.value = filtroLibroBusquedaActual;
+    }
+}
+
+function coincideLibroConFiltroBusqueda(libro, filtro = filtroLibroBusquedaActual) {
+    const valorNormalizado = normalizarFiltroLibroBusqueda(filtro);
+    if (valorNormalizado === FILTRO_BUSQUEDA_TODOS) return true;
+    if (valorNormalizado === FILTRO_BUSQUEDA_EVANGELIO) return EVANGELIOS_CELEBRACION.includes(libro);
+    return libro === valorNormalizado;
+}
+
+function aplicarFiltroLibroBusqueda(items, filtro = filtroLibroBusquedaActual) {
+    const valorNormalizado = normalizarFiltroLibroBusqueda(filtro);
+    if (valorNormalizado === FILTRO_BUSQUEDA_TODOS) return items;
+    return items.filter(item => coincideLibroConFiltroBusqueda(item.libro, valorNormalizado));
+}
+
+function obtenerTextoContadorBusqueda(termino, total, filtro = filtroLibroBusquedaActual) {
+    const terminoNormalizado = normalizarTerminoBusqueda(termino);
+    const valorFiltro = normalizarFiltroLibroBusqueda(filtro);
+    const sufijoFiltro = valorFiltro === FILTRO_BUSQUEDA_TODOS
+        ? ''
+        : ` en ${obtenerEtiquetaFiltroLibroBusqueda(valorFiltro)}`;
+
+    if (!terminoNormalizado) {
+        return `Buscá una palabra o frase${sufijoFiltro}`;
+    }
+
+    return `${total} resultado${total !== 1 ? 's' : ''} para "${terminoNormalizado}"${sufijoFiltro}`;
 }
 
 function obtenerInputsBusquedaDisponibles() {
@@ -3328,6 +3683,7 @@ function actualizarEstadoControlesBusqueda() {
     const btnLimpiarPanel = document.getElementById('btn-limpiar-panel-busqueda');
     const busquedaMovil = document.getElementById('busqueda-input-movil');
     const busquedaPanel = document.getElementById('busqueda-panel-input');
+    const hayFiltroActivo = normalizarFiltroLibroBusqueda(document.getElementById('busqueda-filtro-libro')?.value || filtroLibroBusquedaActual) !== FILTRO_BUSQUEDA_TODOS;
 
     if (btnBuscarMovil && buscadorMovil) {
         const expandido = !buscadorMovil.classList.contains('hidden');
@@ -3340,7 +3696,7 @@ function actualizarEstadoControlesBusqueda() {
     }
 
     if (btnLimpiarPanel && busquedaPanel) {
-        btnLimpiarPanel.hidden = !busquedaPanel.value.trim();
+        btnLimpiarPanel.hidden = !busquedaPanel.value.trim() && !hayFiltroActivo;
     }
 }
 
@@ -3358,14 +3714,19 @@ function mostrarBuscadorMovil(mostrar) {
     }
 }
 
-function renderizarEstadoBusquedaVacio(termino = '') {
+function renderizarEstadoBusquedaVacio(termino = '', filtro = filtroLibroBusquedaActual) {
     const terminoNormalizado = normalizarTerminoBusqueda(termino);
+    const valorFiltro = normalizarFiltroLibroBusqueda(filtro);
+    const etiquetaFiltro = obtenerEtiquetaFiltroLibroBusqueda(valorFiltro);
+
     if (!terminoNormalizado) {
         return `
             <div class="resultado-busqueda-empty">
                 <div class="resultado-busqueda-empty-icon"><i class="fas fa-search"></i></div>
-                <div class="resultado-busqueda-empty-titulo">Buscá en versículos, comentarios y notas</div>
-                <div class="resultado-busqueda-empty-texto">Escribí una palabra o una frase breve para encontrar pasajes, comentarios de la Tradición y tus notas personales en un mismo panel.</div>
+                <div class="resultado-busqueda-empty-titulo">${valorFiltro === FILTRO_BUSQUEDA_TODOS ? 'Buscá en versículos, comentarios y notas' : `Filtrando por ${escapeHtml(etiquetaFiltro)}`}</div>
+                <div class="resultado-busqueda-empty-texto">${valorFiltro === FILTRO_BUSQUEDA_TODOS
+                ? 'Escribí una palabra o una frase breve para encontrar pasajes, comentarios de la Tradición y tus notas personales en un mismo panel.'
+                : `Escribí una palabra o una frase breve para buscar solo dentro de ${escapeHtml(etiquetaFiltro)}.`}</div>
             </div>
         `;
     }
@@ -3373,8 +3734,10 @@ function renderizarEstadoBusquedaVacio(termino = '') {
     return `
         <div class="resultado-busqueda-empty">
             <div class="resultado-busqueda-empty-icon"><i class="fas fa-book-open"></i></div>
-            <div class="resultado-busqueda-empty-titulo">Sin coincidencias para "${escapeHtml(terminoNormalizado)}"</div>
-            <div class="resultado-busqueda-empty-texto">Probá con una sola palabra, una variante singular/plural o un término más corto para ampliar los resultados en versículos, comentarios y notas.</div>
+            <div class="resultado-busqueda-empty-titulo">Sin coincidencias para "${escapeHtml(terminoNormalizado)}"${valorFiltro === FILTRO_BUSQUEDA_TODOS ? '' : ` en ${escapeHtml(etiquetaFiltro)}`}</div>
+            <div class="resultado-busqueda-empty-texto">${valorFiltro === FILTRO_BUSQUEDA_TODOS
+            ? 'Probá con una sola palabra, una variante singular/plural o un término más corto para ampliar los resultados en versículos, comentarios y notas.'
+            : `Probá con otra palabra o cambiá el filtro de libro para ampliar los resultados fuera de ${escapeHtml(etiquetaFiltro)}.`}</div>
         </div>
     `;
 }
@@ -3721,11 +4084,11 @@ function buscarNotas(termino) {
     return resultados.sort(compararFavoritosPorOrdenBiblico);
 }
 
-function buscarResultadosBusqueda(termino) {
+function buscarResultadosBusqueda(termino, filtro = filtroLibroBusquedaActual) {
     const resultados = {
-        versiculos: termino ? buscarVersiculos(termino) : [],
-        comentarios: termino ? buscarComentarios(termino) : [],
-        notas: termino ? buscarNotas(termino) : []
+        versiculos: termino ? aplicarFiltroLibroBusqueda(buscarVersiculos(termino), filtro) : [],
+        comentarios: termino ? aplicarFiltroLibroBusqueda(buscarComentarios(termino), filtro) : [],
+        notas: termino ? aplicarFiltroLibroBusqueda(buscarNotas(termino), filtro) : []
     };
 
     let numeroResultado = 1;
@@ -3743,7 +4106,9 @@ function mostrarResultadosBusqueda(termino) {
     const terminoNormalizado = normalizarTerminoBusqueda(termino);
     const contenedor = document.getElementById('contenido-busqueda');
     const contador = document.getElementById('contador-busqueda');
-    const resultados = buscarResultadosBusqueda(terminoNormalizado);
+    filtroLibroBusquedaActual = normalizarFiltroLibroBusqueda(document.getElementById('busqueda-filtro-libro')?.value || filtroLibroBusquedaActual);
+    sincronizarSelectorFiltroLibroBusqueda();
+    const resultados = buscarResultadosBusqueda(terminoNormalizado, filtroLibroBusquedaActual);
     terminoBusquedaActual = terminoNormalizado;
 
     sincronizarInputsBusqueda(terminoNormalizado);
@@ -3755,15 +4120,13 @@ function mostrarResultadosBusqueda(termino) {
     cerrarPanel('panel-concordancia');
 
     if (contador) {
-        contador.textContent = terminoNormalizado
-            ? `${resultados.total} resultado${resultados.total !== 1 ? 's' : ''} para "${terminoNormalizado}"`
-            : 'Buscá una palabra o frase';
+        contador.textContent = obtenerTextoContadorBusqueda(terminoNormalizado, resultados.total, filtroLibroBusquedaActual);
     }
 
     if (contenedor) {
         if (!terminoNormalizado || resultados.total === 0) {
             contenedor.classList.remove('busqueda-con-resultados');
-            contenedor.innerHTML = renderizarEstadoBusquedaVacio(terminoNormalizado);
+            contenedor.innerHTML = renderizarEstadoBusquedaVacio(terminoNormalizado, filtroLibroBusquedaActual);
         } else {
             renderizarResultadosBusqueda(contenedor, resultados);
         }
@@ -3775,20 +4138,22 @@ function mostrarResultadosBusqueda(termino) {
 
 function limpiarBusqueda(cerrarPanelResultados = false) {
     terminoBusquedaActual = '';
+    filtroLibroBusquedaActual = FILTRO_BUSQUEDA_TODOS;
     obtenerInputsBusquedaDisponibles().forEach(input => {
         input.value = '';
     });
+    sincronizarSelectorFiltroLibroBusqueda();
 
     const contenedor = document.getElementById('contenido-busqueda');
     const contador = document.getElementById('contador-busqueda');
 
     if (contador) {
-        contador.textContent = 'Buscá una palabra o frase';
+        contador.textContent = obtenerTextoContadorBusqueda('', 0, filtroLibroBusquedaActual);
     }
 
     if (contenedor) {
         contenedor.classList.remove('busqueda-con-resultados');
-        contenedor.innerHTML = renderizarEstadoBusquedaVacio('');
+        contenedor.innerHTML = renderizarEstadoBusquedaVacio('', filtroLibroBusquedaActual);
     }
 
     if (cerrarPanelResultados) {
@@ -3959,17 +4324,28 @@ function compartirColeccionComoTexto(coleccionId) {
         return;
     }
 
-    if (coleccion.versiculos.length === 0) {
+    const versiculosOrdenados = obtenerVersiculosColeccionOrdenados(coleccion);
+
+    if (versiculosOrdenados.length === 0) {
         lanzarToast('La colección está vacía');
         return;
     }
 
     const encabezado = `Colección: ${coleccion.nombre}`;
-    const cuerpo = coleccion.versiculos
+    const cuerpo = versiculosOrdenados
         .map(item => `${formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo)}\n${String(item.texto || '').trim()}`)
         .join('\n\n');
     const contenido = `${encabezado}\n\n${cuerpo}\n\n- Compartido desde Lumina`;
     compartirTexto(contenido, `Colección: ${coleccion.nombre}`);
+}
+
+function generarLineasRetiroParaPDF(cantidad = 12) {
+    return Array.from({ length: cantidad }, (_, indice) => `
+        <div class="retiro-linea" aria-hidden="true">
+            <span class="retiro-linea-numero">${indice + 1}</span>
+            <span class="retiro-linea-trazo"></span>
+        </div>
+    `).join('');
 }
 
 function generarHtmlColeccionParaPDF(coleccion) {
@@ -3978,7 +4354,9 @@ function generarHtmlColeccionParaPDF(coleccion) {
         month: 'long',
         year: 'numeric'
     });
-    const entradasHtml = coleccion.versiculos.map((item, index) => `
+    const versiculosOrdenados = obtenerVersiculosColeccionOrdenados(coleccion);
+    const lineasRetiroHtml = generarLineasRetiroParaPDF(11);
+    const entradasHtml = versiculosOrdenados.map((item, index) => `
         <article class="entrada">
             <div class="entrada-numero">${index + 1}</div>
             <div class="entrada-contenido">
@@ -4072,6 +4450,57 @@ function generarHtmlColeccionParaPDF(coleccion) {
                     font: 600 0.82rem/1.5 system-ui, sans-serif;
                     text-align: right;
                 }
+                .retiro {
+                    margin-top: 2.4rem;
+                    padding: 1.4rem 1.35rem 0;
+                    border: 1px solid rgba(184, 134, 11, 0.18);
+                    border-radius: 1.2rem;
+                    background:
+                        radial-gradient(circle at top, rgba(184, 134, 11, 0.12), transparent 52%),
+                        rgba(255, 255, 255, 0.62);
+                    break-before: page;
+                    page-break-before: always;
+                }
+                .retiro-eyebrow {
+                    margin: 0 0 0.45rem;
+                    color: var(--oro);
+                    font: 800 0.74rem/1.4 system-ui, sans-serif;
+                    letter-spacing: 0.22em;
+                    text-transform: uppercase;
+                }
+                .retiro-titulo {
+                    margin: 0;
+                    font-size: 1.45rem;
+                    line-height: 1.2;
+                }
+                .retiro-texto {
+                    margin: 0.55rem 0 1.15rem;
+                    color: var(--muted);
+                    font: 600 0.92rem/1.6 system-ui, sans-serif;
+                }
+                .retiro-lineas {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.8rem;
+                }
+                .retiro-linea {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.7rem;
+                    min-height: 1.8rem;
+                }
+                .retiro-linea-numero {
+                    width: 1.3rem;
+                    color: rgba(123, 106, 88, 0.85);
+                    font: 700 0.72rem/1 system-ui, sans-serif;
+                    text-align: right;
+                    flex-shrink: 0;
+                }
+                .retiro-linea-trazo {
+                    flex: 1;
+                    height: 1.8rem;
+                    border-bottom: 1px solid rgba(184, 134, 11, 0.32);
+                }
                 @page {
                     margin: 1.4cm;
                 }
@@ -4089,6 +4518,12 @@ function generarHtmlColeccionParaPDF(coleccion) {
                 <p class="meta">${coleccion.versiculos.length} versículo${coleccion.versiculos.length === 1 ? '' : 's'} · Preparado el ${escapeHtml(fecha)}</p>
             </header>
             <main>${entradasHtml}</main>
+            <section class="retiro" aria-label="Espacio final para escritura">
+                <p class="retiro-eyebrow">Tipo Lectio Divna</p>
+                <h2 class="retiro-titulo">Eco de la Palabra</h2>
+                <p class="retiro-texto">Un espacio final para anotar luces, resonancias, ideas para compartir o una oración nacida de esta colección.</p>
+                <div class="retiro-lineas">${lineasRetiroHtml}</div>
+            </section>
             <footer class="pie"></footer>
         </body>
         </html>
@@ -6468,6 +6903,8 @@ function irAlInicio() {
     inputsBusqueda.forEach(input => {
         if (input) input.value = "";
     });
+    filtroLibroBusquedaActual = FILTRO_BUSQUEDA_TODOS;
+    sincronizarSelectorFiltroLibroBusqueda();
 
     mostrarBuscadorMovil(false);
     actualizarEstadoControlesBusqueda();
@@ -6629,7 +7066,21 @@ function cerrarPanel(id) {
 
     panel.style.transform = '';
     panel.classList.remove('panel-lateral-arrastrando');
-    panel.classList.add('translate-x-full');
+
+    // El panel de búsqueda tiene un modo "asomado" donde queda un tirador visible
+    if (id === 'panel-busqueda') {
+        if (tieneResultadosBusquedaActivos() && panel.dataset.abiertoAlMenosUnaVez === 'true') {
+            panel.classList.remove('translate-x-full');
+            panel.classList.add('panel-busqueda-asomado');
+
+            const tirador = panel.querySelector('.panel-busqueda-tirador');
+            if (tirador) tirador.hidden = false;
+        } else {
+            ocultarPanelBusquedaCompleto();
+        }
+    } else {
+        panel.classList.add('translate-x-full');
+    }
 
     if (esPanelLateralDerecha(id)) {
         actualizarOverlayPanelesDerecha();
@@ -7134,19 +7585,26 @@ window.onload = async () => {
     const busquedaInput = document.getElementById('busqueda-input');
     const busquedaInputMovil = document.getElementById('busqueda-input-movil');
     const busquedaPanelInput = document.getElementById('busqueda-panel-input');
+    const filtroLibroBusquedaSelect = document.getElementById('busqueda-filtro-libro');
     const btnBuscarMovil = document.getElementById('btn-buscar-movil');
     const btnEjecutarBusquedaMovil = document.getElementById('btn-ejecutar-busqueda-movil');
     const btnEjecutarBusquedaPanel = document.getElementById('btn-ejecutar-busqueda-panel');
     const btnLimpiarBusquedaMovil = document.getElementById('btn-limpiar-busqueda-movil');
     const btnLimpiarPanelBusqueda = document.getElementById('btn-limpiar-panel-busqueda');
 
+    poblarSelectorFiltroLibroBusqueda();
+
     const realizarBusqueda = (terminoPreferido = '') => {
+        filtroLibroBusquedaActual = normalizarFiltroLibroBusqueda(filtroLibroBusquedaSelect?.value || filtroLibroBusquedaActual);
+        sincronizarSelectorFiltroLibroBusqueda();
         const termino = normalizarTerminoBusqueda(terminoPreferido || obtenerTerminoBusquedaActual());
         if (!termino) {
             const contenedorBusqueda = document.getElementById('contenido-busqueda');
             const contadorBusqueda = document.getElementById('contador-busqueda');
-            if (contenedorBusqueda) contenedorBusqueda.innerHTML = renderizarEstadoBusquedaVacio('');
-            if (contadorBusqueda) contadorBusqueda.textContent = 'Buscá una palabra o frase';
+            if (contenedorBusqueda) contenedorBusqueda.innerHTML = renderizarEstadoBusquedaVacio('', filtroLibroBusquedaActual);
+            if (contadorBusqueda) contadorBusqueda.textContent = obtenerTextoContadorBusqueda('', 0, filtroLibroBusquedaActual);
+            if (contenedorBusqueda) contenedorBusqueda.classList.remove('busqueda-con-resultados');
+            actualizarEstadoControlesBusqueda();
             return;
         }
         mostrarResultadosBusqueda(termino);
@@ -7179,6 +7637,14 @@ window.onload = async () => {
         btnEjecutarBusquedaPanel.addEventListener('click', () => realizarBusqueda(busquedaPanelInput?.value));
     }
 
+    if (filtroLibroBusquedaSelect) {
+        filtroLibroBusquedaSelect.addEventListener('change', (event) => {
+            filtroLibroBusquedaActual = normalizarFiltroLibroBusqueda(event.target.value);
+            sincronizarSelectorFiltroLibroBusqueda();
+            realizarBusqueda();
+        });
+    }
+
     if (btnLimpiarBusquedaMovil) {
         btnLimpiarBusquedaMovil.addEventListener('click', () => {
             limpiarBusqueda();
@@ -7196,11 +7662,11 @@ window.onload = async () => {
     const contenedorBusqueda = document.getElementById('contenido-busqueda');
     if (contenedorBusqueda) {
         contenedorBusqueda.classList.remove('busqueda-con-resultados');
-        contenedorBusqueda.innerHTML = renderizarEstadoBusquedaVacio('');
+        contenedorBusqueda.innerHTML = renderizarEstadoBusquedaVacio('', filtroLibroBusquedaActual);
     }
     const contadorBusqueda = document.getElementById('contador-busqueda');
     if (contadorBusqueda) {
-        contadorBusqueda.textContent = 'Buscá una palabra o frase';
+        contadorBusqueda.textContent = obtenerTextoContadorBusqueda('', 0, filtroLibroBusquedaActual);
     }
     actualizarEstadoControlesBusqueda();
 
@@ -7213,6 +7679,7 @@ window.onload = async () => {
 
     verificarBienvenida();
     intentarMostrarVersiculoInicio();
+    inicializarTiradorPanelBusqueda();
     inicializarGestosPanelesLaterales();
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
