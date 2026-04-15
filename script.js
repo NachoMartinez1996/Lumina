@@ -27,7 +27,7 @@ const canonBiblico = {
         { nombre: "Sofonías", caps: 3 },
         { nombre: "Ageo", caps: 2 },
         { nombre: "Zacarías", caps: 14 },
-        { nombre: "Malaquéas", caps: 3 },
+        { nombre: "Malaquias", caps: 3 },
         { nombre: "Salmos", caps: 150 },
         { nombre: "Job", caps: 42 },
         { nombre: "Proverbios", caps: 31 },
@@ -650,11 +650,12 @@ function activarEfectoLlegadaElemento(elemento, claseAnimacion, hacerScroll = fa
     }, 2800);
 }
 
-function registrarLlegadaBusqueda(libro, capitulo, versiculo) {
+function registrarLlegadaBusqueda(libro, capitulo, versiculo, terminoBusqueda = '') {
     llegadaBusquedaPendiente = {
         libro,
         capitulo: Number(capitulo),
         versiculo: Number(versiculo),
+        terminoBusqueda: normalizarTerminoBusqueda(terminoBusqueda),
         tradicionAplicada: false,
         personalAplicada: false
     };
@@ -680,6 +681,29 @@ function limpiarLlegadaBusquedaPendienteSiCorresponde() {
     if (llegadaBusquedaPendiente.tradicionAplicada && llegadaBusquedaPendiente.personalAplicada) {
         llegadaBusquedaPendiente = null;
     }
+}
+
+function obtenerTerminoBusquedaLlegada(libro, capitulo, versiculo, termino = '') {
+    const terminoNormalizado = normalizarTerminoBusqueda(termino);
+    if (terminoNormalizado) return terminoNormalizado;
+
+    const llegada = obtenerLlegadaBusquedaPendiente(libro, capitulo, versiculo);
+    return normalizarTerminoBusqueda(llegada?.terminoBusqueda || '');
+}
+
+function aplicarResaltadoBusquedaEnVersiculoLectura(libro, capitulo, versiculo, termino = '') {
+    const terminoNormalizado = obtenerTerminoBusquedaLlegada(libro, capitulo, versiculo, termino);
+    if (!terminoNormalizado) return;
+
+    const textoOriginal = bibleContent[libro]?.[capitulo]?.[versiculo];
+    if (typeof textoOriginal !== 'string') return;
+
+    const target = document.getElementById(`verse_${libro}_${capitulo}_${versiculo}`);
+    if (!target) return;
+
+    target.querySelectorAll(`[data-versiculo-texto="${versiculo}"]`).forEach(nodo => {
+        nodo.innerHTML = renderizarTextoBusquedaResaltadoHtml(textoOriginal, terminoNormalizado);
+    });
 }
 
 function aplicarLlegadaBusquedaPanel(libro, capitulo, versiculo, tipo) {
@@ -943,14 +967,14 @@ function mostrarConcordancia(palabra) {
     abrirPanelLateral('panel-concordancia');
 }
 
-function irAVersiculo(libro, capitulo, versiculo, origen = '') {
+function irAVersiculo(libro, capitulo, versiculo, origen = '', terminoBusqueda = '') {
     // Cerramos paneles laterales si están abiertos
     cerrarPanel('panel-concordancia');
     cerrarPanel('panel-busqueda');
     cerrarPanel('panel-favoritos');
 
     if (origen === 'busqueda') {
-        registrarLlegadaBusqueda(libro, capitulo, versiculo);
+        registrarLlegadaBusqueda(libro, capitulo, versiculo, terminoBusqueda);
     } else {
         llegadaBusquedaPendiente = null;
     }
@@ -977,6 +1001,10 @@ function irAVersiculo(libro, capitulo, versiculo, origen = '') {
                 if (target) {
                     // 4. Scroll suave hacia el versículo
                     target.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                    if (origen === 'busqueda') {
+                        aplicarResaltadoBusquedaEnVersiculoLectura(libro, capitulo, versiculo, terminoBusqueda);
+                    }
 
                     // 5. Aplicamos el EFECTO GLOW
                     target.classList.add('highlight-glow');
@@ -1649,7 +1677,7 @@ function obtenerNotasPersonales(libro, capitulo, versiculo) {
     const key = `${libro}_${capitulo}_${versiculo}`;
     return notasPersonales[key] || [];
 }
-function mostrarNotasPersonales(libro, capitulo, versiculo) {
+function mostrarNotasPersonales(libro, capitulo, versiculo, terminoBusqueda = '') {
     const container = document.getElementById('lista-notas-personales');
     const notas = obtenerNotasPersonales(libro, capitulo, versiculo);
     if (notas.length === 0) {
@@ -1662,7 +1690,7 @@ function mostrarNotasPersonales(libro, capitulo, versiculo) {
         const identificadorFavorito = obtenerIdentificadorFavoritoComentario(libro, capitulo, versiculo, 'personal', idx);
         return `
         <div class="nota-panel-item border-l-4 border-oro/30 pl-4 py-3 bg-white dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700 rounded-lg mb-3 shadow-sm" data-panel-nota-idx="${idx}">
-            <p class="text-gray-800 dark:text-gray-200 text-sm mb-2 font-medium">${escapeHtml(nota.texto)}</p>
+            <p class="text-gray-800 dark:text-gray-200 text-sm mb-2 font-medium">${renderizarTextoBusquedaResaltadoHtml(nota.texto, terminoBusqueda, { preservarSaltos: true })}</p>
             <div class="flex justify-between items-center mt-2 border-t border-gray-200 dark:border-gray-700 pt-2">
                 <span class="text-[10px] text-gray-600 dark:text-gray-400 uppercase font-sans font-bold">${nota.fecha}</span>
                 <div class="flex gap-2">
@@ -2382,23 +2410,34 @@ function crearBotonFavoritoVersiculo(item) {
     return entrada;
 }
 
-function abrirFavoritoAnotacion(libro, capitulo, versiculo, tipo, idx) {
+function abrirFavoritoAnotacion(libro, capitulo, versiculo, tipo, idx, opciones = {}) {
     cerrarPanel('panel-busqueda');
     cerrarPanel('panel-favoritos');
 
     if (tipo === 'tradicion' && esReferenciaPrefacioTradicion(capitulo, versiculo)) {
-        abrirPrefacio(libro, capitulo);
+        abrirPrefacio(libro, capitulo, opciones);
         return;
     }
 
-    irAVersiculo(libro, capitulo, versiculo);
+    const esBusqueda = opciones?.origen === 'busqueda';
+    irAVersiculo(
+        libro,
+        capitulo,
+        versiculo,
+        esBusqueda ? 'busqueda' : '',
+        opciones?.terminoBusqueda || ''
+    );
     setTimeout(() => {
         abrirPanel(
             libro,
             capitulo,
             versiculo,
             bibleContent[libro]?.[capitulo]?.[versiculo] || "",
-            { tipoLlegada: tipo, idxLlegada: idx }
+            {
+                tipoLlegada: tipo,
+                idxLlegada: idx,
+                terminoBusqueda: opciones?.terminoBusqueda || ''
+            }
         );
     }, 200);
 }
@@ -2419,7 +2458,6 @@ function crearBotonFavoritoComentario(item) {
                 <div class="favorito-entrada-cabecera">
                     <i class="fas fa-comment-dots favorito-entrada-icono" aria-hidden="true"></i>
                     <span class="favorito-entrada-ref">${escapeHtml(referencia)}</span>
-                    <span class="favorito-entrada-badge">Tradición</span>
                 </div>
                 <p class="favorito-entrada-meta">${escapeHtml(item.autor)}</p>
                 <p class="favorito-entrada-texto">"${escapeHtml(truncarTextoFavorito(item.texto))}"</p>
@@ -2458,7 +2496,6 @@ function crearBotonFavoritoNota(item) {
                 <div class="favorito-entrada-cabecera">
                     <i class="fas fa-pen favorito-entrada-icono" aria-hidden="true"></i>
                     <span class="favorito-entrada-ref">${escapeHtml(referencia)}</span>
-                    <span class="favorito-entrada-badge">Nota</span>
                 </div>
                 ${item.fecha ? `<p class="favorito-entrada-meta">${escapeHtml(item.fecha)}</p>` : ''}
                 <p class="favorito-entrada-texto">${escapeHtml(truncarTextoFavorito(item.texto))}</p>
@@ -3626,14 +3663,24 @@ function aplicarFiltroLibroBusqueda(items, filtro = filtroLibroBusquedaActual) {
     return items.filter(item => coincideLibroConFiltroBusqueda(item.libro, valorNormalizado));
 }
 
-function obtenerTextoContadorBusqueda(termino, total, filtro = filtroLibroBusquedaActual) {
+function obtenerTextoContadorBusqueda(termino, total, filtro = filtroLibroBusquedaActual, opciones = {}) {
     const terminoNormalizado = normalizarTerminoBusqueda(termino);
     const valorFiltro = normalizarFiltroLibroBusqueda(filtro);
     const sufijoFiltro = valorFiltro === FILTRO_BUSQUEDA_TODOS
         ? ''
         : ` en ${obtenerEtiquetaFiltroLibroBusqueda(valorFiltro)}`;
+    const modoNotasSinTermino = opciones.modoNotasSinTermino === true;
 
     if (!terminoNormalizado) {
+        if (modoNotasSinTermino) {
+            const ubicacionNotas = valorFiltro === FILTRO_BUSQUEDA_TODOS
+                ? 'en toda la Biblia'
+                : `en ${obtenerEtiquetaFiltroLibroBusqueda(valorFiltro)}`;
+            if (total === 0) {
+                return `No hay notas guardadas ${ubicacionNotas}`;
+            }
+            return `${total} nota${total !== 1 ? 's' : ''} guardada${total !== 1 ? 's' : ''} ${ubicacionNotas}`;
+        }
         return `Buscá una palabra o frase${sufijoFiltro}`;
     }
 
@@ -3804,12 +3851,13 @@ function configurarTarjetaResultadoBusqueda(tarjeta, onOpen) {
     });
 }
 
-function crearTarjetaResultadoBusquedaVersiculo(item) {
+function crearTarjetaResultadoBusquedaVersiculo(item, terminoBusqueda = '') {
     const favorito = esFavoritoVersiculo(item.libro, item.capitulo, item.versiculo);
     const accionFavorito = favorito ? 'Quitar de favoritos' : 'Agregar a favoritos';
     const identificadorFavorito = obtenerIdentificadorFavoritoVersiculo(item.libro, item.capitulo, item.versiculo);
     const referencia = formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo);
     const tarjeta = document.createElement('div');
+    const texto = renderizarTextoBusquedaResaltadoHtml(item.texto, terminoBusqueda);
 
     tarjeta.className = 'resultado-busqueda-item';
     tarjeta.innerHTML = `
@@ -3831,10 +3879,10 @@ function crearTarjetaResultadoBusquedaVersiculo(item) {
                 <span class="resultado-busqueda-numero">${item.numeroResultado}</span>
             </div>
         </div>
-        <div class="resultado-busqueda-texto">${escapeHtml(item.texto)}</div>
+        <div class="resultado-busqueda-texto">${texto}</div>
     `;
 
-    configurarTarjetaResultadoBusqueda(tarjeta, () => irAVersiculo(item.libro, item.capitulo, item.versiculo, 'busqueda'));
+    configurarTarjetaResultadoBusqueda(tarjeta, () => irAVersiculo(item.libro, item.capitulo, item.versiculo, 'busqueda', terminoBusqueda));
 
     const botonFavorito = tarjeta.querySelector('[data-favorito-versiculo]');
     botonFavorito?.addEventListener('click', (event) => {
@@ -3845,13 +3893,15 @@ function crearTarjetaResultadoBusquedaVersiculo(item) {
     return tarjeta;
 }
 
-function crearTarjetaResultadoBusquedaAnotacion(item, opciones) {
+function crearTarjetaResultadoBusquedaAnotacion(item, opciones, terminoBusqueda = '') {
     const favorito = esFavoritoComentario(item.libro, item.capitulo, item.versiculo, item.tipoFavorito, item.idx);
     const accionFavorito = favorito ? 'Quitar de favoritos' : 'Agregar a favoritos';
     const identificadorFavorito = obtenerIdentificadorFavoritoComentario(item.libro, item.capitulo, item.versiculo, item.tipoFavorito, item.idx);
     const referencia = formatearReferenciaResultadoBusqueda(item);
+    const etiquetaAccesible = opciones.etiquetaAccesible || 'anotación';
     const tarjeta = document.createElement('div');
-    const texto = opciones.citar ? `"${escapeHtml(item.fragmento || item.texto)}"` : escapeHtml(item.fragmento || item.texto);
+    const textoResaltado = renderizarTextoBusquedaResaltadoHtml(item.fragmento || item.texto, terminoBusqueda, { preservarSaltos: true });
+    const texto = opciones.citar ? `"${textoResaltado}"` : textoResaltado;
 
     tarjeta.className = 'resultado-busqueda-item';
     tarjeta.innerHTML = `
@@ -3860,7 +3910,6 @@ function crearTarjetaResultadoBusquedaAnotacion(item, opciones) {
                 <div class="resultado-busqueda-ref-line">
                     <i class="fas ${opciones.icono} resultado-busqueda-icono" aria-hidden="true"></i>
                     <div class="resultado-busqueda-ref">${escapeHtml(referencia)}</div>
-                    <span class="resultado-busqueda-badge">${escapeHtml(opciones.badge)}</span>
                 </div>
                 ${opciones.meta ? `<p class="resultado-busqueda-meta">${escapeHtml(opciones.meta)}</p>` : ''}
             </div>
@@ -3870,7 +3919,7 @@ function crearTarjetaResultadoBusquedaAnotacion(item, opciones) {
                     data-favorito-comentario="${identificadorFavorito}"
                     class="resultado-busqueda-fav estrella-fav-comentario ${favorito ? 'activa' : ''}"
                     title="${accionFavorito}"
-                    aria-label="${accionFavorito} ${escapeHtml(opciones.badge.toLowerCase())} de ${escapeHtml(referencia)}"
+                    aria-label="${accionFavorito} ${etiquetaAccesible} de ${escapeHtml(referencia)}"
                     aria-pressed="${favorito ? 'true' : 'false'}"><i class="fas fa-star"></i></button>
                 <span class="resultado-busqueda-numero">${item.numeroResultado}</span>
             </div>
@@ -3878,7 +3927,20 @@ function crearTarjetaResultadoBusquedaAnotacion(item, opciones) {
         <div class="resultado-busqueda-texto">${texto}</div>
     `;
 
-    configurarTarjetaResultadoBusqueda(tarjeta, () => abrirFavoritoAnotacion(item.libro, item.capitulo, item.versiculo, item.tipoFavorito, item.idx));
+    configurarTarjetaResultadoBusqueda(
+        tarjeta,
+        () => abrirFavoritoAnotacion(
+            item.libro,
+            item.capitulo,
+            item.versiculo,
+            item.tipoFavorito,
+            item.idx,
+            {
+                origen: 'busqueda',
+                terminoBusqueda
+            }
+        )
+    );
 
     const botonFavorito = tarjeta.querySelector('[data-favorito-comentario]');
     botonFavorito?.addEventListener('click', (event) => {
@@ -3889,29 +3951,43 @@ function crearTarjetaResultadoBusquedaAnotacion(item, opciones) {
     return tarjeta;
 }
 
-function crearTarjetaResultadoBusquedaComentario(item) {
+function crearTarjetaResultadoBusquedaComentario(item, terminoBusqueda = '') {
     return crearTarjetaResultadoBusquedaAnotacion(item, {
         icono: 'fa-comment-dots',
-        badge: 'Tradición',
+        etiquetaAccesible: 'comentario',
         meta: item.autor || '',
         citar: true
-    });
+    }, terminoBusqueda);
 }
 
-function crearTarjetaResultadoBusquedaNota(item) {
+function crearTarjetaResultadoBusquedaNota(item, terminoBusqueda = '') {
     return crearTarjetaResultadoBusquedaAnotacion(item, {
         icono: 'fa-pen',
-        badge: 'Nota',
+        etiquetaAccesible: 'nota',
         meta: item.fecha || '',
         citar: false
-    });
+    }, terminoBusqueda);
 }
+function renderizarResultadosBusqueda(contenedor, resultados, termino = '', filtro = filtroLibroBusquedaActual) {
+    const terminoNormalizado = normalizarTerminoBusqueda(termino);
+    const valorFiltro = normalizarFiltroLibroBusqueda(filtro);
+    const etiquetaFiltro = obtenerEtiquetaFiltroLibroBusqueda(valorFiltro);
+    const mensajeVersiculos = terminoNormalizado
+        ? 'No hubo versículos que coincidan en esta búsqueda.'
+        : 'Escribí una palabra o frase para buscar versículos.';
+    const mensajeComentarios = terminoNormalizado
+        ? 'No hubo comentarios que coincidan en esta búsqueda.'
+        : 'Escribí una palabra o frase para buscar comentarios.';
+    const mensajeNotas = terminoNormalizado
+        ? 'No hubo notas que coincidan en esta búsqueda.'
+        : valorFiltro === FILTRO_BUSQUEDA_TODOS
+            ? 'Todavía no guardaste notas en toda la Biblia.'
+            : `Todavía no guardaste notas en ${escapeHtml(etiquetaFiltro)}.`;
 
-function renderizarResultadosBusqueda(contenedor, resultados) {
     estadoSeccionesBusqueda = {
         versiculos: false,
         comentarios: false,
-        notas: false
+        notas: !terminoNormalizado
     };
 
     contenedor.classList.add('busqueda-con-resultados');
@@ -3922,8 +3998,8 @@ function renderizarResultadosBusqueda(contenedor, resultados) {
             'Versículos',
             'fa-bible',
             resultados.versiculos,
-            crearTarjetaResultadoBusquedaVersiculo,
-            'No hubo versículos que coincidan en esta búsqueda.'
+            item => crearTarjetaResultadoBusquedaVersiculo(item, terminoNormalizado),
+            mensajeVersiculos
         )
     );
     contenedor.appendChild(
@@ -3932,8 +4008,8 @@ function renderizarResultadosBusqueda(contenedor, resultados) {
             'Comentarios',
             'fa-comment-dots',
             resultados.comentarios,
-            crearTarjetaResultadoBusquedaComentario,
-            'No hubo comentarios que coincidan en esta búsqueda.'
+            item => crearTarjetaResultadoBusquedaComentario(item, terminoNormalizado),
+            mensajeComentarios
         )
     );
     contenedor.appendChild(
@@ -3942,8 +4018,8 @@ function renderizarResultadosBusqueda(contenedor, resultados) {
             'Notas',
             'fa-pen',
             resultados.notas,
-            crearTarjetaResultadoBusquedaNota,
-            'No hubo notas que coincidan en esta búsqueda.'
+            item => crearTarjetaResultadoBusquedaNota(item, terminoNormalizado),
+            mensajeNotas
         )
     );
 }
@@ -4047,9 +4123,10 @@ function buscarComentarios(termino) {
     return resultados.sort(compararFavoritosPorOrdenBiblico);
 }
 
-function buscarNotas(termino) {
+function buscarNotas(termino, incluirTodasSiEstaVacio = false) {
+    const terminoNormalizado = normalizarTerminoBusqueda(termino);
     const regex = crearRegexBusqueda(termino);
-    if (!regex) return [];
+    if (!regex && !incluirTodasSiEstaVacio) return [];
 
     const resultados = [];
 
@@ -4067,7 +4144,7 @@ function buscarNotas(termino) {
         if (!esReferenciaBuscableEnBusqueda(capitulo, versiculo)) return;
 
         notas.forEach((nota, idx) => {
-            if (!coincideTextoBusqueda(nota?.texto, regex)) return;
+            if (regex && !coincideTextoBusqueda(nota?.texto, regex)) return;
             resultados.push({
                 libro,
                 capitulo,
@@ -4076,7 +4153,7 @@ function buscarNotas(termino) {
                 tipoFavorito: 'personal',
                 fecha: nota.fecha || '',
                 texto: nota.texto || '',
-                fragmento: obtenerFragmentoBusqueda(nota.texto, termino)
+                fragmento: obtenerFragmentoBusqueda(nota.texto, terminoNormalizado)
             });
         });
     });
@@ -4085,10 +4162,12 @@ function buscarNotas(termino) {
 }
 
 function buscarResultadosBusqueda(termino, filtro = filtroLibroBusquedaActual) {
+    const terminoNormalizado = normalizarTerminoBusqueda(termino);
+    const mostrarTodasLasNotas = !terminoNormalizado;
     const resultados = {
-        versiculos: termino ? aplicarFiltroLibroBusqueda(buscarVersiculos(termino), filtro) : [],
-        comentarios: termino ? aplicarFiltroLibroBusqueda(buscarComentarios(termino), filtro) : [],
-        notas: termino ? aplicarFiltroLibroBusqueda(buscarNotas(termino), filtro) : []
+        versiculos: terminoNormalizado ? aplicarFiltroLibroBusqueda(buscarVersiculos(terminoNormalizado), filtro) : [],
+        comentarios: terminoNormalizado ? aplicarFiltroLibroBusqueda(buscarComentarios(terminoNormalizado), filtro) : [],
+        notas: aplicarFiltroLibroBusqueda(buscarNotas(terminoNormalizado, mostrarTodasLasNotas), filtro)
     };
 
     let numeroResultado = 1;
@@ -4099,6 +4178,7 @@ function buscarResultadosBusqueda(termino, filtro = filtroLibroBusquedaActual) {
     });
 
     resultados.total = numeroResultado - 1;
+    resultados.modoNotasSinTermino = mostrarTodasLasNotas;
     return resultados;
 }
 
@@ -4120,15 +4200,20 @@ function mostrarResultadosBusqueda(termino) {
     cerrarPanel('panel-concordancia');
 
     if (contador) {
-        contador.textContent = obtenerTextoContadorBusqueda(terminoNormalizado, resultados.total, filtroLibroBusquedaActual);
+        contador.textContent = obtenerTextoContadorBusqueda(
+            terminoNormalizado,
+            resultados.total,
+            filtroLibroBusquedaActual,
+            { modoNotasSinTermino: resultados.modoNotasSinTermino }
+        );
     }
 
     if (contenedor) {
-        if (!terminoNormalizado || resultados.total === 0) {
+        if (!terminoNormalizado || resultados.total > 0) {
+            renderizarResultadosBusqueda(contenedor, resultados, terminoNormalizado, filtroLibroBusquedaActual);
+        } else {
             contenedor.classList.remove('busqueda-con-resultados');
             contenedor.innerHTML = renderizarEstadoBusquedaVacio(terminoNormalizado, filtroLibroBusquedaActual);
-        } else {
-            renderizarResultadosBusqueda(contenedor, resultados);
         }
     }
 
@@ -4348,6 +4433,25 @@ function generarLineasRetiroParaPDF(cantidad = 12) {
     `).join('');
 }
 
+function obtenerDatosLectioActualParaPDF() {
+    const { libro, capitulo, desde, hasta } = obtenerSeleccionLectioActual();
+    if (!libro || !Number.isFinite(capitulo) || !Number.isFinite(desde) || !Number.isFinite(hasta)) {
+        return null;
+    }
+
+    const pasaje = obtenerPasajeLectio(libro, capitulo, desde, hasta);
+    if (pasaje.length === 0) return null;
+
+    return {
+        libro,
+        capitulo,
+        desde,
+        hasta,
+        referencia: formatearReferenciaLectio(libro, capitulo, desde, hasta),
+        pasaje
+    };
+}
+
 function generarHtmlColeccionParaPDF(coleccion) {
     const fecha = new Date().toLocaleDateString('es-AR', {
         day: 'numeric',
@@ -4530,6 +4634,244 @@ function generarHtmlColeccionParaPDF(coleccion) {
     `;
 }
 
+function generarHtmlLectioParaPDF(lectio) {
+    const fecha = new Date().toLocaleDateString('es-AR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    });
+    const pasajeHtml = lectio.pasaje.map((item, index) => `
+        <article class="entrada">
+            <div class="entrada-numero">${index + 1}</div>
+            <div class="entrada-contenido">
+                <p class="entrada-ref">${escapeHtml(`${lectio.libro} ${lectio.capitulo},${item.versiculo}`)}</p>
+                <p class="entrada-texto">${escapeHtml(item.texto || '')}</p>
+            </div>
+        </article>
+    `).join('');
+    const bloquesLectio = [
+        {
+            eyebrow: 'Leer',
+            titulo: '¿Qué dice el texto?',
+            guia: 'Personajes, ambiente, mensaje central y lo que el pasaje muestra con claridad.',
+            lineas: 5
+        },
+        {
+            eyebrow: 'Meditar',
+            titulo: '¿Qué me dice Dios a mí, hoy?',
+            guia: 'Cómo interpela tu vida concreta, qué ilumina, corrige, confirma o despierta.',
+            lineas: 5
+        },
+        {
+            eyebrow: 'Orar y contemplar',
+            titulo: '¿Qué le respondo al Señor?',
+            guia: 'Agradecimiento, súplica, silencio, propósito o una oración nacida de la Palabra.',
+            lineas: 5
+        }
+    ].map(bloque => `
+        <section class="lectio-bloque-pdf">
+            <p class="lectio-bloque-eyebrow">${escapeHtml(bloque.eyebrow)}</p>
+            <h2 class="lectio-bloque-titulo">${escapeHtml(bloque.titulo)}</h2>
+            <p class="lectio-bloque-guia">${escapeHtml(bloque.guia)}</p>
+            <div class="retiro-lineas">${generarLineasRetiroParaPDF(bloque.lineas)}</div>
+        </section>
+    `).join('');
+
+    return `
+        <!DOCTYPE html>
+        <html lang="es-ar">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title></title>
+            <style>
+                :root {
+                    color-scheme: light;
+                    --oro: #b8860b;
+                    --tinta: #231b13;
+                    --fondo: #fcfaf7;
+                    --borde: #dfd2bd;
+                    --muted: #7b6a58;
+                }
+                * { box-sizing: border-box; }
+                body {
+                    margin: 0;
+                    padding: 2.2rem;
+                    font-family: "Georgia", serif;
+                    background: var(--fondo);
+                    color: var(--tinta);
+                }
+                .cabecera {
+                    margin-bottom: 1.8rem;
+                    padding-bottom: 1.2rem;
+                    border-bottom: 2px solid rgba(184, 134, 11, 0.24);
+                }
+                .eyebrow {
+                    margin: 0 0 0.45rem;
+                    font: 700 0.75rem/1.4 system-ui, sans-serif;
+                    letter-spacing: 0.28em;
+                    text-transform: uppercase;
+                    color: var(--oro);
+                }
+                h1 {
+                    margin: 0;
+                    font-size: 2rem;
+                    line-height: 1.15;
+                }
+                .meta {
+                    margin: 0.6rem 0 0;
+                    color: var(--muted);
+                    font: 600 0.92rem/1.5 system-ui, sans-serif;
+                }
+                .entrada {
+                    display: flex;
+                    gap: 1rem;
+                    align-items: flex-start;
+                    padding: 1rem 0;
+                    border-bottom: 1px solid rgba(184, 134, 11, 0.14);
+                    break-inside: avoid;
+                }
+                .entrada-numero {
+                    width: 2rem;
+                    height: 2rem;
+                    border-radius: 999px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(184, 134, 11, 0.14);
+                    color: var(--oro);
+                    font: 800 0.9rem/1 system-ui, sans-serif;
+                    flex-shrink: 0;
+                }
+                .entrada-ref {
+                    margin: 0 0 0.45rem;
+                    color: var(--oro);
+                    font: 800 0.88rem/1.45 system-ui, sans-serif;
+                    letter-spacing: 0.04em;
+                    text-transform: uppercase;
+                }
+                .entrada-texto {
+                    margin: 0;
+                    font-size: 1.05rem;
+                    line-height: 1.75;
+                }
+                .lectio-hoja {
+                    margin-top: 2.4rem;
+                    padding: 1.4rem 1.35rem 0;
+                    border: 1px solid rgba(184, 134, 11, 0.18);
+                    border-radius: 1.2rem;
+                    background:
+                        radial-gradient(circle at top, rgba(184, 134, 11, 0.12), transparent 52%),
+                        rgba(255, 255, 255, 0.62);
+                }
+                .lectio-hoja-eyebrow {
+                    margin: 0 0 0.45rem;
+                    color: var(--oro);
+                    font: 800 0.74rem/1.4 system-ui, sans-serif;
+                    letter-spacing: 0.22em;
+                    text-transform: uppercase;
+                }
+                .lectio-hoja-titulo {
+                    margin: 0;
+                    font-size: 1.45rem;
+                    line-height: 1.2;
+                }
+                .lectio-hoja-texto {
+                    margin: 0.55rem 0 1.15rem;
+                    color: var(--muted);
+                    font: 600 0.92rem/1.6 system-ui, sans-serif;
+                }
+                .lectio-bloque-pdf {
+                    margin-bottom: 1.45rem;
+                    padding-bottom: 1.2rem;
+                    border-bottom: 1px solid rgba(184, 134, 11, 0.14);
+                    break-inside: avoid;
+                }
+                .lectio-bloque-pdf:last-child {
+                    border-bottom: none;
+                    margin-bottom: 0;
+                    padding-bottom: 0.2rem;
+                }
+                .lectio-bloque-eyebrow {
+                    margin: 0 0 0.35rem;
+                    color: var(--oro);
+                    font: 800 0.72rem/1.4 system-ui, sans-serif;
+                    letter-spacing: 0.18em;
+                    text-transform: uppercase;
+                }
+                .lectio-bloque-titulo {
+                    margin: 0;
+                    font-size: 1.12rem;
+                    line-height: 1.35;
+                }
+                .lectio-bloque-guia {
+                    margin: 0.45rem 0 0.95rem;
+                    color: var(--muted);
+                    font: 600 0.88rem/1.55 system-ui, sans-serif;
+                }
+                .retiro-lineas {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.8rem;
+                }
+                .retiro-linea {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.7rem;
+                    min-height: 1.8rem;
+                }
+                .retiro-linea-numero {
+                    width: 1.3rem;
+                    color: rgba(123, 106, 88, 0.85);
+                    font: 700 0.72rem/1 system-ui, sans-serif;
+                    text-align: right;
+                    flex-shrink: 0;
+                }
+                .retiro-linea-trazo {
+                    flex: 1;
+                    height: 1.8rem;
+                    border-bottom: 1px solid rgba(184, 134, 11, 0.32);
+                }
+                .pie {
+                    margin-top: 1.8rem;
+                    color: var(--muted);
+                    font: 600 0.82rem/1.5 system-ui, sans-serif;
+                    text-align: right;
+                }
+                @page {
+                    margin: 1.4cm;
+                }
+                @media print {
+                    body {
+                        padding: 0;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <header class="cabecera">
+                <p class="eyebrow">Lectio Divina de Lumina</p>
+                <h1>${escapeHtml(lectio.referencia)}</h1>
+                <p class="meta">${lectio.pasaje.length} versículo${lectio.pasaje.length === 1 ? '' : 's'} · Preparado el ${escapeHtml(fecha)}</p>
+            </header>
+            <main>
+                <section aria-label="Cita bíblica elegida">
+                    <p class="eyebrow">Cita bíblica elegida</p>
+                    ${pasajeHtml}
+                </section>
+                <section class="lectio-hoja" aria-label="Preguntas y espacio para escribir la Lectio">
+                    <p class="lectio-hoja-eyebrow">Tipo retiro</p>
+                    <h2 class="lectio-hoja-titulo">Hoja de Lectio para compartir</h2>
+                    <p class="lectio-hoja-texto">Llevá este pasaje a un encuentro, una clase o un retiro con preguntas guía y espacio listo para escribir las tres respuestas.</p>
+                    ${bloquesLectio}
+                </section>
+            </main>
+            <footer class="pie"></footer>
+        </body>
+        </html>
+    `;
+}
+
 function abrirImpresionColeccion(html) {
     const iframe = document.createElement('iframe');
     if (!iframe) return false;
@@ -4615,6 +4957,23 @@ function exportarColeccionComoPDF(coleccionId) {
     }
 
     const html = generarHtmlColeccionParaPDF(coleccion);
+    const inicioCorrecto = abrirImpresionColeccion(html);
+    if (!inicioCorrecto) {
+        lanzarToast('No se pudo preparar la exportación a PDF');
+        return;
+    }
+
+    lanzarToast('Se abrió el diálogo para guardar o compartir el PDF');
+}
+
+function exportarLectioComoPDF() {
+    const lectio = obtenerDatosLectioActualParaPDF();
+    if (!lectio) {
+        lanzarToast('Elegí primero un pasaje válido para la Lectio');
+        return;
+    }
+
+    const html = generarHtmlLectioParaPDF(lectio);
     const inicioCorrecto = abrirImpresionColeccion(html);
     if (!inicioCorrecto) {
         lanzarToast('No se pudo preparar la exportación a PDF');
@@ -6316,8 +6675,148 @@ function escapeHtml(str) {
     });
 }
 
-function renderizarTextoComentarioHtml(texto) {
-    return escapeHtml(texto).replace(/\n/g, '<br>');
+function renderizarTextoPlanoHtml(texto, preservarSaltos = false) {
+    const html = escapeHtml(String(texto || ''));
+    return preservarSaltos ? html.replace(/\n/g, '<br>') : html;
+}
+
+function obtenerTokensBusquedaResaltables(termino) {
+    const terminoNormalizado = normalizarTexto(normalizarTerminoBusqueda(termino)).trim();
+    if (!terminoNormalizado) return [];
+
+    const tokens = new Set();
+    const palabras = extraerPalabras(terminoNormalizado);
+
+    if (terminoNormalizado.includes(' ')) {
+        tokens.add(terminoNormalizado);
+    }
+
+    palabras.forEach(palabra => {
+        if (palabra) tokens.add(palabra);
+    });
+
+    if (tokens.size === 0 && terminoNormalizado) {
+        tokens.add(terminoNormalizado);
+    }
+
+    return Array.from(tokens).sort((a, b) => b.length - a.length);
+}
+
+function construirTextoNormalizadoConMapa(texto) {
+    const textoPlano = String(texto || '');
+    let textoNormalizado = '';
+    const mapaIndices = [];
+    let indiceOriginal = 0;
+
+    for (const caracter of textoPlano) {
+        const caracterNormalizado = normalizarTexto(caracter);
+
+        for (const fragmento of caracterNormalizado) {
+            textoNormalizado += fragmento;
+            mapaIndices.push({
+                inicio: indiceOriginal,
+                fin: indiceOriginal + caracter.length
+            });
+        }
+
+        indiceOriginal += caracter.length;
+    }
+
+    return { textoNormalizado, mapaIndices };
+}
+
+function esCaracterDePalabraBusqueda(caracter) {
+    return Boolean(caracter) && /[\p{L}\p{M}']/u.test(caracter);
+}
+
+function tieneLimitesDePalabraBusqueda(textoNormalizado, inicio, fin) {
+    const caracterAnterior = inicio > 0 ? textoNormalizado[inicio - 1] : '';
+    const caracterSiguiente = fin < textoNormalizado.length ? textoNormalizado[fin] : '';
+    return !esCaracterDePalabraBusqueda(caracterAnterior) && !esCaracterDePalabraBusqueda(caracterSiguiente);
+}
+
+function fusionarRangosTexto(rangos) {
+    if (!Array.isArray(rangos) || rangos.length === 0) return [];
+
+    const ordenados = [...rangos].sort((a, b) => {
+        if (a.inicio !== b.inicio) return a.inicio - b.inicio;
+        return b.fin - a.fin;
+    });
+
+    const fusionados = [ordenados[0]];
+    for (let i = 1; i < ordenados.length; i++) {
+        const actual = ordenados[i];
+        const ultimo = fusionados[fusionados.length - 1];
+        if (actual.inicio <= ultimo.fin) {
+            ultimo.fin = Math.max(ultimo.fin, actual.fin);
+        } else {
+            fusionados.push(actual);
+        }
+    }
+
+    return fusionados;
+}
+
+function obtenerRangosResaltadoBusqueda(texto, termino) {
+    const tokens = obtenerTokensBusquedaResaltables(termino);
+    if (tokens.length === 0) return [];
+
+    const { textoNormalizado, mapaIndices } = construirTextoNormalizadoConMapa(texto);
+    if (!textoNormalizado || mapaIndices.length === 0) return [];
+
+    const rangos = [];
+
+    tokens.forEach(token => {
+        let desde = 0;
+        while (desde < textoNormalizado.length) {
+            const indice = textoNormalizado.indexOf(token, desde);
+            if (indice === -1) break;
+
+            const fin = indice + token.length;
+            if (tieneLimitesDePalabraBusqueda(textoNormalizado, indice, fin)) {
+                rangos.push({
+                    inicio: mapaIndices[indice].inicio,
+                    fin: mapaIndices[fin - 1].fin
+                });
+            }
+
+            desde = indice + Math.max(1, token.length);
+        }
+    });
+
+    return fusionarRangosTexto(rangos);
+}
+
+function renderizarTextoBusquedaResaltadoHtml(texto, termino = '', opciones = {}) {
+    const textoPlano = String(texto || '');
+    const preservarSaltos = opciones.preservarSaltos === true;
+    const rangos = obtenerRangosResaltadoBusqueda(textoPlano, termino);
+
+    if (rangos.length === 0) {
+        return renderizarTextoPlanoHtml(textoPlano, preservarSaltos);
+    }
+
+    const partes = [];
+    let cursor = 0;
+
+    rangos.forEach(rango => {
+        if (rango.inicio > cursor) {
+            partes.push(renderizarTextoPlanoHtml(textoPlano.slice(cursor, rango.inicio), preservarSaltos));
+        }
+
+        partes.push(`<span class="palabra-resaltada">${renderizarTextoPlanoHtml(textoPlano.slice(rango.inicio, rango.fin), preservarSaltos)}</span>`);
+        cursor = rango.fin;
+    });
+
+    if (cursor < textoPlano.length) {
+        partes.push(renderizarTextoPlanoHtml(textoPlano.slice(cursor), preservarSaltos));
+    }
+
+    return partes.join('');
+}
+
+function renderizarTextoComentarioHtml(texto, termino = '') {
+    return renderizarTextoBusquedaResaltadoHtml(texto, termino, { preservarSaltos: true });
 }
 
 function inicializarIndice() {
@@ -6353,11 +6852,12 @@ function poblarSelectoresRapidos() {
     });
 }
 
-function abrirPrefacio(libro, capitulo = 0) {
+function abrirPrefacio(libro, capitulo = 0, opciones = null) {
     const capituloPrefacio = obtenerCapituloPrefacio(libro, capitulo);
     const comentarios = obtenerComentariosPrefacio(libro, capituloPrefacio);
     const referenciaPrefacio = formatearReferenciaPrefacio(libro, capituloPrefacio);
     const esPrefacioSalmo = libro === 'Salmos' && capituloPrefacio > 0;
+    const terminoBusqueda = normalizarTerminoBusqueda(opciones?.terminoBusqueda || '');
 
     document.getElementById('titulo-panel-versiculo').innerHTML = referenciaPrefacio;
     document.getElementById('cita-panel-sticky').innerHTML = '';
@@ -6374,7 +6874,7 @@ function abrirPrefacio(libro, capitulo = 0) {
                 const accionFavorito = esFav ? 'Quitar de favoritos' : 'Agregar a favoritos';
                 const identificadorFavorito = obtenerIdentificadorFavoritoComentario(libro, capituloPrefacio, 0, 'tradicion', idx);
                 return `
-        <div class="border-l-4 border-oro/30 pl-4 py-2">
+        <div class="comentario-panel-item border-l-4 border-oro/30 pl-4 py-2" data-panel-comentario-idx="${idx}">
             <div class="flex justify-between items-start">
                 <h3 class="font-bold text-xs text-oro">${escapeHtml(c.autor)}</h3>
                 <button id="star_com_${libro}_${capituloPrefacio}_0_tradicion_${idx}"
@@ -6385,7 +6885,7 @@ function abrirPrefacio(libro, capitulo = 0) {
                         aria-label="${accionFavorito} comentario de ${escapeHtml(referenciaPrefacio)}"
                         aria-pressed="${esFav ? 'true' : 'false'}"><i class="fas fa-star"></i></button>
             </div>
-            <p class="text-gray-700 dark:text-gray-300 text-sm mt-2">${renderizarTextoComentarioHtml(c.texto)}</p>
+            <p class="text-gray-700 dark:text-gray-300 text-sm mt-2">${renderizarTextoComentarioHtml(c.texto, terminoBusqueda)}</p>
             <button class="btn-compartir-comentario mt-2 text-xs text-oro hover:underline flex items-center gap-1"
                     data-libro="${libro.replace(/"/g, '&quot;')}"
                     data-capitulo="${capituloPrefacio}"
@@ -6420,6 +6920,10 @@ function abrirPrefacio(libro, capitulo = 0) {
     tabPers.classList.add('text-gray-500', 'dark:text-gray-400');
     divTrad.classList.remove('hidden');
     divPers.classList.add('hidden');
+
+    if (Number.isInteger(opciones?.idxLlegada)) {
+        requestAnimationFrame(() => resaltarAnotacionPanel('tradicion', opciones.idxLlegada));
+    }
 
     abrirPanelLateral('panel-comentarios');
 }
@@ -6912,6 +7416,7 @@ function irAlInicio() {
 
 function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null) {
     const comentarios = obtenerComentarios(libro, capitulo, versiculo);
+    const terminoBusqueda = obtenerTerminoBusquedaLlegada(libro, capitulo, versiculo, opciones?.terminoBusqueda || '');
 
     const usaAcotacionesEspeciales = libroUsaAcotacionesEspeciales(libro);
     let tituloRef = "";
@@ -6923,7 +7428,7 @@ function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null)
 
     document.getElementById('cita-panel-sticky').innerHTML = `
         <div class="cita-versiculo-panel panel-cita-fija p-4 bg-amber-50/40 dark:bg-gray-700 rounded-lg border-l-4 border-oro">
-            <p class="cita-versiculo-texto text-sm font-serif italic text-gray-700 dark:text-gray-300">"${escapeHtml(textoVersiculo)}"</p>
+            <p class="cita-versiculo-texto text-sm font-serif italic text-gray-700 dark:text-gray-300">"${renderizarTextoBusquedaResaltadoHtml(textoVersiculo, terminoBusqueda, { preservarSaltos: true })}"</p>
         </div>
     `;
 
@@ -6973,7 +7478,7 @@ function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null)
                         </button>
                     </div>
                 </div>
-                <p class="text-gray-700 dark:text-gray-300 text-sm mt-2">${renderizarTextoComentarioHtml(c.texto)}</p>
+                <p class="text-gray-700 dark:text-gray-300 text-sm mt-2">${renderizarTextoComentarioHtml(c.texto, terminoBusqueda)}</p>
                 <button class="btn-compartir-comentario mt-2 text-xs text-oro hover:underline flex items-center gap-1"
                         data-libro="${libro.replace(/"/g, '&quot;')}"
                         data-capitulo="${capitulo}"
@@ -7010,7 +7515,7 @@ function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null)
         };
     });
 
-    mostrarNotasPersonales(libro, capitulo, versiculo);
+    mostrarNotasPersonales(libro, capitulo, versiculo, terminoBusqueda);
     const guardarBtn = document.getElementById('guardar-nota');
     const textarea = document.getElementById('nota-personal');
     const nuevaNotaHandler = () => {
@@ -7576,6 +8081,7 @@ window.onload = async () => {
     document.getElementById('btn-abrir-pasaje-lectio')?.addEventListener('click', () => renderizarPasajeLectioSeleccionado());
     document.getElementById('btn-escuchar-pasaje-lectio')?.addEventListener('click', (event) => escucharPasajeLectio(event.currentTarget));
     document.getElementById('btn-guardar-lectio')?.addEventListener('click', () => guardarLectioActual());
+    document.getElementById('btn-compartir-lectio-pdf')?.addEventListener('click', () => exportarLectioComoPDF());
     document.getElementById('btn-nueva-lectio')?.addEventListener('click', () => limpiarHojaLectio(true));
     document.getElementById('btn-lectio-usar-contexto')?.addEventListener('click', () => usarContextoActualEnLectio());
     document.addEventListener('click', () => cerrarMenusAccionesVersiculo());
@@ -7598,15 +8104,6 @@ window.onload = async () => {
         filtroLibroBusquedaActual = normalizarFiltroLibroBusqueda(filtroLibroBusquedaSelect?.value || filtroLibroBusquedaActual);
         sincronizarSelectorFiltroLibroBusqueda();
         const termino = normalizarTerminoBusqueda(terminoPreferido || obtenerTerminoBusquedaActual());
-        if (!termino) {
-            const contenedorBusqueda = document.getElementById('contenido-busqueda');
-            const contadorBusqueda = document.getElementById('contador-busqueda');
-            if (contenedorBusqueda) contenedorBusqueda.innerHTML = renderizarEstadoBusquedaVacio('', filtroLibroBusquedaActual);
-            if (contadorBusqueda) contadorBusqueda.textContent = obtenerTextoContadorBusqueda('', 0, filtroLibroBusquedaActual);
-            if (contenedorBusqueda) contenedorBusqueda.classList.remove('busqueda-con-resultados');
-            actualizarEstadoControlesBusqueda();
-            return;
-        }
         mostrarResultadosBusqueda(termino);
     };
 
