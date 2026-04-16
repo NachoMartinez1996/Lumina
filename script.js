@@ -27,7 +27,7 @@ const canonBiblico = {
         { nombre: "Sofonías", caps: 3 },
         { nombre: "Ageo", caps: 2 },
         { nombre: "Zacarías", caps: 14 },
-        { nombre: "Malaquias", caps: 3 },
+        { nombre: "Malaquías", caps: 3 },
         { nombre: "Salmos", caps: 150 },
         { nombre: "Job", caps: 42 },
         { nombre: "Proverbios", caps: 31 },
