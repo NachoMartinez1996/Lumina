@@ -1,21 +1,51 @@
-﻿// 1. CANON BÍBLICO COMPLETO (según la lista del Vaticano)
+﻿// 1. CANON BÍBLICO COMPLETO (Estructura Católica Tradicional)
 // =============================================================
 const canonBiblico = {
     "Antiguo Testamento": [
+        // PENTATEUCO
         { nombre: "Génesis", caps: 50 },
         { nombre: "Éxodo", caps: 40 },
         { nombre: "Levítico", caps: 27 },
         { nombre: "Números", caps: 36 },
         { nombre: "Deuteronomio", caps: 34 },
+        
+        // HISTÓRICOS
         { nombre: "Josué", caps: 24 },
         { nombre: "Jueces", caps: 21 },
+        { nombre: "Rut", caps: 4 },
         { nombre: "Primer Libro de Samuel", caps: 31 },
         { nombre: "Segundo Libro de Samuel", caps: 24 },
         { nombre: "Primer Libro de los Reyes", caps: 22 },
         { nombre: "Segundo Libro de los Reyes", caps: 25 },
+        { nombre: "Primer Libro de las Crónicas", caps: 29 },
+        { nombre: "Segundo Libro de las Crónicas", caps: 36 },
+        { nombre: "Esdras", caps: 10 },
+        { nombre: "Nehemías", caps: 13 },
+        { nombre: "Tobías", caps: 14 },
+        { nombre: "Judit", caps: 16 },
+        { nombre: "Ester", caps: 10 },
+        { nombre: "Ester (Suplementos Griegos)", caps: [1, 3, 4, 5, 8, 10] },
+        { nombre: "Primer Libro de los Macabeos", caps: 16 },
+        { nombre: "Segundo Libro de los Macabeos", caps: 15 },
+        
+        // SAPIENCIALES Y POÉTICOS
+        { nombre: "Job", caps: 42 },
+        { nombre: "Salmos", caps: 150 },
+        { nombre: "Proverbios", caps: 31 },
+        { nombre: "Eclesiastés", caps: 12 },
+        { nombre: "Cantar de los Cantares", caps: 8 },
+        { nombre: "Sabiduría", caps: 19 },
+        { nombre: "Eclesiástico", caps: 51 },
+        
+        // PROFÉTICOS (Mayores y Menores)
         { nombre: "Isaías", caps: 66 },
         { nombre: "Jeremías", caps: 52 },
+        { nombre: "Lamentaciones", caps: 5 },
+        { nombre: "Baruc", caps: 5 },
+        { nombre: "Carta de Jeremías", caps: 1 },
         { nombre: "Ezequiel", caps: 48 },
+        { nombre: "Daniel", caps: 12 },
+        { nombre: "Daniel (Suplementos Griegos)", caps: [3, 13, 14] },
         { nombre: "Oseas", caps: 14 },
         { nombre: "Joel", caps: 4 },
         { nombre: "Amos", caps: 9 },
@@ -27,30 +57,7 @@ const canonBiblico = {
         { nombre: "Sofonías", caps: 3 },
         { nombre: "Ageo", caps: 2 },
         { nombre: "Zacarías", caps: 14 },
-        { nombre: "Malaquías", caps: 3 },
-        { nombre: "Salmos", caps: 150 },
-        { nombre: "Job", caps: 42 },
-        { nombre: "Proverbios", caps: 31 },
-        { nombre: "Rut", caps: 4 },
-        { nombre: "Cantar de los Cantares", caps: 8 },
-        { nombre: "Eclesiastés", caps: 12 },
-        { nombre: "Lamentaciones", caps: 5 },
-        { nombre: "Ester", caps: 10 },
-        { nombre: "Daniel", caps: 12 },
-        { nombre: "Primer Libro de las Crónicas", caps: 29 },
-        { nombre: "Segundo Libro de las Crónicas", caps: 36 },
-        { nombre: "Esdras", caps: 10 },
-        { nombre: "Nehemías", caps: 13 },
-        { nombre: "Ester (Suplementos Griegos)", caps: [1, 3, 4, 5, 8, 10] },
-        { nombre: "Judit", caps: 16 },
-        { nombre: "Tobías", caps: 14 },
-        { nombre: "Primer Libro de los Macabeos", caps: 16 },
-        { nombre: "Segundo Libro de los Macabeos", caps: 15 },
-        { nombre: "Sabiduría", caps: 19 },
-        { nombre: "Eclesiástico", caps: 51 },
-        { nombre: "Baruc", caps: 5 },
-        { nombre: "Carta de Jeremías", caps: 1 },
-        { nombre: "Daniel (Suplementos Griegos)", caps: [3, 13, 14] }
+        { nombre: "Malaquías", caps: 3 }
     ],
     "Nuevo Testamento": [
         { nombre: "Evangelio según San Mateo", caps: 28 },
