@@ -4449,13 +4449,20 @@ function obtenerDatosLectioActualParaPDF() {
     const pasaje = obtenerPasajeLectio(libro, capitulo, desde, hasta);
     if (pasaje.length === 0) return null;
 
+    const leer = normalizarRespuestaLectio('leer', document.getElementById('lectio-leer')?.value || '');
+    const meditar = normalizarRespuestaLectio('meditar', document.getElementById('lectio-meditar')?.value || '');
+    const orar = normalizarRespuestaLectio('orar', document.getElementById('lectio-orar')?.value || '');
+
     return {
         libro,
         capitulo,
         desde,
         hasta,
         referencia: formatearReferenciaLectio(libro, capitulo, desde, hasta),
-        pasaje
+        pasaje,
+        leer,
+        meditar,
+        orar
     };
 }
 
@@ -4647,40 +4654,42 @@ function generarHtmlLectioParaPDF(lectio) {
         month: 'long',
         year: 'numeric'
     });
-    const pasajeHtml = lectio.pasaje.map((item, index) => `
-        <article class="entrada">
-            <div class="entrada-numero">${index + 1}</div>
-            <div class="entrada-contenido">
-                <p class="entrada-ref">${escapeHtml(`${lectio.libro} ${lectio.capitulo},${item.versiculo}`)}</p>
-                <p class="entrada-texto">${escapeHtml(item.texto || '')}</p>
-            </div>
-        </article>
+    const pasajeHtml = lectio.pasaje.map((item) => `
+        <p class="pasaje-versiculo">
+            <span class="pasaje-numero">${escapeHtml(String(item.versiculo))}</span>
+            <span>${escapeHtml(item.texto || '')}</span>
+        </p>
     `).join('');
-    const bloquesLectio = [
+    const respuestasCargadas = Boolean(lectio.leer || lectio.meditar || lectio.orar);
+    const bloquesLectioHtml = [
         {
             eyebrow: 'Leer',
             titulo: '¿Qué dice el texto?',
             guia: 'Personajes, ambiente, mensaje central y lo que el pasaje muestra con claridad.',
-            lineas: 5
+            respuesta: lectio.leer
         },
         {
             eyebrow: 'Meditar',
             titulo: '¿Qué me dice Dios a mí, hoy?',
             guia: 'Cómo interpela tu vida concreta, qué ilumina, corrige, confirma o despierta.',
-            lineas: 5
+            respuesta: lectio.meditar
         },
         {
             eyebrow: 'Orar y contemplar',
             titulo: '¿Qué le respondo al Señor?',
             guia: 'Agradecimiento, súplica, silencio, propósito o una oración nacida de la Palabra.',
-            lineas: 5
+            respuesta: lectio.orar
         }
     ].map(bloque => `
-        <section class="lectio-bloque-pdf">
-            <p class="lectio-bloque-eyebrow">${escapeHtml(bloque.eyebrow)}</p>
-            <h2 class="lectio-bloque-titulo">${escapeHtml(bloque.titulo)}</h2>
-            <p class="lectio-bloque-guia">${escapeHtml(bloque.guia)}</p>
-            <div class="retiro-lineas">${generarLineasRetiroParaPDF(bloque.lineas)}</div>
+        <section class="lectio-respuesta-card">
+            <div class="lectio-respuesta-head">
+                <p class="lectio-respuesta-eyebrow">${escapeHtml(bloque.eyebrow)}</p>
+                <h2 class="lectio-respuesta-titulo">${escapeHtml(bloque.titulo)}</h2>
+            </div>
+            <p class="lectio-respuesta-guia">${escapeHtml(bloque.guia)}</p>
+            ${bloque.respuesta
+            ? `<div class="lectio-respuesta-texto">${renderizarTextoPlanoHtml(bloque.respuesta, true)}</div>`
+            : '<p class="lectio-respuesta-vacia">Todavía sin respuesta escrita.</p>'}
         </section>
     `).join('');
 
@@ -4697,21 +4706,30 @@ function generarHtmlLectioParaPDF(lectio) {
                     --oro: #b8860b;
                     --tinta: #231b13;
                     --fondo: #fcfaf7;
-                    --borde: #dfd2bd;
+                    --papel: #fffdf9;
                     --muted: #7b6a58;
                 }
                 * { box-sizing: border-box; }
                 body {
                     margin: 0;
-                    padding: 2.2rem;
+                    padding: 0.9rem;
                     font-family: "Georgia", serif;
-                    background: var(--fondo);
+                    background:
+                        radial-gradient(circle at top, rgba(184, 134, 11, 0.08), transparent 30%),
+                        var(--fondo);
                     color: var(--tinta);
                 }
+                .documento {
+                    max-width: 980px;
+                    margin: 0 auto;
+                }
                 .cabecera {
-                    margin-bottom: 1.8rem;
-                    padding-bottom: 1.2rem;
-                    border-bottom: 2px solid rgba(184, 134, 11, 0.24);
+                    margin-bottom: 0.9rem;
+                    padding: 1rem 1.1rem;
+                    border: 1px solid rgba(184, 134, 11, 0.18);
+                    border-radius: 1rem;
+                    background: rgba(255, 255, 255, 0.82);
+                    box-shadow: 0 16px 32px rgba(78, 60, 33, 0.08);
                 }
                 .eyebrow {
                     margin: 0 0 0.45rem;
@@ -4722,158 +4740,173 @@ function generarHtmlLectioParaPDF(lectio) {
                 }
                 h1 {
                     margin: 0;
-                    font-size: 2rem;
-                    line-height: 1.15;
+                    font-size: 1.75rem;
+                    line-height: 1.08;
                 }
                 .meta {
-                    margin: 0.6rem 0 0;
+                    margin: 0.55rem 0 0;
                     color: var(--muted);
-                    font: 600 0.92rem/1.5 system-ui, sans-serif;
+                    font: 600 0.88rem/1.55 system-ui, sans-serif;
                 }
-                .entrada {
-                    display: flex;
-                    gap: 1rem;
-                    align-items: flex-start;
-                    padding: 1rem 0;
-                    border-bottom: 1px solid rgba(184, 134, 11, 0.14);
+                .layout {
+                    display: grid;
+                    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+                    gap: 0.9rem;
+                    align-items: start;
+                }
+                .card {
+                    padding: 1rem;
+                    border: 1px solid rgba(184, 134, 11, 0.16);
+                    border-radius: 1rem;
+                    background: rgba(255, 255, 255, 0.84);
+                    box-shadow: 0 14px 28px rgba(78, 60, 33, 0.07);
                     break-inside: avoid;
+                    page-break-inside: avoid;
                 }
-                .entrada-numero {
-                    width: 2rem;
-                    height: 2rem;
-                    border-radius: 999px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: rgba(184, 134, 11, 0.14);
-                    color: var(--oro);
-                    font: 800 0.9rem/1 system-ui, sans-serif;
-                    flex-shrink: 0;
-                }
-                .entrada-ref {
-                    margin: 0 0 0.45rem;
-                    color: var(--oro);
-                    font: 800 0.88rem/1.45 system-ui, sans-serif;
-                    letter-spacing: 0.04em;
-                    text-transform: uppercase;
-                }
-                .entrada-texto {
+                .card-titulo {
                     margin: 0;
-                    font-size: 1.05rem;
-                    line-height: 1.75;
+                    font-size: 1.22rem;
+                    line-height: 1.18;
                 }
-                .lectio-hoja {
-                    margin-top: 2.4rem;
-                    padding: 1.4rem 1.35rem 0;
-                    border: 1px solid rgba(184, 134, 11, 0.18);
-                    border-radius: 1.2rem;
-                    background:
-                        radial-gradient(circle at top, rgba(184, 134, 11, 0.12), transparent 52%),
-                        rgba(255, 255, 255, 0.62);
-                }
-                .lectio-hoja-eyebrow {
-                    margin: 0 0 0.45rem;
-                    color: var(--oro);
-                    font: 800 0.74rem/1.4 system-ui, sans-serif;
-                    letter-spacing: 0.22em;
-                    text-transform: uppercase;
-                }
-                .lectio-hoja-titulo {
-                    margin: 0;
-                    font-size: 1.45rem;
-                    line-height: 1.2;
-                }
-                .lectio-hoja-texto {
-                    margin: 0.55rem 0 1.15rem;
+                .card-texto {
+                    margin: 0.45rem 0 0;
                     color: var(--muted);
-                    font: 600 0.92rem/1.6 system-ui, sans-serif;
+                    font: 600 0.85rem/1.55 system-ui, sans-serif;
                 }
-                .lectio-bloque-pdf {
-                    margin-bottom: 1.45rem;
-                    padding-bottom: 1.2rem;
-                    border-bottom: 1px solid rgba(184, 134, 11, 0.14);
+                .pasaje-lista {
+                    display: grid;
+                    gap: 0.55rem;
+                    margin-top: 0.9rem;
+                }
+                .pasaje-versiculo {
+                    margin: 0;
+                    padding: 0.7rem 0.8rem;
+                    border-radius: 0.9rem;
+                    border: 1px solid rgba(184, 134, 11, 0.12);
+                    background: var(--papel);
+                    font-size: 0.95rem;
+                    line-height: 1.62;
                     break-inside: avoid;
+                    page-break-inside: avoid;
                 }
-                .lectio-bloque-pdf:last-child {
-                    border-bottom: none;
-                    margin-bottom: 0;
-                    padding-bottom: 0.2rem;
+                .pasaje-numero {
+                    display: inline-block;
+                    min-width: 1.3rem;
+                    margin-right: 0.25rem;
+                    color: var(--oro);
+                    font: 800 0.78rem/1.4 system-ui, sans-serif;
+                    vertical-align: baseline;
                 }
-                .lectio-bloque-eyebrow {
-                    margin: 0 0 0.35rem;
+                .lectio-respuestas {
+                    display: grid;
+                    gap: 0.7rem;
+                    margin-top: 0.9rem;
+                }
+                .lectio-respuesta-card {
+                    padding: 0.85rem 0.9rem;
+                    border: 1px solid rgba(184, 134, 11, 0.14);
+                    border-radius: 0.95rem;
+                    background: var(--papel);
+                    break-inside: avoid;
+                    page-break-inside: avoid;
+                }
+                .lectio-respuesta-head {
+                    margin-bottom: 0.35rem;
+                }
+                .lectio-respuesta-eyebrow {
+                    margin: 0 0 0.2rem;
                     color: var(--oro);
                     font: 800 0.72rem/1.4 system-ui, sans-serif;
                     letter-spacing: 0.18em;
                     text-transform: uppercase;
                 }
-                .lectio-bloque-titulo {
+                .lectio-respuesta-titulo {
                     margin: 0;
-                    font-size: 1.12rem;
+                    font-size: 1rem;
                     line-height: 1.35;
                 }
-                .lectio-bloque-guia {
-                    margin: 0.45rem 0 0.95rem;
-                    color: var(--muted);
-                    font: 600 0.88rem/1.55 system-ui, sans-serif;
-                }
-                .retiro-lineas {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 0.8rem;
-                }
-                .retiro-linea {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.7rem;
-                    min-height: 1.8rem;
-                }
-                .retiro-linea-numero {
-                    width: 1.3rem;
-                    color: rgba(123, 106, 88, 0.85);
-                    font: 700 0.72rem/1 system-ui, sans-serif;
-                    text-align: right;
-                    flex-shrink: 0;
-                }
-                .retiro-linea-trazo {
-                    flex: 1;
-                    height: 1.8rem;
-                    border-bottom: 1px solid rgba(184, 134, 11, 0.32);
-                }
-                .pie {
-                    margin-top: 1.8rem;
+                .lectio-respuesta-guia {
+                    margin: 0;
                     color: var(--muted);
                     font: 600 0.82rem/1.5 system-ui, sans-serif;
-                    text-align: right;
+                }
+                .lectio-respuesta-texto {
+                    margin-top: 0.55rem;
+                    color: var(--tinta);
+                    font: 600 0.9rem/1.62 system-ui, sans-serif;
+                }
+                .lectio-respuesta-vacia {
+                    margin: 0.55rem 0 0;
+                    color: #9a7b47;
+                    font: italic 600 0.84rem/1.5 system-ui, sans-serif;
+                }
+                .pie {
+                    margin-top: 0.8rem;
+                    color: var(--muted);
+                    font: 600 0.82rem/1.5 system-ui, sans-serif;
+                    text-align: center;
                 }
                 @page {
-                    margin: 1.4cm;
+                    size: A4;
+                    margin: 0.9cm;
+                }
+                @media (max-width: 780px) {
+                    body {
+                        padding: 0.65rem;
+                    }
+                    .layout {
+                        grid-template-columns: 1fr;
+                    }
+                    .cabecera,
+                    .card {
+                        padding: 0.9rem;
+                        border-radius: 0.9rem;
+                    }
+                    h1 {
+                        font-size: 1.45rem;
+                    }
                 }
                 @media print {
                     body {
                         padding: 0;
+                        background: #ffffff;
+                    }
+                    .documento {
+                        max-width: none;
+                    }
+                    .cabecera,
+                    .card,
+                    .lectio-respuesta-card,
+                    .pasaje-versiculo {
+                        background: #ffffff;
+                        box-shadow: none;
                     }
                 }
             </style>
         </head>
         <body>
-            <header class="cabecera">
-                <p class="eyebrow">Lectio Divina de Lumina</p>
-                <h1>${escapeHtml(lectio.referencia)}</h1>
-                <p class="meta">${lectio.pasaje.length} versículo${lectio.pasaje.length === 1 ? '' : 's'} · Preparado el ${escapeHtml(fecha)}</p>
-            </header>
-            <main>
-                <section aria-label="Cita bíblica elegida">
-                    <p class="eyebrow">Cita bíblica elegida</p>
-                    ${pasajeHtml}
-                </section>
-                <section class="lectio-hoja" aria-label="Preguntas y espacio para escribir la Lectio">
-                    <p class="lectio-hoja-eyebrow">Tipo retiro</p>
-                    <h2 class="lectio-hoja-titulo">Hoja de Lectio para compartir</h2>
-                    <p class="lectio-hoja-texto">Llevá este pasaje a un encuentro, una clase o un retiro con preguntas guía y espacio listo para escribir las tres respuestas.</p>
-                    ${bloquesLectio}
-                </section>
-            </main>
-            <footer class="pie"></footer>
+            <div class="documento">
+                <header class="cabecera">
+                    <p class="eyebrow">Lectio Divina de Lumina</p>
+                    <h1>${escapeHtml(lectio.referencia)}</h1>
+                    <p class="meta">${lectio.pasaje.length} versículo${lectio.pasaje.length === 1 ? '' : 's'} · Preparado el ${escapeHtml(fecha)} · ${respuestasCargadas ? 'Incluye tus respuestas actuales' : 'Formato compacto para compartir'}</p>
+                </header>
+                <main class="layout">
+                    <section class="card" aria-label="Pasaje bíblico elegido">
+                        <p class="eyebrow">Pasaje</p>
+                        <h2 class="card-titulo">Texto bíblico</h2>
+                        <p class="card-texto">Versión compacta para que la vista previa del celular no corte la Lectio entre varias hojas cuando el pasaje es breve.</p>
+                        <div class="pasaje-lista">${pasajeHtml}</div>
+                    </section>
+                    <section class="card" aria-label="Respuestas de la Lectio">
+                        <p class="eyebrow">Tu Lectio</p>
+                        <h2 class="card-titulo">Leer, meditar y orar</h2>
+                        <p class="card-texto">${respuestasCargadas ? 'Se comparten las respuestas que escribiste en Lumina.' : 'Si todavía no escribiste, el PDF muestra la guía sin dejar una hoja tipo formulario.'}</p>
+                        <div class="lectio-respuestas">${bloquesLectioHtml}</div>
+                    </section>
+                </main>
+                <footer class="pie">Generado desde Lumina</footer>
+            </div>
         </body>
         </html>
     `;
