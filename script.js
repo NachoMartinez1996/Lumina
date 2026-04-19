@@ -5761,8 +5761,7 @@ function escucharVersiculo(libro, capitulo, versiculo, texto) {
     }
 
     const btn = document.getElementById(`audio_${libro}_${capitulo}_${versiculo}`);
-    // Usamos comas para que la voz haga las pausas naturales de la cita bíblica
-    const referencia = `${libro}, capítulo ${capitulo}, versículo ${versiculo}. ${texto}`;
+    const referencia = construirTextoLecturaVersiculo(libro, capitulo, versiculo, texto);
 
     // Si ya está sonando este mismo botón, lo detenemos
     if (vozActiva === btn && window.speechSynthesis.speaking) {
@@ -5981,6 +5980,29 @@ function esVersiculoLeible(versiculo) {
 
 function libroUsaAcotacionesEspeciales(libro) {
     return libro === "Cantar de los Cantares";
+}
+
+function esVersiculoNarrable(libro, versiculo) {
+    return esVersiculoLeible(versiculo)
+        || (libroUsaAcotacionesEspeciales(libro) && Number.isFinite(versiculo) && versiculo > 0);
+}
+
+function obtenerVersiculosNarrablesCapitulo(libro, capitulo) {
+    const versiculos = bibleContent[libro]?.[capitulo] || {};
+    return Object.keys(versiculos)
+        .map(Number)
+        .filter(versiculo => esVersiculoNarrable(libro, versiculo))
+        .sort((a, b) => a - b);
+}
+
+function construirTextoLecturaVersiculo(libro, capitulo, versiculo, texto) {
+    const textoNormalizado = normalizarTextoParaLectura(texto);
+
+    if (libroUsaAcotacionesEspeciales(libro) && !esVersiculoLeible(versiculo)) {
+        return `${libro}, capítulo ${capitulo}. ${textoNormalizado}`;
+    }
+
+    return `${libro}, capítulo ${capitulo}, versículo ${versiculo}. ${texto}`;
 }
 
 function esClaveLeidoVersiculoNoLeible(clave) {
@@ -8309,10 +8331,7 @@ function asegurarVersiculoVisible(verseCard) {
 
 function construirListaVersiculosCapitulo(libro, capitulo) {
     const versiculosObj = bibleContent[libro]?.[capitulo] || {};
-    const numerosVersiculos = Object.keys(versiculosObj)
-        .map(Number)
-        .filter(esVersiculoLeible)
-        .sort((a, b) => a - b);
+    const numerosVersiculos = obtenerVersiculosNarrablesCapitulo(libro, capitulo);
 
     listaVersiculosEnCapitulo = numerosVersiculos.map(v => ({
         libro,
@@ -8334,10 +8353,7 @@ function construirListaVersiculosLibro(libroNombre) {
 
     capitulosSorted.forEach(capitulo => {
         const versiculosObj = libroContenido[capitulo];
-        const numerosVersiculos = Object.keys(versiculosObj)
-            .map(Number)
-            .filter(esVersiculoLeible)
-            .sort((a, b) => a - b);
+        const numerosVersiculos = obtenerVersiculosNarrablesCapitulo(libroNombre, capitulo);
 
         numerosVersiculos.forEach(v => {
             listaCompleta.push({
