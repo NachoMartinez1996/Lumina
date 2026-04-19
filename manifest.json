@@ -1,7 +1,15 @@
 {
+  "id": "./",
+  "lang": "es-AR",
+  "dir": "ltr",
   "name": "Lumina - La Tradición Iluminando la Palabra",
   "short_name": "Lumina",
-  "description": "Explora los Evangelios con la Catena Aurea.",
+  "description": "Biblia católica con Tradición, concordancias, Lectio Divina, audio, notas, favoritos, colecciones y modo sin conexión.",
+  "categories": [
+    "books",
+    "education",
+    "lifestyle"
+  ],
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
