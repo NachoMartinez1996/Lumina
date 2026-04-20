@@ -1340,6 +1340,7 @@ let contextoModalColecciones = null;
 let lectioDivinaRegistros = [];
 let lectioRegistroActivoId = null;
 let vistaRetornoLectio = 'vista-libros';
+let busquedasRecientes = [];
 let estadoSeccionesBusqueda = {
     versiculos: false,
     comentarios: false,
@@ -1354,9 +1355,11 @@ const CLAVE_VERSICULO_INICIO = 'lumina_versiculo_inicio_v1';
 const CLAVE_COLECCIONES_VERSICULOS = 'lumina_colecciones_versiculos_v1';
 const CLAVE_ULTIMA_COLECCION_VERSICULOS = 'lumina_ultima_coleccion_versiculos_v1';
 const CLAVE_LECTIO_DIVINA = 'lumina_lectio_divina_v1';
+const CLAVE_BUSQUEDAS_RECIENTES = 'lumina_busquedas_recientes_v1';
 const CLAVE_DARKMODE = 'lumina_darkmode';
 const CLAVE_CONCORDANCIA = 'lumina_concordancia';
 const CLAVE_BIENVENIDA = 'lumina_bienvenida_v1';
+const LIMITE_BUSQUEDAS_RECIENTES = 12;
 let modoDesiertoActivo = false;
 let textoCorridoActivo = false;
 let versiculoInicioGuardado = null;
@@ -1416,6 +1419,12 @@ const CATEGORIAS_RESPALDO_LUMINA = [
         titulo: 'Lectio Divina',
         descripcion: 'Tu cuaderno espiritual de Lectios.',
         claves: [CLAVE_LECTIO_DIVINA]
+    },
+    {
+        id: 'busquedas',
+        titulo: 'Búsquedas guardadas',
+        descripcion: 'Tu historial reciente para retomar búsquedas rápido.',
+        claves: [CLAVE_BUSQUEDAS_RECIENTES]
     },
     {
         id: 'preferencias',
@@ -2167,6 +2176,73 @@ function guardarColeccionesVersiculos() {
     } else {
         eliminarPersistencia(CLAVE_ULTIMA_COLECCION_VERSICULOS);
     }
+}
+
+function normalizarBusquedaReciente(item) {
+    const termino = normalizarTerminoBusqueda(item?.termino || item?.texto || item?.query || '');
+    if (!termino) return null;
+
+    const filtro = normalizarFiltroLibroBusqueda(item?.filtro || item?.libro || FILTRO_BUSQUEDA_TODOS);
+    const fecha = typeof item?.updatedAt === 'string' && item.updatedAt ? item.updatedAt : new Date().toISOString();
+
+    return {
+        termino,
+        filtro,
+        updatedAt: fecha
+    };
+}
+
+function ordenarBusquedasRecientes(items = []) {
+    return [...items].sort((a, b) => {
+        const fechaA = Date.parse(a?.updatedAt || 0) || 0;
+        const fechaB = Date.parse(b?.updatedAt || 0) || 0;
+        return fechaB - fechaA;
+    });
+}
+
+function cargarBusquedasRecientes() {
+    try {
+        const stored = JSON.parse(leerPersistencia(CLAVE_BUSQUEDAS_RECIENTES, '[]'));
+        busquedasRecientes = Array.isArray(stored)
+            ? ordenarBusquedasRecientes(stored.map(normalizarBusquedaReciente).filter(Boolean)).slice(0, LIMITE_BUSQUEDAS_RECIENTES)
+            : [];
+    } catch (_) {
+        busquedasRecientes = [];
+    }
+}
+
+function guardarBusquedasRecientes() {
+    if (busquedasRecientes.length > 0) {
+        escribirPersistencia(CLAVE_BUSQUEDAS_RECIENTES, JSON.stringify(busquedasRecientes));
+    } else {
+        eliminarPersistencia(CLAVE_BUSQUEDAS_RECIENTES);
+    }
+}
+
+function registrarBusquedaReciente(termino, filtro = filtroLibroBusquedaActual) {
+    const terminoNormalizado = normalizarTerminoBusqueda(termino);
+    if (!terminoNormalizado) return;
+
+    const filtroNormalizado = normalizarFiltroLibroBusqueda(filtro);
+    const nuevaBusqueda = {
+        termino: terminoNormalizado,
+        filtro: filtroNormalizado,
+        updatedAt: new Date().toISOString()
+    };
+
+    busquedasRecientes = [
+        nuevaBusqueda,
+        ...busquedasRecientes.filter(item => !(item.termino === terminoNormalizado && item.filtro === filtroNormalizado))
+    ].slice(0, LIMITE_BUSQUEDAS_RECIENTES);
+
+    guardarBusquedasRecientes();
+}
+
+function limpiarHistorialBusquedasRecientes() {
+    busquedasRecientes = [];
+    eliminarPersistencia(CLAVE_BUSQUEDAS_RECIENTES);
+    actualizarVistaBusquedaSinResultados(terminoBusquedaActual, filtroLibroBusquedaActual);
+    lanzarToast('Historial de búsquedas limpiado');
 }
 
 function generarIdLectioDivina() {
@@ -3088,6 +3164,7 @@ function crearTarjetaColeccion(coleccion) {
 }
 
 function renderizarDetalleColeccion(coleccion, contenedor) {
+    const accionPdfEsCompartir = usarCompartirNativoParaPdf();
     const toolbar = document.createElement('div');
     toolbar.className = 'coleccion-detalle-toolbar';
 
@@ -3146,8 +3223,10 @@ function renderizarDetalleColeccion(coleccion, contenedor) {
     acciones.appendChild(
         crearBotonAccionColeccion(
             'fa-file-pdf',
-            'Exportar PDF',
-            'Prepará una hoja imprimible tipo retiro.',
+            accionPdfEsCompartir ? 'Compartir PDF' : 'Descargar PDF',
+            accionPdfEsCompartir
+                ? 'Compartí un PDF real de esta colección.'
+                : 'Descargá un PDF real de esta colección.',
             () => exportarColeccionComoPDF(coleccion.id)
         )
     );
@@ -3764,6 +3843,16 @@ function actualizarUIRegistroActivoLectio() {
     botonGuardar.textContent = 'Actualizar Lectio';
 }
 
+function actualizarBotonPdfLectioSegunDispositivo() {
+    const boton = document.getElementById('btn-compartir-lectio-pdf');
+    if (!boton) return;
+
+    const compartir = usarCompartirNativoParaPdf();
+    boton.innerHTML = `<i class="fas fa-file-pdf mr-2" aria-hidden="true"></i> ${compartir ? 'Compartir PDF' : 'Descargar PDF'}`;
+    boton.setAttribute('aria-label', compartir ? 'Compartir PDF de la Lectio' : 'Descargar PDF de la Lectio');
+    boton.setAttribute('title', compartir ? 'Compartir PDF de la Lectio' : 'Descargar PDF de la Lectio');
+}
+
 function renderizarListaLectioGuardadas() {
     const lista = document.getElementById('lista-lectio-guardadas');
     if (!lista) return;
@@ -4149,6 +4238,82 @@ function mostrarBuscadorMovil(mostrar) {
 
     if (visible && busquedaMovil) {
         requestAnimationFrame(() => busquedaMovil.focus());
+    }
+}
+
+function obtenerBusquedasRecientesVisibles() {
+    return busquedasRecientes.slice(0, 8);
+}
+
+function aplicarBusquedaRecienteGuardada(termino, filtro = FILTRO_BUSQUEDA_TODOS) {
+    const terminoNormalizado = normalizarTerminoBusqueda(termino);
+    if (!terminoNormalizado) return;
+
+    filtroLibroBusquedaActual = normalizarFiltroLibroBusqueda(filtro);
+    sincronizarSelectorFiltroLibroBusqueda();
+    sincronizarInputsBusqueda(terminoNormalizado);
+    mostrarResultadosBusqueda(terminoNormalizado);
+}
+
+function crearBotonBusquedaReciente(item) {
+    const boton = document.createElement('button');
+    const etiquetaFiltro = obtenerEtiquetaFiltroLibroBusqueda(item.filtro);
+    boton.type = 'button';
+    boton.className = 'busqueda-reciente-item';
+    boton.innerHTML = `
+        <span class="busqueda-reciente-item-icono" aria-hidden="true"><i class="fas fa-history"></i></span>
+        <span class="busqueda-reciente-item-copy">
+            <span class="busqueda-reciente-item-termino">${escapeHtml(item.termino)}</span>
+            <span class="busqueda-reciente-item-meta">${escapeHtml(etiquetaFiltro)}</span>
+        </span>
+        <span class="busqueda-reciente-item-accion" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+    `;
+    boton.addEventListener('click', () => aplicarBusquedaRecienteGuardada(item.termino, item.filtro));
+    return boton;
+}
+
+function crearBloqueBusquedasRecientes() {
+    const items = obtenerBusquedasRecientesVisibles();
+    if (items.length === 0) return null;
+
+    const bloque = document.createElement('section');
+    bloque.className = 'busquedas-recientes-bloque';
+
+    const encabezado = document.createElement('div');
+    encabezado.className = 'busquedas-recientes-header';
+    encabezado.innerHTML = `
+        <div class="busquedas-recientes-header-copy">
+            <p class="busquedas-recientes-eyebrow">Guardadas en Lumina</p>
+            <h3 class="busquedas-recientes-titulo">Búsquedas recientes</h3>
+        </div>
+    `;
+
+    const botonLimpiar = document.createElement('button');
+    botonLimpiar.type = 'button';
+    botonLimpiar.className = 'busquedas-recientes-limpiar';
+    botonLimpiar.textContent = 'Borrar historial';
+    botonLimpiar.addEventListener('click', () => limpiarHistorialBusquedasRecientes());
+    encabezado.appendChild(botonLimpiar);
+
+    const lista = document.createElement('div');
+    lista.className = 'busquedas-recientes-lista';
+    items.forEach(item => lista.appendChild(crearBotonBusquedaReciente(item)));
+
+    bloque.appendChild(encabezado);
+    bloque.appendChild(lista);
+    return bloque;
+}
+
+function actualizarVistaBusquedaSinResultados(termino = '', filtro = filtroLibroBusquedaActual) {
+    const contenedor = document.getElementById('contenido-busqueda');
+    if (!contenedor) return;
+
+    contenedor.classList.remove('busqueda-con-resultados');
+    contenedor.innerHTML = renderizarEstadoBusquedaVacio(termino, filtro);
+
+    const bloqueBusquedasRecientes = crearBloqueBusquedasRecientes();
+    if (bloqueBusquedasRecientes) {
+        contenedor.appendChild(bloqueBusquedasRecientes);
     }
 }
 
@@ -4581,6 +4746,9 @@ function mostrarResultadosBusqueda(termino) {
     sincronizarSelectorFiltroLibroBusqueda();
     const resultados = buscarResultadosBusqueda(terminoNormalizado, filtroLibroBusquedaActual);
     terminoBusquedaActual = terminoNormalizado;
+    if (terminoNormalizado) {
+        registrarBusquedaReciente(terminoNormalizado, filtroLibroBusquedaActual);
+    }
 
     sincronizarInputsBusqueda(terminoNormalizado);
     mostrarBuscadorMovil(false);
@@ -4603,8 +4771,7 @@ function mostrarResultadosBusqueda(termino) {
         if (!terminoNormalizado || resultados.total > 0) {
             renderizarResultadosBusqueda(contenedor, resultados, terminoNormalizado, filtroLibroBusquedaActual);
         } else {
-            contenedor.classList.remove('busqueda-con-resultados');
-            contenedor.innerHTML = renderizarEstadoBusquedaVacio(terminoNormalizado, filtroLibroBusquedaActual);
+            actualizarVistaBusquedaSinResultados(terminoNormalizado, filtroLibroBusquedaActual);
         }
     }
 
@@ -4620,17 +4787,13 @@ function limpiarBusqueda(cerrarPanelResultados = false) {
     });
     sincronizarSelectorFiltroLibroBusqueda();
 
-    const contenedor = document.getElementById('contenido-busqueda');
     const contador = document.getElementById('contador-busqueda');
 
     if (contador) {
         contador.textContent = obtenerTextoContadorBusqueda('', 0, filtroLibroBusquedaActual);
     }
 
-    if (contenedor) {
-        contenedor.classList.remove('busqueda-con-resultados');
-        contenedor.innerHTML = renderizarEstadoBusquedaVacio('', filtroLibroBusquedaActual);
-    }
+    actualizarVistaBusquedaSinResultados('', filtroLibroBusquedaActual);
 
     if (cerrarPanelResultados) {
         cerrarPanel('panel-busqueda');
@@ -5218,6 +5381,35 @@ function generarLineasRetiroParaPDF(cantidad = 12) {
     `).join('');
 }
 
+function obtenerBloquesLectioParaPDF(lectio = {}) {
+    return [
+        {
+            clave: 'leer',
+            eyebrow: 'Leer',
+            titulo: '¿Qué dice el texto?',
+            guia: 'Personajes, ambiente, mensaje central y lo que el pasaje muestra con claridad.',
+            lineas: 5,
+            respuesta: String(lectio.leer || '').trim()
+        },
+        {
+            clave: 'meditar',
+            eyebrow: 'Meditar',
+            titulo: '¿Qué me dice Dios a mí, hoy?',
+            guia: 'Cómo interpela tu vida concreta, qué ilumina, corrige, confirma o despierta.',
+            lineas: 5,
+            respuesta: String(lectio.meditar || '').trim()
+        },
+        {
+            clave: 'orar',
+            eyebrow: 'Orar y contemplar',
+            titulo: '¿Qué le respondo al Señor?',
+            guia: 'Agradecimiento, súplica, silencio, propósito o una oración nacida de la Palabra.',
+            lineas: 5,
+            respuesta: String(lectio.orar || '').trim()
+        }
+    ];
+}
+
 
 function obtenerDatosLectioActualParaPDF() {
     const { libro, capitulo, desde, hasta } = obtenerSeleccionLectioActual();
@@ -5227,6 +5419,9 @@ function obtenerDatosLectioActualParaPDF() {
 
     const pasaje = obtenerPasajeLectio(libro, capitulo, desde, hasta);
     if (pasaje.length === 0) return null;
+    const leer = normalizarRespuestaLectio('leer', document.getElementById('lectio-leer')?.value || '');
+    const meditar = normalizarRespuestaLectio('meditar', document.getElementById('lectio-meditar')?.value || '');
+    const orar = normalizarRespuestaLectio('orar', document.getElementById('lectio-orar')?.value || '');
 
     return {
         libro,
@@ -5234,7 +5429,10 @@ function obtenerDatosLectioActualParaPDF() {
         desde,
         hasta,
         referencia: formatearReferenciaLectio(libro, capitulo, desde, hasta),
-        pasaje
+        pasaje,
+        leer,
+        meditar,
+        orar
     };
 }
 
@@ -5435,31 +5633,14 @@ function generarHtmlLectioParaPDF(lectio) {
             </div>
         </article>
     `).join('');
-    const bloquesLectio = [
-        {
-            eyebrow: 'Leer',
-            titulo: '¿Qué dice el texto?',
-            guia: 'Personajes, ambiente, mensaje central y lo que el pasaje muestra con claridad.',
-            lineas: 5
-        },
-        {
-            eyebrow: 'Meditar',
-            titulo: '¿Qué me dice Dios a mí, hoy?',
-            guia: 'Cómo interpela tu vida concreta, qué ilumina, corrige, confirma o despierta.',
-            lineas: 5
-        },
-        {
-            eyebrow: 'Orar y contemplar',
-            titulo: '¿Qué le respondo al Señor?',
-            guia: 'Agradecimiento, súplica, silencio, propósito o una oración nacida de la Palabra.',
-            lineas: 5
-        }
-    ].map(bloque => `
+    const bloquesLectio = obtenerBloquesLectioParaPDF(lectio).map(bloque => `
         <section class="lectio-bloque-pdf">
             <p class="lectio-bloque-eyebrow">${escapeHtml(bloque.eyebrow)}</p>
             <h2 class="lectio-bloque-titulo">${escapeHtml(bloque.titulo)}</h2>
             <p class="lectio-bloque-guia">${escapeHtml(bloque.guia)}</p>
-            <div class="retiro-lineas">${generarLineasRetiroParaPDF(bloque.lineas)}</div>
+            ${bloque.respuesta
+            ? `<div class="lectio-bloque-respuesta">${renderizarTextoPlanoHtml(bloque.respuesta, true)}</div>`
+            : `<div class="retiro-lineas">${generarLineasRetiroParaPDF(bloque.lineas)}</div>`}
         </section>
     `).join('');
 
@@ -5547,7 +5728,8 @@ function generarHtmlLectioParaPDF(lectio) {
                 }
                 .lectio-hoja-eyebrow {
                     margin: 0 0 0.45rem;
-                                        font: 800 0.74rem/1.4 system-ui, sans-serif;
+                    color: var(--oro);
+                    font: 800 0.74rem/1.4 system-ui, sans-serif;
                     letter-spacing: 0.22em;
                     text-transform: uppercase;
                 }
@@ -5589,6 +5771,14 @@ function generarHtmlLectioParaPDF(lectio) {
                     color: var(--muted);
                     font: 600 0.88rem/1.55 system-ui, sans-serif;
                 }
+                .lectio-bloque-respuesta {
+                    padding: 0.95rem 1rem;
+                    border-radius: 1rem;
+                    border: 1px solid rgba(184, 134, 11, 0.16);
+                    background: rgba(255, 255, 255, 0.86);
+                    color: var(--tinta);
+                    font: 600 0.95rem/1.7 system-ui, sans-serif;
+                }
                 .retiro-lineas {
                     display: flex;
                     flex-direction: column;
@@ -5611,7 +5801,8 @@ function generarHtmlLectioParaPDF(lectio) {
                     flex: 1;
                     height: 1.8rem;
                     border-bottom: 1px solid rgba(184, 134, 11, 0.32);
-                                    .pie {
+                }
+                .pie {
                     margin-top: 1.8rem;
                     color: var(--muted);
                     font: 600 0.82rem/1.5 system-ui, sans-serif;
@@ -5650,7 +5841,16 @@ function generarHtmlLectioParaPDF(lectio) {
     `;
 }
 
-function esDispositivoMovilParaPdfCompartido() {
+function normalizarSlugArchivoCompartido(texto, fallback = 'archivo') {
+    return String(texto || fallback)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '') || fallback;
+}
+
+function usarCompartirNativoParaPdf() {
     const userAgent = navigator.userAgent || '';
     const coincideUA = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
     const punteroTactil = Boolean(
@@ -5660,15 +5860,6 @@ function esDispositivoMovilParaPdfCompartido() {
     const pantallaCompacta = Math.min(window.innerWidth || 0, window.innerHeight || 0) <= 1024;
 
     return coincideUA || (punteroTactil && pantallaCompacta);
-}
-
-function normalizarSlugArchivoCompartido(texto, fallback = 'archivo') {
-    return String(texto || fallback)
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '_')
-        .replace(/^_+|_+$/g, '') || fallback;
 }
 
 function obtenerNombreArchivoLectioPdf(lectio) {
@@ -5776,6 +5967,28 @@ function escribirBloqueTextoCanvasPdf(ctx, texto, x, y, maxWidth, opciones = {})
         lineas,
         height: lineas.length * lineHeight
     };
+}
+
+function dividirTextoCanvasPdfPorSaltos(ctx, texto, maxWidth) {
+    const partes = String(texto || '').split(/\r?\n/);
+    const lineas = [];
+
+    partes.forEach((parte, indice) => {
+        const limpia = parte.trim();
+
+        if (!limpia) {
+            lineas.push('');
+        } else {
+            lineas.push(...dividirTextoTarjetaEnLineas(ctx, limpia, maxWidth));
+        }
+
+        if (indice === partes.length - 1) return;
+        if (limpia && partes[indice + 1]?.trim()) {
+            // La siguiente parte ya arranca en una nueva línea por sí misma.
+        }
+    });
+
+    return lineas.length > 0 ? lineas : [''];
 }
 
 function renderizarPaginasLectioCanvasPdf(lectio) {
@@ -5928,30 +6141,19 @@ function renderizarPaginasLectioCanvasPdf(lectio) {
         const { ctx } = pagina;
         ctx.font = '600 22px system-ui, sans-serif';
         const lineasGuia = dividirTextoTarjetaEnLineas(ctx, bloque.guia, anchoInterno);
+
+        if (bloque.respuesta) {
+            ctx.font = '600 24px system-ui, sans-serif';
+            const lineasRespuesta = dividirTextoCanvasPdfPorSaltos(ctx, bloque.respuesta, anchoInterno - 40);
+            const alturaRespuesta = Math.max(92, (lineasRespuesta.length * 34) + 36);
+            return 28 + 40 + (lineasGuia.length * 32) + 24 + alturaRespuesta + 18;
+        }
+
         return 28 + 40 + (lineasGuia.length * 32) + 26 + (bloque.lineas * 48) + 18;
     };
 
     const dibujarSeccionLectio = () => {
-        const bloques = [
-            {
-                eyebrow: 'Leer',
-                titulo: '¿Qué dice el texto?',
-                guia: 'Personajes, ambiente, mensaje central y lo que el pasaje muestra con claridad.',
-                lineas: 5
-            },
-            {
-                eyebrow: 'Meditar',
-                titulo: '¿Qué me dice Dios a mí, hoy?',
-                guia: 'Cómo interpela tu vida concreta, qué ilumina, corrige, confirma o despierta.',
-                lineas: 5
-            },
-            {
-                eyebrow: 'Orar y contemplar',
-                titulo: '¿Qué le respondo al Señor?',
-                guia: 'Agradecimiento, súplica, silencio, propósito o una oración nacida de la Palabra.',
-                lineas: 5
-            }
-        ];
+        const bloques = obtenerBloquesLectioParaPDF(lectio);
         const cardX = config.marginX;
         const cardY = pagina.y + 18;
         const cardW = contentWidth;
@@ -6029,25 +6231,48 @@ function renderizarPaginasLectioCanvasPdf(lectio) {
             }).height;
             y += 16;
 
-            for (let linea = 0; linea < bloque.lineas; linea++) {
-                const lineaY = y + (linea * 48);
-                ctx.save();
-                ctx.fillStyle = 'rgba(123, 106, 88, 0.85)';
-                ctx.font = '700 18px system-ui, sans-serif';
-                ctx.textAlign = 'right';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(String(linea + 1), innerX + 10, lineaY + 22);
+            if (bloque.respuesta) {
+                ctx.font = '600 24px system-ui, sans-serif';
+                const lineasRespuesta = dividirTextoCanvasPdfPorSaltos(ctx, bloque.respuesta, innerW - 40);
+                const alturaRespuesta = Math.max(92, (lineasRespuesta.length * 34) + 36);
 
-                ctx.strokeStyle = 'rgba(184, 134, 11, 0.32)';
+                ctx.save();
+                trazarRectanguloRedondeado(ctx, innerX, y, innerW, alturaRespuesta, 20);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(184, 134, 11, 0.16)';
                 ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(innerX + 28, lineaY + 22);
-                ctx.lineTo(cardX + cardW - 34, lineaY + 22);
                 ctx.stroke();
                 ctx.restore();
-            }
 
-            y += (bloque.lineas * 48) + 12;
+                escribirBloqueTextoCanvasPdf(ctx, lineasRespuesta, innerX + 20, y + 18, innerW - 40, {
+                    font: '600 24px system-ui, sans-serif',
+                    color: '#231b13',
+                    lineHeight: 34
+                });
+
+                y += alturaRespuesta + 12;
+            } else {
+                for (let linea = 0; linea < bloque.lineas; linea++) {
+                    const lineaY = y + (linea * 48);
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(123, 106, 88, 0.85)';
+                    ctx.font = '700 18px system-ui, sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(String(linea + 1), innerX + 10, lineaY + 22);
+
+                    ctx.strokeStyle = 'rgba(184, 134, 11, 0.32)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(innerX + 28, lineaY + 22);
+                    ctx.lineTo(cardX + cardW - 34, lineaY + 22);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                y += (bloque.lineas * 48) + 12;
+            }
 
             if (indice < bloques.length - 1) {
                 ctx.save();
@@ -6446,14 +6671,14 @@ async function generarBlobPdfColeccionMovil(coleccion) {
     return crearBlobPdfDesdeJpegs(paginas);
 }
 
-async function compartirColeccionComoPdfMovil(coleccion) {
+async function compartirColeccionComoPdfArchivo(coleccion) {
     const blob = await generarBlobPdfColeccionMovil(coleccion);
     const nombreArchivo = obtenerNombreArchivoColeccionPdf(coleccion);
     const archivo = typeof File !== 'undefined'
         ? new File([blob], nombreArchivo, { type: 'application/pdf' })
         : null;
 
-    if (archivo && navigator.share) {
+    if (usarCompartirNativoParaPdf() && archivo && navigator.share) {
         const datosCompartir = {
             title: `Colección: ${coleccion.nombre}`,
             text: `${coleccion.nombre}\nCompartido desde Lumina`,
@@ -6480,14 +6705,14 @@ async function compartirColeccionComoPdfMovil(coleccion) {
     return true;
 }
 
-async function compartirLectioComoPdfMovil(lectio) {
+async function compartirLectioComoPdfArchivo(lectio) {
     const blob = await generarBlobPdfLectioMovil(lectio);
     const nombreArchivo = obtenerNombreArchivoLectioPdf(lectio);
     const archivo = typeof File !== 'undefined'
         ? new File([blob], nombreArchivo, { type: 'application/pdf' })
         : null;
 
-    if (archivo && navigator.share) {
+    if (usarCompartirNativoParaPdf() && archivo && navigator.share) {
         const datosCompartir = {
             title: `Lectio: ${lectio.referencia}`,
             text: `${lectio.referencia}\nCompartido desde Lumina`,
@@ -6598,14 +6823,12 @@ async function exportarColeccionComoPDF(coleccionId) {
         return;
     }
 
-    if (esDispositivoMovilParaPdfCompartido()) {
-        try {
-            await compartirColeccionComoPdfMovil(coleccion);
-            return;
-        } catch (error) {
-            console.error('No se pudo generar el PDF directo de la colección para móvil:', error);
-            lanzarToast('No se pudo preparar el PDF directo. Abrimos la vista clásica.');
-        }
+    try {
+        await compartirColeccionComoPdfArchivo(coleccion);
+        return;
+    } catch (error) {
+        console.error('No se pudo generar el PDF real de la colección:', error);
+        lanzarToast('No se pudo preparar el PDF real. Abrimos la vista clásica.');
     }
 
     const html = generarHtmlColeccionParaPDF(coleccion);
@@ -6625,14 +6848,12 @@ async function exportarLectioComoPDF() {
         return;
     }
 
-    if (esDispositivoMovilParaPdfCompartido()) {
-        try {
-            await compartirLectioComoPdfMovil(lectio);
-            return;
-        } catch (error) {
-            console.error('No se pudo generar el PDF directo para móvil:', error);
-            lanzarToast('No se pudo preparar el PDF directo. Abrimos la vista clásica.');
-        }
+    try {
+        await compartirLectioComoPdfArchivo(lectio);
+        return;
+    } catch (error) {
+        console.error('No se pudo generar el PDF real de la Lectio:', error);
+        lanzarToast('No se pudo preparar el PDF real. Abrimos la vista clásica.');
     }
 
     const html = generarHtmlLectioParaPDF(lectio);
@@ -9704,6 +9925,7 @@ window.onload = async () => {
     cargarFavoritos();
     cargarColeccionesVersiculos();
     cargarLectioDivinaRegistros();
+    cargarBusquedasRecientes();
     cargarNotasPersonales();
     cargarLeidos();
     cargarVersiculoInicioGuardado();
@@ -9723,6 +9945,7 @@ window.onload = async () => {
     aplicarModoDesierto(leerPersistencia(CLAVE_MODO_DESIERTO) === 'true', { guardar: false });
     aplicarTextoCorrido(leerPersistencia(CLAVE_TEXTO_CORRIDO) === 'true', { guardar: false });
     inicializarLectioDivina();
+    actualizarBotonPdfLectioSegunDispositivo();
 
     const toggle = document.getElementById('toggle-concordancia');
     const saved = leerPersistencia(CLAVE_CONCORDANCIA);
@@ -9845,8 +10068,7 @@ window.onload = async () => {
 
     const contenedorBusqueda = document.getElementById('contenido-busqueda');
     if (contenedorBusqueda) {
-        contenedorBusqueda.classList.remove('busqueda-con-resultados');
-        contenedorBusqueda.innerHTML = renderizarEstadoBusquedaVacio('', filtroLibroBusquedaActual);
+        actualizarVistaBusquedaSinResultados('', filtroLibroBusquedaActual);
     }
     const contadorBusqueda = document.getElementById('contador-busqueda');
     if (contadorBusqueda) {
@@ -10139,6 +10361,10 @@ function obtenerResumenCategoriaRespaldo(categoria, mapa, categoriasExplicitas =
             case 'lectio': {
                 const items = JSON.parse(mapa.get(CLAVE_LECTIO_DIVINA) || '[]');
                 return `${Array.isArray(items) ? items.length : 0} Lectio${Array.isArray(items) && items.length === 1 ? '' : 's'} guardada${Array.isArray(items) && items.length === 1 ? '' : 's'}.`;
+            }
+            case 'busquedas': {
+                const items = JSON.parse(mapa.get(CLAVE_BUSQUEDAS_RECIENTES) || '[]');
+                return `${Array.isArray(items) ? items.length : 0} búsqueda${Array.isArray(items) && items.length === 1 ? '' : 's'} reciente${Array.isArray(items) && items.length === 1 ? '' : 's'}.`;
             }
             case 'preferencias':
                 return `${clavesPresentes.length} ajuste${clavesPresentes.length === 1 ? '' : 's'} personal${clavesPresentes.length === 1 ? '' : 'es'}.`;
@@ -10558,6 +10784,7 @@ async function ejecutarResetLumina() {
         ultimaColeccionVersiculosId = null;
         lectioDivinaRegistros = [];
         lectioRegistroActivoId = null;
+        busquedasRecientes = [];
         concordanciaActiva = false;
         bibliaCompletaCelebrada = false;
         modoDesiertoActivo = false;

@@ -31,6 +31,20 @@ p {
   text-align: justify;
 }
 
+ul {
+  text-align: justify;
+text-align-last: justify
+}
+
+blockquote {
+  text-align: justify;
+}
+
+span {
+  text-align: justify;
+}
+
+
 header h1 {
     text-shadow: 0.5px 0.5px 0px rgba(0, 0, 0, 0.05);
 }
@@ -1092,6 +1106,8 @@ body:not(.dark) #lista-favoritos .favorito-entrada-texto {
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
+    text-align: left;
+    text-align-last: auto;
 }
 
 .coleccion-detalle-toolbar-btn-titulo {
@@ -1099,6 +1115,8 @@ body:not(.dark) #lista-favoritos .favorito-entrada-texto {
     font-size: 0.84rem;
     font-weight: 800;
     line-height: 1.25;
+    text-align: left;
+    text-align-last: auto;
 }
 
 .coleccion-detalle-toolbar-btn-meta {
@@ -1106,6 +1124,8 @@ body:not(.dark) #lista-favoritos .favorito-entrada-texto {
     font-size: 0.74rem;
     font-weight: 600;
     line-height: 1.35;
+    text-align: left;
+    text-align-last: auto;
 }
 
 .coleccion-detalle-toolbar-btn-peligro {
@@ -1572,10 +1592,20 @@ button[onclick="cerrarModalConfirmacion()"]:hover {
 
 #toast-confirmacion {
     pointer-events: none;
+    text-align: center;
+    text-align-last: auto;
 }
 
 #toast-confirmacion>div {
     max-width: min(90vw, 26rem);
+    justify-content: center;
+    text-align: center;
+    text-align-last: auto;
+}
+
+#toast-confirmacion span {
+    text-align: center;
+    text-align-last: auto;
 }
 
 .dark #toast-confirmacion .bg-\[\#b8860b\] {
@@ -3199,8 +3229,16 @@ body.dark .app-footer {
 }
 
 .footer-firma {
+    display: inline-block;
     font-weight: 600;
     letter-spacing: 0.01em;
+    text-align: center;
+    text-align-last: auto;
+}
+
+.footer-firma span {
+    text-align: center;
+    text-align-last: auto;
 }
 
 .btn-compartir {
@@ -6232,6 +6270,203 @@ body:not(.dark) #contenido-busqueda .resultado-busqueda-item .resultado-busqueda
     font-size: 0.93rem;
     line-height: 1.65;
     color: inherit;
+}
+
+.busquedas-recientes-bloque {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    padding: 1rem;
+    border-radius: 1.25rem;
+    border: 1px solid rgba(184, 134, 11, 0.16);
+    background: rgba(252, 250, 247, 0.72);
+    box-shadow: 0 14px 28px rgba(78, 60, 33, 0.07);
+}
+
+.busquedas-recientes-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.busquedas-recientes-header-copy {
+    min-width: 0;
+}
+
+.busquedas-recientes-eyebrow {
+    margin: 0 0 0.18rem;
+    color: #8a6a17;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    text-align: left;
+    text-align-last: auto;
+}
+
+.busquedas-recientes-titulo {
+    margin: 0;
+    color: #2f261d;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.2;
+    text-align: left;
+    text-align-last: auto;
+}
+
+.busquedas-recientes-limpiar {
+    border: 1px solid rgba(184, 134, 11, 0.18);
+    background: rgba(184, 134, 11, 0.08);
+    color: #8a6a17;
+    border-radius: 999px;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.74rem;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+    transition: background-color 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+}
+
+.busquedas-recientes-limpiar:hover {
+    background: rgba(184, 134, 11, 0.14);
+    border-color: rgba(184, 134, 11, 0.28);
+    transform: translateY(-1px);
+}
+
+.busquedas-recientes-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+}
+
+.busqueda-reciente-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem 0.95rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(184, 134, 11, 0.14);
+    background: rgba(255, 252, 246, 0.84);
+    text-align: left;
+    transition: transform 0.18s ease, border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.busqueda-reciente-item:hover {
+    transform: translateY(-1px);
+    border-color: rgba(184, 134, 11, 0.28);
+    background: rgba(248, 240, 226, 0.96);
+    box-shadow: 0 12px 24px rgba(78, 60, 33, 0.08);
+}
+
+.busqueda-reciente-item-icono,
+.busqueda-reciente-item-accion {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.busqueda-reciente-item-icono {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    background: rgba(184, 134, 11, 0.12);
+    color: #b8860b;
+}
+
+.busqueda-reciente-item-copy {
+    min-width: 0;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.16rem;
+    text-align: left;
+    text-align-last: auto;
+}
+
+.busqueda-reciente-item-termino {
+    color: #2f261d;
+    font-size: 0.94rem;
+    font-weight: 800;
+    line-height: 1.3;
+    text-align: left;
+    text-align-last: auto;
+}
+
+.busqueda-reciente-item-meta {
+    color: #7b6a58;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    text-align: left;
+    text-align-last: auto;
+}
+
+.busqueda-reciente-item-accion {
+    color: #8a6a17;
+    font-size: 0.78rem;
+}
+
+.dark .busquedas-recientes-bloque {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(17, 24, 39, 0.6);
+    box-shadow: 0 16px 30px rgba(0, 0, 0, 0.22);
+}
+
+.dark .busquedas-recientes-eyebrow,
+.dark .busqueda-reciente-item-accion {
+    color: #f3cf77;
+}
+
+.dark .busquedas-recientes-titulo,
+.dark .busqueda-reciente-item-termino {
+    color: #f8fafc;
+}
+
+.dark .busquedas-recientes-limpiar {
+    border-color: rgba(243, 207, 119, 0.2);
+    background: rgba(184, 134, 11, 0.14);
+    color: #f3cf77;
+}
+
+.dark .busquedas-recientes-limpiar:hover {
+    border-color: rgba(243, 207, 119, 0.32);
+    background: rgba(184, 134, 11, 0.22);
+}
+
+.dark .busqueda-reciente-item {
+    border-color: rgba(243, 207, 119, 0.1);
+    background: rgba(31, 41, 55, 0.72);
+}
+
+.dark .busqueda-reciente-item:hover {
+    border-color: rgba(243, 207, 119, 0.24);
+    background: rgba(55, 65, 81, 0.9);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
+}
+
+.dark .busqueda-reciente-item-icono {
+    background: rgba(243, 207, 119, 0.14);
+    color: #f3cf77;
+}
+
+.dark .busqueda-reciente-item-meta {
+    color: #9ca3af;
+}
+
+@media (max-width: 640px) {
+    .busquedas-recientes-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .busquedas-recientes-limpiar {
+        width: 100%;
+    }
 }
 
 @media (max-width: 640px) {
