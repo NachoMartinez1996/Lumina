@@ -1999,13 +1999,19 @@ body:not(.dark) .prefacio-btn {
 #contenedor-libros .btn-libro-principal {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 0.75rem;
     position: relative;
     overflow: hidden;
+    text-align: left;
 }
 
 #contenedor-libros .btn-libro-principal>span:first-child {
     flex: 1;
+    display: block;
+    width: 100%;
+    text-align: left;
+    line-height: 1.35;
 }
 
 body:not(.dark) #contenedor-libros .btn-libro-principal {
@@ -3619,6 +3625,8 @@ blockquote {
     font-size: 1rem;
     line-height: 1.8;
     color: #2f261d;
+    text-align: left;
+    text-align-last: left;
 }
 
 .dark .modal-bienvenida-card .acerca-de-container p,
@@ -3640,6 +3648,8 @@ blockquote {
     background: rgba(184, 134, 11, 0.08);
     border-radius: 0 1rem 1rem 0;
     color: #5c4630;
+    text-align: left;
+    text-align-last: left;
 }
 
 .dark .modal-bienvenida-card blockquote {
@@ -4039,6 +4049,8 @@ body.dark .panel-lumina-placeholder {
     font-size: 0.98rem;
     line-height: 1.75;
     color: #2f261d;
+    text-align: left;
+    text-align-last: left;
 }
 
 body.dark .panel-lumina-contenido p,
@@ -4060,6 +4072,8 @@ body.dark .panel-lumina-contenido li {
     background: rgba(184, 134, 11, 0.08);
     border-radius: 0 1rem 1rem 0;
     color: #5c4630;
+    text-align: left;
+    text-align-last: left;
 }
 
 body.dark .panel-lumina-contenido blockquote {
