@@ -5675,6 +5675,10 @@ function obtenerNombreArchivoLectioPdf(lectio) {
     return `lumina_lectio_${normalizarSlugArchivoCompartido(lectio?.referencia || 'lectio')}.pdf`;
 }
 
+function obtenerNombreArchivoColeccionPdf(coleccion) {
+    return `lumina_coleccion_${normalizarSlugArchivoCompartido(coleccion?.nombre || 'coleccion')}.pdf`;
+}
+
 function convertirTextoABytesPdf(texto) {
     const contenido = String(texto || '');
     const bytes = new Uint8Array(contenido.length);
@@ -6178,6 +6182,304 @@ async function generarBlobPdfLectioMovil(lectio) {
     return crearBlobPdfDesdeJpegs(paginas);
 }
 
+function renderizarPaginasColeccionCanvasPdf(coleccion) {
+    const fecha = new Date().toLocaleDateString('es-AR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    });
+    const versiculosOrdenados = obtenerVersiculosColeccionOrdenados(coleccion);
+    const config = {
+        width: 1240,
+        height: 1754,
+        marginX: 92,
+        marginBottom: 92
+    };
+    const contentWidth = config.width - (config.marginX * 2);
+    const paginas = [];
+    let pagina = crearPaginaCanvasLectioPdf(config.width, config.height);
+    if (!pagina) {
+        throw new Error('No se pudo crear el canvas para el PDF de colección');
+    }
+
+    paginas.push(pagina);
+
+    const agregarPagina = () => {
+        const nuevaPagina = crearPaginaCanvasLectioPdf(config.width, config.height);
+        if (!nuevaPagina) {
+            throw new Error('No se pudo crear una página adicional del PDF de colección');
+        }
+        paginas.push(nuevaPagina);
+        pagina = nuevaPagina;
+        return pagina;
+    };
+
+    const dibujarCabeceraPrincipal = () => {
+        const { ctx } = pagina;
+        let y = pagina.y;
+
+        y += escribirBloqueTextoCanvasPdf(ctx, 'Colección de Lumina', config.marginX, y, contentWidth, {
+            font: '700 24px system-ui, sans-serif',
+            color: '#b8860b',
+            lineHeight: 30
+        }).height;
+        y += 16;
+
+        y += escribirBloqueTextoCanvasPdf(ctx, coleccion.nombre, config.marginX, y, contentWidth, {
+            font: '700 56px Georgia, serif',
+            color: '#231b13',
+            lineHeight: 64
+        }).height;
+        y += 16;
+
+        y += escribirBloqueTextoCanvasPdf(
+            ctx,
+            `${versiculosOrdenados.length} versículo${versiculosOrdenados.length === 1 ? '' : 's'} · Preparado el ${fecha}`,
+            config.marginX,
+            y,
+            contentWidth,
+            {
+                font: '600 26px system-ui, sans-serif',
+                color: '#7b6a58',
+                lineHeight: 34
+            }
+        ).height;
+        y += 22;
+
+        ctx.save();
+        ctx.strokeStyle = 'rgba(184, 134, 11, 0.24)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(config.marginX, y);
+        ctx.lineTo(config.width - config.marginX, y);
+        ctx.stroke();
+        ctx.restore();
+
+        pagina.y = y + 26;
+    };
+
+    const dibujarEncabezadoListado = (titulo = 'Versículos elegidos', subtitulo = '') => {
+        const { ctx } = pagina;
+        let y = pagina.y;
+
+        y += escribirBloqueTextoCanvasPdf(ctx, titulo, config.marginX, y, contentWidth, {
+            font: '700 24px system-ui, sans-serif',
+            color: '#b8860b',
+            lineHeight: 30
+        }).height;
+
+        if (subtitulo) {
+            y += 12;
+            y += escribirBloqueTextoCanvasPdf(ctx, subtitulo, config.marginX, y, contentWidth, {
+                font: '600 22px system-ui, sans-serif',
+                color: '#7b6a58',
+                lineHeight: 30
+            }).height;
+        }
+
+        pagina.y = y + 18;
+    };
+
+    const dibujarEntradaColeccion = (item, index) => {
+        const { ctx } = pagina;
+        const referencia = formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo);
+        const textoX = config.marginX + 92;
+        const textoWidth = contentWidth - 92;
+
+        ctx.font = '800 23px system-ui, sans-serif';
+        const lineasReferencia = dividirTextoTarjetaEnLineas(ctx, referencia, textoWidth);
+        ctx.font = '400 34px Georgia, serif';
+        const lineasTexto = dividirTextoTarjetaEnLineas(ctx, String(item.texto || ''), textoWidth);
+
+        const refHeight = Math.max(30, lineasReferencia.length * 30);
+        const textoHeight = Math.max(56, lineasTexto.length * 48);
+        const bloqueHeight = refHeight + textoHeight + 36;
+
+        if (pagina.y + bloqueHeight > config.height - config.marginBottom) {
+            agregarPagina();
+            dibujarEncabezadoListado('Versículos elegidos', 'Continuación de la colección');
+        }
+
+        const yInicial = pagina.y;
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(184, 134, 11, 0.14)';
+        ctx.beginPath();
+        ctx.arc(config.marginX + 28, yInicial + 28, 28, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#b8860b';
+        ctx.font = '800 24px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(index + 1), config.marginX + 28, yInicial + 28);
+        ctx.restore();
+
+        escribirBloqueTextoCanvasPdf(ctx, lineasReferencia, textoX, yInicial, textoWidth, {
+            font: '800 23px system-ui, sans-serif',
+            color: '#b8860b',
+            lineHeight: 30
+        });
+        escribirBloqueTextoCanvasPdf(ctx, lineasTexto, textoX, yInicial + refHeight + 6, textoWidth, {
+            font: '400 34px Georgia, serif',
+            color: '#231b13',
+            lineHeight: 48
+        });
+
+        const separadorY = yInicial + bloqueHeight - 6;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(184, 134, 11, 0.14)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(config.marginX, separadorY);
+        ctx.lineTo(config.width - config.marginX, separadorY);
+        ctx.stroke();
+        ctx.restore();
+
+        pagina.y = yInicial + bloqueHeight + 10;
+    };
+
+    const dibujarEcoDeLaPalabra = () => {
+        agregarPagina();
+        const { ctx } = pagina;
+        const cardX = config.marginX;
+        const cardY = pagina.y + 18;
+        const cardW = contentWidth;
+        const cardH = 1180;
+        const innerX = cardX + 38;
+        const innerW = cardW - 76;
+
+        ctx.save();
+        trazarRectanguloRedondeado(ctx, cardX, cardY, cardW, cardH, 28);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.74)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(184, 134, 11, 0.18)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+
+        let y = cardY + 34;
+
+        y += escribirBloqueTextoCanvasPdf(ctx, 'Tipo Lectio Divina', innerX, y, innerW, {
+            font: '800 22px system-ui, sans-serif',
+            color: '#b8860b',
+            lineHeight: 28
+        }).height;
+        y += 10;
+
+        y += escribirBloqueTextoCanvasPdf(ctx, 'Eco de la Palabra', innerX, y, innerW, {
+            font: '700 42px Georgia, serif',
+            color: '#231b13',
+            lineHeight: 48
+        }).height;
+        y += 12;
+
+        y += escribirBloqueTextoCanvasPdf(
+            ctx,
+            'Un espacio final para anotar luces, resonancias, ideas para compartir o una oración nacida de esta colección.',
+            innerX,
+            y,
+            innerW,
+            {
+                font: '600 23px system-ui, sans-serif',
+                color: '#7b6a58',
+                lineHeight: 32
+            }
+        ).height;
+        y += 24;
+
+        for (let linea = 0; linea < 11; linea++) {
+            const lineaY = y + (linea * 68);
+            ctx.save();
+            ctx.fillStyle = 'rgba(123, 106, 88, 0.85)';
+            ctx.font = '700 18px system-ui, sans-serif';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(String(linea + 1), innerX + 10, lineaY + 22);
+
+            ctx.strokeStyle = 'rgba(184, 134, 11, 0.32)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(innerX + 28, lineaY + 22);
+            ctx.lineTo(cardX + cardW - 34, lineaY + 22);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        pagina.y = cardY + cardH + 20;
+    };
+
+    const dibujarPiePaginas = () => {
+        paginas.forEach(item => {
+            const { ctx } = item;
+            ctx.save();
+            ctx.font = '600 18px system-ui, sans-serif';
+            ctx.fillStyle = '#7b6a58';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText('Generado desde Lumina', config.width - config.marginX, config.height - 34);
+            ctx.restore();
+        });
+    };
+
+    dibujarCabeceraPrincipal();
+    dibujarEncabezadoListado('Versículos elegidos');
+    versiculosOrdenados.forEach((item, index) => dibujarEntradaColeccion(item, index));
+    dibujarEcoDeLaPalabra();
+    dibujarPiePaginas();
+
+    return paginas.map(item => item.canvas);
+}
+
+async function generarBlobPdfColeccionMovil(coleccion) {
+    const canvases = renderizarPaginasColeccionCanvasPdf(coleccion);
+    const paginas = [];
+
+    for (const canvas of canvases) {
+        paginas.push({
+            width: canvas.width,
+            height: canvas.height,
+            bytes: await convertirCanvasAJpegBytes(canvas, 0.9)
+        });
+    }
+
+    return crearBlobPdfDesdeJpegs(paginas);
+}
+
+async function compartirColeccionComoPdfMovil(coleccion) {
+    const blob = await generarBlobPdfColeccionMovil(coleccion);
+    const nombreArchivo = obtenerNombreArchivoColeccionPdf(coleccion);
+    const archivo = typeof File !== 'undefined'
+        ? new File([blob], nombreArchivo, { type: 'application/pdf' })
+        : null;
+
+    if (archivo && navigator.share) {
+        const datosCompartir = {
+            title: `Colección: ${coleccion.nombre}`,
+            text: `${coleccion.nombre}\nCompartido desde Lumina`,
+            files: [archivo]
+        };
+        const puedeCompartirArchivo = !navigator.canShare || navigator.canShare({ files: [archivo] });
+
+        if (puedeCompartirArchivo) {
+            try {
+                await navigator.share(datosCompartir);
+                lanzarToast('PDF listo para compartir');
+                return true;
+            } catch (errorCompartir) {
+                if (errorCompartir && errorCompartir.name === 'AbortError') {
+                    return true;
+                }
+                console.warn('No se pudo compartir el PDF de la colección directamente. Probamos con descarga.', errorCompartir);
+            }
+        }
+    }
+
+    descargarBlobCompartido(blob, nombreArchivo);
+    lanzarToast('Tu navegador descargó la colección en PDF');
+    return true;
+}
+
 async function compartirLectioComoPdfMovil(lectio) {
     const blob = await generarBlobPdfLectioMovil(lectio);
     const nombreArchivo = obtenerNombreArchivoLectioPdf(lectio);
@@ -6284,7 +6586,7 @@ function abrirImpresionColeccion(html) {
     return true;
 }
 
-function exportarColeccionComoPDF(coleccionId) {
+async function exportarColeccionComoPDF(coleccionId) {
     const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
     if (!coleccion) {
         lanzarToast('No encontramos esa colección');
@@ -6294,6 +6596,16 @@ function exportarColeccionComoPDF(coleccionId) {
     if (coleccion.versiculos.length === 0) {
         lanzarToast('La colección está vacía');
         return;
+    }
+
+    if (esDispositivoMovilParaPdfCompartido()) {
+        try {
+            await compartirColeccionComoPdfMovil(coleccion);
+            return;
+        } catch (error) {
+            console.error('No se pudo generar el PDF directo de la colección para móvil:', error);
+            lanzarToast('No se pudo preparar el PDF directo. Abrimos la vista clásica.');
+        }
     }
 
     const html = generarHtmlColeccionParaPDF(coleccion);
