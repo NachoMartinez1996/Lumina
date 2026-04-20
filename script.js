@@ -4865,7 +4865,6 @@ function dibujarTarjetaVersiculoEnCanvas(canvas, contexto, opciones = {}) {
 
     ctx.font = '500 22px "Segoe UI", sans-serif';
     ctx.fillStyle = 'rgba(78, 59, 29, 0.72)';
-    ctx.fillText('Compartido desde Lumina', width / 2, pieY + 100);
 
     return true;
 }
@@ -5219,6 +5218,7 @@ function generarLineasRetiroParaPDF(cantidad = 12) {
     `).join('');
 }
 
+
 function obtenerDatosLectioActualParaPDF() {
     const { libro, capitulo, desde, hasta } = obtenerSeleccionLectioActual();
     if (!libro || !Number.isFinite(capitulo) || !Number.isFinite(desde) || !Number.isFinite(hasta)) {
@@ -5228,20 +5228,13 @@ function obtenerDatosLectioActualParaPDF() {
     const pasaje = obtenerPasajeLectio(libro, capitulo, desde, hasta);
     if (pasaje.length === 0) return null;
 
-    const leer = normalizarRespuestaLectio('leer', document.getElementById('lectio-leer')?.value || '');
-    const meditar = normalizarRespuestaLectio('meditar', document.getElementById('lectio-meditar')?.value || '');
-    const orar = normalizarRespuestaLectio('orar', document.getElementById('lectio-orar')?.value || '');
-
     return {
         libro,
         capitulo,
         desde,
         hasta,
         referencia: formatearReferenciaLectio(libro, capitulo, desde, hasta),
-        pasaje,
-        leer,
-        meditar,
-        orar
+        pasaje
     };
 }
 
@@ -5427,6 +5420,7 @@ function generarHtmlColeccionParaPDF(coleccion) {
     `;
 }
 
+
 function generarHtmlLectioParaPDF(lectio) {
     const fecha = new Date().toLocaleDateString('es-AR', {
         day: 'numeric',
@@ -5434,81 +5428,71 @@ function generarHtmlLectioParaPDF(lectio) {
         year: 'numeric'
     });
     const pasajeHtml = lectio.pasaje.map((item) => `
-        <p class="pasaje-versiculo">
-            <span class="pasaje-numero">${escapeHtml(String(item.versiculo))}</span>
-            <span>${escapeHtml(item.texto || '')}</span>
-        </p>
+        <article class="entrada">
+            <div class="entrada-numero">${item.versiculo}</div>
+            <div class="entrada-contenido">
+                <p class="entrada-texto">${escapeHtml(item.texto || '')}</p>
+            </div>
+        </article>
     `).join('');
-    const respuestasCargadas = Boolean(lectio.leer || lectio.meditar || lectio.orar);
-    const bloquesLectioHtml = [
+    const bloquesLectio = [
         {
             eyebrow: 'Leer',
             titulo: '¿Qué dice el texto?',
             guia: 'Personajes, ambiente, mensaje central y lo que el pasaje muestra con claridad.',
-            respuesta: lectio.leer
+            lineas: 5
         },
         {
             eyebrow: 'Meditar',
             titulo: '¿Qué me dice Dios a mí, hoy?',
             guia: 'Cómo interpela tu vida concreta, qué ilumina, corrige, confirma o despierta.',
-            respuesta: lectio.meditar
+            lineas: 5
         },
         {
             eyebrow: 'Orar y contemplar',
             titulo: '¿Qué le respondo al Señor?',
             guia: 'Agradecimiento, súplica, silencio, propósito o una oración nacida de la Palabra.',
-            respuesta: lectio.orar
+            lineas: 5
         }
     ].map(bloque => `
-        <section class="lectio-respuesta-card">
-            <div class="lectio-respuesta-head">
-                <p class="lectio-respuesta-eyebrow">${escapeHtml(bloque.eyebrow)}</p>
-                <h2 class="lectio-respuesta-titulo">${escapeHtml(bloque.titulo)}</h2>
-            </div>
-            <p class="lectio-respuesta-guia">${escapeHtml(bloque.guia)}</p>
-            ${bloque.respuesta
-            ? `<div class="lectio-respuesta-texto">${renderizarTextoPlanoHtml(bloque.respuesta, true)}</div>`
-            : '<p class="lectio-respuesta-vacia">Todavía sin respuesta escrita.</p>'}
+        <section class="lectio-bloque-pdf">
+            <p class="lectio-bloque-eyebrow">${escapeHtml(bloque.eyebrow)}</p>
+            <h2 class="lectio-bloque-titulo">${escapeHtml(bloque.titulo)}</h2>
+            <p class="lectio-bloque-guia">${escapeHtml(bloque.guia)}</p>
+            <div class="retiro-lineas">${generarLineasRetiroParaPDF(bloque.lineas)}</div>
         </section>
     `).join('');
 
     return `
         <!DOCTYPE html>
+
         <html lang="es-ar">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title></title>
             <style>
+
                 :root {
                     color-scheme: light;
                     --oro: #b8860b;
                     --tinta: #231b13;
                     --fondo: #fcfaf7;
-                    --papel: #fffdf9;
+                    --borde: #dfd2bd;
                     --muted: #7b6a58;
                 }
                 * { box-sizing: border-box; }
                 body {
                     margin: 0;
-                    padding: 0.9rem;
+                    padding: 2.2rem;
                     font-family: "Georgia", serif;
-                    background:
-                        radial-gradient(circle at top, rgba(184, 134, 11, 0.08), transparent 30%),
-                        var(--fondo);
+                    background: var(--fondo);
                     color: var(--tinta);
                 }
-                .documento {
-                    max-width: 980px;
-                    margin: 0 auto;
-                }
                 .cabecera {
-                    margin-bottom: 0.9rem;
-                    padding: 1rem 1.1rem;
-                    border: 1px solid rgba(184, 134, 11, 0.18);
-                    border-radius: 1rem;
-                    background: rgba(255, 255, 255, 0.82);
-                    box-shadow: 0 16px 32px rgba(78, 60, 33, 0.08);
+                    margin-bottom: 1.8rem;
+                    padding-bottom: 1.2rem;
+                    border-bottom: 2px solid rgba(184, 134, 11, 0.24);
                 }
                 .eyebrow {
                     margin: 0 0 0.45rem;
@@ -5519,176 +5503,713 @@ function generarHtmlLectioParaPDF(lectio) {
                 }
                 h1 {
                     margin: 0;
-                    font-size: 1.75rem;
-                    line-height: 1.08;
+                    font-size: 2rem;
+                    line-height: 1.15;
                 }
                 .meta {
-                    margin: 0.55rem 0 0;
+                    margin: 0.6rem 0 0;
                     color: var(--muted);
-                    font: 600 0.88rem/1.55 system-ui, sans-serif;
+                    font: 600 0.92rem/1.5 system-ui, sans-serif;
                 }
-                .layout {
-                    display: grid;
-                    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-                    gap: 0.9rem;
-                    align-items: start;
-                }
-                .card {
-                    padding: 1rem;
-                    border: 1px solid rgba(184, 134, 11, 0.16);
-                    border-radius: 1rem;
-                    background: rgba(255, 255, 255, 0.84);
-                    box-shadow: 0 14px 28px rgba(78, 60, 33, 0.07);
+                .entrada {
+                    display: flex;
+                    gap: 1rem;
+                    align-items: flex-start;
+                    padding: 1rem 0;
+                    border-bottom: 1px solid rgba(184, 134, 11, 0.14);
                     break-inside: avoid;
-                    page-break-inside: avoid;
                 }
-                .card-titulo {
-                    margin: 0;
-                    font-size: 1.22rem;
-                    line-height: 1.18;
-                }
-                .card-texto {
-                    margin: 0.45rem 0 0;
-                    color: var(--muted);
-                    font: 600 0.85rem/1.55 system-ui, sans-serif;
-                }
-                .pasaje-lista {
-                    display: grid;
-                    gap: 0.55rem;
-                    margin-top: 0.9rem;
-                }
-                .pasaje-versiculo {
-                    margin: 0;
-                    padding: 0.7rem 0.8rem;
-                    border-radius: 0.9rem;
-                    border: 1px solid rgba(184, 134, 11, 0.12);
-                    background: var(--papel);
-                    font-size: 0.95rem;
-                    line-height: 1.62;
-                    break-inside: avoid;
-                    page-break-inside: avoid;
-                }
-                .pasaje-numero {
-                    display: inline-block;
-                    min-width: 1.3rem;
-                    margin-right: 0.25rem;
+                .entrada-numero {
+                    width: 2rem;
+                    height: 2rem;
+                    border-radius: 999px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(184, 134, 11, 0.14);
                     color: var(--oro);
-                    font: 800 0.78rem/1.4 system-ui, sans-serif;
-                    vertical-align: baseline;
+                    font: 800 0.9rem/1 system-ui, sans-serif;
+                    flex-shrink: 0;
                 }
-                .lectio-respuestas {
-                    display: grid;
-                    gap: 0.7rem;
-                    margin-top: 0.9rem;
+                .entrada-texto {
+                    margin: 0;
+                    font-size: 1.05rem;
+                    line-height: 1.75;
                 }
-                .lectio-respuesta-card {
-                    padding: 0.85rem 0.9rem;
-                    border: 1px solid rgba(184, 134, 11, 0.14);
-                    border-radius: 0.95rem;
-                    background: var(--papel);
+                .lectio-hoja {
+                    margin-top: 2.4rem;
+                    padding: 1.4rem 1.35rem 0;
+                    border: 1px solid rgba(184, 134, 11, 0.18);
+                    border-radius: 1.2rem;
+                    background:
+                        radial-gradient(circle at top, rgba(184, 134, 11, 0.12), transparent 52%),
+                        rgba(255, 255, 255, 0.62);
+                }
+                .lectio-hoja-eyebrow {
+                    margin: 0 0 0.45rem;
+                                        font: 800 0.74rem/1.4 system-ui, sans-serif;
+                    letter-spacing: 0.22em;
+                    text-transform: uppercase;
+                }
+                .lectio-hoja-titulo {
+                    margin: 0;
+                    font-size: 1.45rem;
+                    line-height: 1.2;
+                }
+                .lectio-hoja-texto {
+                    margin: 0.55rem 0 1.15rem;
+                    color: var(--muted);
+                    font: 600 0.92rem/1.6 system-ui, sans-serif;
+                }
+                .lectio-bloque-pdf {
+                    margin-bottom: 1.45rem;
+                    padding-bottom: 1.2rem;
+                    border-bottom: 1px solid rgba(184, 134, 11, 0.14);
                     break-inside: avoid;
-                    page-break-inside: avoid;
                 }
-                .lectio-respuesta-head {
-                    margin-bottom: 0.35rem;
+                .lectio-bloque-pdf:last-child {
+                    border-bottom: none;
+                    margin-bottom: 0;
+                    padding-bottom: 0.2rem;
                 }
-                .lectio-respuesta-eyebrow {
-                    margin: 0 0 0.2rem;
+                .lectio-bloque-eyebrow {
+                    margin: 0 0 0.35rem;
                     color: var(--oro);
                     font: 800 0.72rem/1.4 system-ui, sans-serif;
                     letter-spacing: 0.18em;
                     text-transform: uppercase;
                 }
-                .lectio-respuesta-titulo {
+                .lectio-bloque-titulo {
                     margin: 0;
-                    font-size: 1rem;
+                    font-size: 1.12rem;
                     line-height: 1.35;
                 }
-                .lectio-respuesta-guia {
-                    margin: 0;
+                .lectio-bloque-guia {
+                    margin: 0.45rem 0 0.95rem;
+                    color: var(--muted);
+                    font: 600 0.88rem/1.55 system-ui, sans-serif;
+                }
+                .retiro-lineas {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.8rem;
+                }
+                .retiro-linea {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.7rem;
+                    min-height: 1.8rem;
+                }
+                .retiro-linea-numero {
+                    width: 1.3rem;
+                    color: rgba(123, 106, 88, 0.85);
+                    font: 700 0.72rem/1 system-ui, sans-serif;
+                    text-align: right;
+                    flex-shrink: 0;
+                }
+                .retiro-linea-trazo {
+                    flex: 1;
+                    height: 1.8rem;
+                    border-bottom: 1px solid rgba(184, 134, 11, 0.32);
+                                    .pie {
+                    margin-top: 1.8rem;
                     color: var(--muted);
                     font: 600 0.82rem/1.5 system-ui, sans-serif;
-                }
-                .lectio-respuesta-texto {
-                    margin-top: 0.55rem;
-                    color: var(--tinta);
-                    font: 600 0.9rem/1.62 system-ui, sans-serif;
-                }
-                .lectio-respuesta-vacia {
-                    margin: 0.55rem 0 0;
-                    color: #9a7b47;
-                    font: italic 600 0.84rem/1.5 system-ui, sans-serif;
-                }
-                .pie {
-                    margin-top: 0.8rem;
-                    color: var(--muted);
-                    font: 600 0.82rem/1.5 system-ui, sans-serif;
-                    text-align: center;
+                    text-align: right;
                 }
                 @page {
-                    size: A4;
-                    margin: 0.9cm;
-                }
-                @media (max-width: 780px) {
-                    body {
-                        padding: 0.65rem;
-                    }
-                    .layout {
-                        grid-template-columns: 1fr;
-                    }
-                    .cabecera,
-                    .card {
-                        padding: 0.9rem;
-                        border-radius: 0.9rem;
-                    }
-                    h1 {
-                        font-size: 1.45rem;
-                    }
+                    margin: 1.4cm;
                 }
                 @media print {
                     body {
                         padding: 0;
-                        background: #ffffff;
-                    }
-                    .documento {
-                        max-width: none;
-                    }
-                    .cabecera,
-                    .card,
-                    .lectio-respuesta-card,
-                    .pasaje-versiculo {
-                        background: #ffffff;
-                        box-shadow: none;
                     }
                 }
             </style>
         </head>
         <body>
-            <div class="documento">
-                <header class="cabecera">
-                    <p class="eyebrow">Lectio Divina de Lumina</p>
-                    <h1>${escapeHtml(lectio.referencia)}</h1>
-                    <p class="meta">${lectio.pasaje.length} versículo${lectio.pasaje.length === 1 ? '' : 's'} · Preparado el ${escapeHtml(fecha)} · ${respuestasCargadas ? 'Incluye tus respuestas actuales' : 'Formato compacto para compartir'}</p>
-                </header>
-                <main class="layout">
-                    <section class="card" aria-label="Pasaje bíblico elegido">
-                        <p class="eyebrow">Pasaje</p>
-                        <h2 class="card-titulo">Texto bíblico</h2>
-                        <p class="card-texto">Versión compacta para que la vista previa del celular no corte la Lectio entre varias hojas cuando el pasaje es breve.</p>
-                        <div class="pasaje-lista">${pasajeHtml}</div>
-                    </section>
-                    <section class="card" aria-label="Respuestas de la Lectio">
-                        <p class="eyebrow">Tu Lectio</p>
-                        <h2 class="card-titulo">Leer, meditar y orar</h2>
-                        <p class="card-texto">${respuestasCargadas ? 'Se comparten las respuestas que escribiste en Lumina.' : 'Si todavía no escribiste, el PDF muestra la guía sin dejar una hoja tipo formulario.'}</p>
-                        <div class="lectio-respuestas">${bloquesLectioHtml}</div>
-                    </section>
-                </main>
-                <footer class="pie">Generado desde Lumina</footer>
-            </div>
+            <header class="cabecera">
+                <p class="eyebrow">Lectio Divina de Lumina</p>
+                <h1>${escapeHtml(lectio.referencia)}</h1>
+                <p class="meta">${lectio.pasaje.length} versículo${lectio.pasaje.length === 1 ? '' : 's'} · Preparado el ${escapeHtml(fecha)}</p>
+            </header>
+            <main>
+                <section aria-label="Cita bíblica elegida">
+                    <p class="eyebrow">Cita bíblica elegida</p>
+                    ${pasajeHtml}
+                </section>
+                <section class="lectio-hoja" aria-label="Preguntas y espacio para escribir la Lectio">
+                    <h2 class="lectio-hoja-titulo">Hoja de Lectio para compartir</h2>
+                    <p class="lectio-hoja-texto">Llevá este pasaje a un encuentro, una clase o un retiro con preguntas guía y espacio listo para escribir las tres respuestas.</p>
+                    ${bloquesLectio}
+                </section>
+            </main>
+            <footer class="pie"></footer>
         </body>
         </html>
     `;
+}
+
+function esDispositivoMovilParaPdfCompartido() {
+    const userAgent = navigator.userAgent || '';
+    const coincideUA = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+    const punteroTactil = Boolean(
+        navigator.maxTouchPoints > 1 ||
+        window.matchMedia?.('(pointer: coarse)').matches
+    );
+    const pantallaCompacta = Math.min(window.innerWidth || 0, window.innerHeight || 0) <= 1024;
+
+    return coincideUA || (punteroTactil && pantallaCompacta);
+}
+
+function normalizarSlugArchivoCompartido(texto, fallback = 'archivo') {
+    return String(texto || fallback)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '') || fallback;
+}
+
+function obtenerNombreArchivoLectioPdf(lectio) {
+    return `lumina_lectio_${normalizarSlugArchivoCompartido(lectio?.referencia || 'lectio')}.pdf`;
+}
+
+function convertirTextoABytesPdf(texto) {
+    const contenido = String(texto || '');
+    const bytes = new Uint8Array(contenido.length);
+
+    for (let i = 0; i < contenido.length; i++) {
+        const code = contenido.charCodeAt(i);
+        bytes[i] = code <= 255 ? code : 63;
+    }
+
+    return bytes;
+}
+
+function concatenarBytesPdf(bloques) {
+    const total = bloques.reduce((suma, bloque) => suma + bloque.length, 0);
+    const combinado = new Uint8Array(total);
+    let offset = 0;
+
+    bloques.forEach(bloque => {
+        combinado.set(bloque, offset);
+        offset += bloque.length;
+    });
+
+    return combinado;
+}
+
+function crearPaginaCanvasLectioPdf(ancho = 1240, alto = 1754) {
+    const canvas = document.createElement('canvas');
+    canvas.width = ancho;
+    canvas.height = alto;
+
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) return null;
+
+    ctx.fillStyle = '#fcfaf7';
+    ctx.fillRect(0, 0, ancho, alto);
+
+    return {
+        canvas,
+        ctx,
+        width: ancho,
+        height: alto,
+        y: 88
+    };
+}
+
+function convertirDataUrlAJpegBytes(dataUrl) {
+    const [, base64 = ''] = String(dataUrl || '').split(',');
+    const binario = atob(base64);
+    const bytes = new Uint8Array(binario.length);
+
+    for (let i = 0; i < binario.length; i++) {
+        bytes[i] = binario.charCodeAt(i);
+    }
+
+    return bytes;
+}
+
+async function convertirCanvasAJpegBytes(canvas, calidad = 0.9) {
+    if (!canvas) throw new Error('Canvas inválido para JPEG');
+
+    if (typeof canvas.toBlob === 'function') {
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', calidad));
+        if (blob) {
+            return new Uint8Array(await blob.arrayBuffer());
+        }
+    }
+
+    return convertirDataUrlAJpegBytes(canvas.toDataURL('image/jpeg', calidad));
+}
+
+function escribirBloqueTextoCanvasPdf(ctx, texto, x, y, maxWidth, opciones = {}) {
+    const {
+        font = '400 32px Georgia, serif',
+        color = '#231b13',
+        lineHeight = 44
+    } = opciones;
+
+    ctx.save();
+    ctx.font = font;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+
+    const lineas = Array.isArray(texto)
+        ? texto
+        : dividirTextoTarjetaEnLineas(ctx, String(texto || ''), maxWidth);
+
+    lineas.forEach((linea, index) => {
+        ctx.fillText(linea, x, y + index * lineHeight);
+    });
+
+    ctx.restore();
+
+    return {
+        lineas,
+        height: lineas.length * lineHeight
+    };
+}
+
+function renderizarPaginasLectioCanvasPdf(lectio) {
+    const fecha = new Date().toLocaleDateString('es-AR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    });
+    const config = {
+        width: 1240,
+        height: 1754,
+        marginX: 92,
+        marginBottom: 92
+    };
+    const contentWidth = config.width - (config.marginX * 2);
+    const paginas = [];
+    let pagina = crearPaginaCanvasLectioPdf(config.width, config.height);
+    if (!pagina) {
+        throw new Error('No se pudo crear el canvas para el PDF');
+    }
+
+    paginas.push(pagina);
+
+    const agregarPagina = () => {
+        const nuevaPagina = crearPaginaCanvasLectioPdf(config.width, config.height);
+        if (!nuevaPagina) {
+            throw new Error('No se pudo crear una página adicional del PDF');
+        }
+        paginas.push(nuevaPagina);
+        pagina = nuevaPagina;
+        return pagina;
+    };
+
+    const dibujarCabeceraPrincipal = () => {
+        const { ctx } = pagina;
+        let y = pagina.y;
+
+        y += escribirBloqueTextoCanvasPdf(ctx, 'Lectio Divina de Lumina', config.marginX, y, contentWidth, {
+            font: '700 24px system-ui, sans-serif',
+            color: '#b8860b',
+            lineHeight: 30
+        }).height;
+        y += 16;
+
+        y += escribirBloqueTextoCanvasPdf(ctx, lectio.referencia, config.marginX, y, contentWidth, {
+            font: '700 56px Georgia, serif',
+            color: '#231b13',
+            lineHeight: 64
+        }).height;
+        y += 16;
+
+        y += escribirBloqueTextoCanvasPdf(
+            ctx,
+            `${lectio.pasaje.length} versículo${lectio.pasaje.length === 1 ? '' : 's'} · Preparado el ${fecha}`,
+            config.marginX,
+            y,
+            contentWidth,
+            {
+                font: '600 26px system-ui, sans-serif',
+                color: '#7b6a58',
+                lineHeight: 34
+            }
+        ).height;
+        y += 22;
+
+        ctx.save();
+        ctx.strokeStyle = 'rgba(184, 134, 11, 0.24)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(config.marginX, y);
+        ctx.lineTo(config.width - config.marginX, y);
+        ctx.stroke();
+        ctx.restore();
+
+        pagina.y = y + 26;
+    };
+
+    const dibujarEncabezadoPasaje = (titulo = 'Cita bíblica elegida', subtitulo = '') => {
+        const { ctx } = pagina;
+        let y = pagina.y;
+
+        y += escribirBloqueTextoCanvasPdf(ctx, titulo, config.marginX, y, contentWidth, {
+            font: '700 24px system-ui, sans-serif',
+            color: '#b8860b',
+            lineHeight: 30
+        }).height;
+
+        if (subtitulo) {
+            y += 12;
+            y += escribirBloqueTextoCanvasPdf(ctx, subtitulo, config.marginX, y, contentWidth, {
+                font: '600 22px system-ui, sans-serif',
+                color: '#7b6a58',
+                lineHeight: 30
+            }).height;
+        }
+
+        pagina.y = y + 18;
+    };
+
+    const dibujarEntradaVersiculo = (item) => {
+        const { ctx } = pagina;
+        const textoX = config.marginX + 92;
+        const textoWidth = contentWidth - 92;
+        ctx.font = '400 34px Georgia, serif';
+        const lineas = dividirTextoTarjetaEnLineas(ctx, String(item.texto || ''), textoWidth);
+        const lineHeight = 48;
+        const textoHeight = Math.max(56, lineas.length * lineHeight);
+        const bloqueHeight = textoHeight + 28;
+
+        if (pagina.y + bloqueHeight > config.height - config.marginBottom) {
+            agregarPagina();
+            dibujarEncabezadoPasaje('Cita bíblica elegida', 'Continuación del pasaje');
+        }
+
+        const yInicial = pagina.y;
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(184, 134, 11, 0.14)';
+        ctx.beginPath();
+        ctx.arc(config.marginX + 28, yInicial + 28, 28, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#b8860b';
+        ctx.font = '800 24px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(item.versiculo), config.marginX + 28, yInicial + 28);
+        ctx.restore();
+
+        escribirBloqueTextoCanvasPdf(ctx, lineas, textoX, yInicial, textoWidth, {
+            font: '400 34px Georgia, serif',
+            color: '#231b13',
+            lineHeight
+        });
+
+        const separadorY = yInicial + bloqueHeight - 4;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(184, 134, 11, 0.14)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(config.marginX, separadorY);
+        ctx.lineTo(config.width - config.marginX, separadorY);
+        ctx.stroke();
+        ctx.restore();
+
+        pagina.y = yInicial + bloqueHeight + 10;
+    };
+
+    const estimarAlturaBloqueLectio = (bloque, anchoInterno) => {
+        const { ctx } = pagina;
+        ctx.font = '600 22px system-ui, sans-serif';
+        const lineasGuia = dividirTextoTarjetaEnLineas(ctx, bloque.guia, anchoInterno);
+        return 28 + 40 + (lineasGuia.length * 32) + 26 + (bloque.lineas * 48) + 18;
+    };
+
+    const dibujarSeccionLectio = () => {
+        const bloques = [
+            {
+                eyebrow: 'Leer',
+                titulo: '¿Qué dice el texto?',
+                guia: 'Personajes, ambiente, mensaje central y lo que el pasaje muestra con claridad.',
+                lineas: 5
+            },
+            {
+                eyebrow: 'Meditar',
+                titulo: '¿Qué me dice Dios a mí, hoy?',
+                guia: 'Cómo interpela tu vida concreta, qué ilumina, corrige, confirma o despierta.',
+                lineas: 5
+            },
+            {
+                eyebrow: 'Orar y contemplar',
+                titulo: '¿Qué le respondo al Señor?',
+                guia: 'Agradecimiento, súplica, silencio, propósito o una oración nacida de la Palabra.',
+                lineas: 5
+            }
+        ];
+        const cardX = config.marginX;
+        const cardY = pagina.y + 18;
+        const cardW = contentWidth;
+        const innerX = cardX + 38;
+        const innerW = cardW - 76;
+        const alturaBloques = bloques.reduce((total, bloque) => total + estimarAlturaBloqueLectio(bloque, innerW), 0);
+        const cardH = 130 + alturaBloques + 34;
+
+        if (cardY + cardH > config.height - config.marginBottom) {
+            agregarPagina();
+        }
+
+        const yBase = pagina.y + 18;
+        const alturaRecalculada = 130 + bloques.reduce((total, bloque) => total + estimarAlturaBloqueLectio(bloque, innerW), 0) + 34;
+        const { ctx } = pagina;
+
+        ctx.save();
+        trazarRectanguloRedondeado(ctx, cardX, yBase, cardW, alturaRecalculada, 28);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.74)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(184, 134, 11, 0.18)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+
+        let y = yBase + 34;
+
+        y += escribirBloqueTextoCanvasPdf(ctx, 'Tipo retiro', innerX, y, innerW, {
+            font: '800 22px system-ui, sans-serif',
+            color: '#b8860b',
+            lineHeight: 28
+        }).height;
+        y += 10;
+
+        y += escribirBloqueTextoCanvasPdf(ctx, 'Hoja de Lectio para compartir', innerX, y, innerW, {
+            font: '700 42px Georgia, serif',
+            color: '#231b13',
+            lineHeight: 48
+        }).height;
+        y += 12;
+
+        y += escribirBloqueTextoCanvasPdf(
+            ctx,
+            'Llevá este pasaje a un encuentro, una clase o un retiro con preguntas guía y espacio listo para escribir las tres respuestas.',
+            innerX,
+            y,
+            innerW,
+            {
+                font: '600 23px system-ui, sans-serif',
+                color: '#7b6a58',
+                lineHeight: 32
+            }
+        ).height;
+        y += 18;
+
+        bloques.forEach((bloque, indice) => {
+            y += escribirBloqueTextoCanvasPdf(ctx, bloque.eyebrow, innerX, y, innerW, {
+                font: '800 20px system-ui, sans-serif',
+                color: '#b8860b',
+                lineHeight: 26
+            }).height;
+            y += 6;
+
+            y += escribirBloqueTextoCanvasPdf(ctx, bloque.titulo, innerX, y, innerW, {
+                font: '700 30px Georgia, serif',
+                color: '#231b13',
+                lineHeight: 36
+            }).height;
+            y += 8;
+
+            y += escribirBloqueTextoCanvasPdf(ctx, bloque.guia, innerX, y, innerW, {
+                font: '600 22px system-ui, sans-serif',
+                color: '#7b6a58',
+                lineHeight: 30
+            }).height;
+            y += 16;
+
+            for (let linea = 0; linea < bloque.lineas; linea++) {
+                const lineaY = y + (linea * 48);
+                ctx.save();
+                ctx.fillStyle = 'rgba(123, 106, 88, 0.85)';
+                ctx.font = '700 18px system-ui, sans-serif';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(String(linea + 1), innerX + 10, lineaY + 22);
+
+                ctx.strokeStyle = 'rgba(184, 134, 11, 0.32)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(innerX + 28, lineaY + 22);
+                ctx.lineTo(cardX + cardW - 34, lineaY + 22);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            y += (bloque.lineas * 48) + 12;
+
+            if (indice < bloques.length - 1) {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(184, 134, 11, 0.14)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(innerX, y);
+                ctx.lineTo(cardX + cardW - 38, y);
+                ctx.stroke();
+                ctx.restore();
+                y += 22;
+            }
+        });
+
+        pagina.y = yBase + alturaRecalculada + 20;
+    };
+
+    const dibujarPiePaginas = () => {
+        paginas.forEach(item => {
+            const { ctx } = item;
+            ctx.save();
+            ctx.font = '600 18px system-ui, sans-serif';
+            ctx.fillStyle = '#7b6a58';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText('Generado desde Lumina', config.width - config.marginX, config.height - 34);
+            ctx.restore();
+        });
+    };
+
+    dibujarCabeceraPrincipal();
+    dibujarEncabezadoPasaje('Cita bíblica elegida');
+    lectio.pasaje.forEach(item => dibujarEntradaVersiculo(item));
+    dibujarSeccionLectio();
+    dibujarPiePaginas();
+
+    return paginas.map(item => item.canvas);
+}
+
+function crearBlobPdfDesdeJpegs(paginas) {
+    const anchoPagina = 595.28;
+    const altoPagina = 841.89;
+    const objetos = new Map();
+    const referenciasPaginas = [];
+    let siguienteId = 3;
+
+    paginas.forEach((pagina, indice) => {
+        const idPagina = siguienteId++;
+        const idContenido = siguienteId++;
+        const idImagen = siguienteId++;
+        const nombreImagen = `Im${indice + 1}`;
+        const contenido = convertirTextoABytesPdf(
+            `q\n${anchoPagina.toFixed(2)} 0 0 ${altoPagina.toFixed(2)} 0 0 cm\n/${nombreImagen} Do\nQ\n`
+        );
+
+        referenciasPaginas.push(`${idPagina} 0 R`);
+        objetos.set(idContenido, {
+            tipo: 'stream',
+            cabecera: `<< /Length ${contenido.length} >>\nstream\n`,
+            bytes: contenido
+        });
+        objetos.set(idImagen, {
+            tipo: 'stream',
+            cabecera: `<< /Type /XObject /Subtype /Image /Width ${pagina.width} /Height ${pagina.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${pagina.bytes.length} >>\nstream\n`,
+            bytes: pagina.bytes
+        });
+        objetos.set(idPagina, {
+            tipo: 'texto',
+            contenido: `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${anchoPagina.toFixed(2)} ${altoPagina.toFixed(2)}] /Resources << /ProcSet [/PDF /ImageC] /XObject << /${nombreImagen} ${idImagen} 0 R >> >> /Contents ${idContenido} 0 R >>`
+        });
+    });
+
+    objetos.set(1, {
+        tipo: 'texto',
+        contenido: '<< /Type /Catalog /Pages 2 0 R >>'
+    });
+    objetos.set(2, {
+        tipo: 'texto',
+        contenido: `<< /Type /Pages /Kids [${referenciasPaginas.join(' ')}] /Count ${paginas.length} >>`
+    });
+
+    const ids = [...objetos.keys()].sort((a, b) => a - b);
+    const maxId = ids[ids.length - 1] || 0;
+    const offsets = new Array(maxId + 1).fill(0);
+    const bloques = [new Uint8Array([37, 80, 68, 70, 45, 49, 46, 52, 10, 37, 255, 255, 255, 255, 10])];
+    let offsetActual = bloques[0].length;
+
+    ids.forEach(id => {
+        offsets[id] = offsetActual;
+        const objeto = objetos.get(id);
+        let bloque;
+
+        if (objeto.tipo === 'stream') {
+            bloque = concatenarBytesPdf([
+                convertirTextoABytesPdf(`${id} 0 obj\n`),
+                convertirTextoABytesPdf(objeto.cabecera),
+                objeto.bytes,
+                convertirTextoABytesPdf('\nendstream\nendobj\n')
+            ]);
+        } else {
+            bloque = concatenarBytesPdf([
+                convertirTextoABytesPdf(`${id} 0 obj\n${objeto.contenido}\nendobj\n`)
+            ]);
+        }
+
+        bloques.push(bloque);
+        offsetActual += bloque.length;
+    });
+
+    let xref = `xref\n0 ${maxId + 1}\n0000000000 65535 f \n`;
+    for (let i = 1; i <= maxId; i++) {
+        xref += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
+    }
+    xref += `trailer\n<< /Size ${maxId + 1} /Root 1 0 R >>\nstartxref\n${offsetActual}\n%%EOF`;
+    bloques.push(convertirTextoABytesPdf(xref));
+
+    return new Blob(bloques, { type: 'application/pdf' });
+}
+
+async function generarBlobPdfLectioMovil(lectio) {
+    const canvases = renderizarPaginasLectioCanvasPdf(lectio);
+    const paginas = [];
+
+    for (const canvas of canvases) {
+        paginas.push({
+            width: canvas.width,
+            height: canvas.height,
+            bytes: await convertirCanvasAJpegBytes(canvas, 0.9)
+        });
+    }
+
+    return crearBlobPdfDesdeJpegs(paginas);
+}
+
+async function compartirLectioComoPdfMovil(lectio) {
+    const blob = await generarBlobPdfLectioMovil(lectio);
+    const nombreArchivo = obtenerNombreArchivoLectioPdf(lectio);
+    const archivo = typeof File !== 'undefined'
+        ? new File([blob], nombreArchivo, { type: 'application/pdf' })
+        : null;
+
+    if (archivo && navigator.share) {
+        const datosCompartir = {
+            title: `Lectio: ${lectio.referencia}`,
+            text: `${lectio.referencia}\nCompartido desde Lumina`,
+            files: [archivo]
+        };
+        const puedeCompartirArchivo = !navigator.canShare || navigator.canShare({ files: [archivo] });
+
+        if (puedeCompartirArchivo) {
+            try {
+                await navigator.share(datosCompartir);
+                lanzarToast('PDF listo para compartir');
+                return true;
+            } catch (errorCompartir) {
+                if (errorCompartir && errorCompartir.name === 'AbortError') {
+                    return true;
+                }
+                console.warn('No se pudo compartir el PDF directamente. Probamos con descarga.', errorCompartir);
+            }
+        }
+    }
+
+    descargarBlobCompartido(blob, nombreArchivo);
+    lanzarToast('Tu navegador descargó la Lectio en PDF');
+    return true;
 }
 
 function abrirImpresionColeccion(html) {
@@ -5785,11 +6306,21 @@ function exportarColeccionComoPDF(coleccionId) {
     lanzarToast('Se abrió el diálogo para guardar o compartir el PDF');
 }
 
-function exportarLectioComoPDF() {
+async function exportarLectioComoPDF() {
     const lectio = obtenerDatosLectioActualParaPDF();
     if (!lectio) {
         lanzarToast('Elegí primero un pasaje válido para la Lectio');
         return;
+    }
+
+    if (esDispositivoMovilParaPdfCompartido()) {
+        try {
+            await compartirLectioComoPdfMovil(lectio);
+            return;
+        } catch (error) {
+            console.error('No se pudo generar el PDF directo para móvil:', error);
+            lanzarToast('No se pudo preparar el PDF directo. Abrimos la vista clásica.');
+        }
     }
 
     const html = generarHtmlLectioParaPDF(lectio);
@@ -7525,12 +8056,13 @@ function obtenerTokensBusquedaResaltables(termino) {
     const terminoNormalizado = normalizarTexto(normalizarTerminoBusqueda(termino)).trim();
     if (!terminoNormalizado) return [];
 
-    const tokens = new Set();
     const palabras = extraerPalabras(terminoNormalizado);
 
-    if (terminoNormalizado.includes(' ')) {
-        tokens.add(terminoNormalizado);
+    if (palabras.length > 1) {
+        return [terminoNormalizado];
     }
+
+    const tokens = new Set();
 
     palabras.forEach(palabra => {
         if (palabra) tokens.add(palabra);
