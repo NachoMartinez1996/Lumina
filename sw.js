@@ -1,4 +1,4 @@
-const VERSION_CACHE = '4.295.039';
+const VERSION_CACHE = '4.295.042';
 const CACHE_SHELL = `lumina-shell-${VERSION_CACHE}`;
 const CACHE_RUNTIME = `lumina-runtime-${VERSION_CACHE}`;
 const APP_SHELL = './index.html';
@@ -8,6 +8,7 @@ const archivosShell = [
   './index.html',
   './style.css',
   './script.js',
+  './firebase-config.js',
   './Favicon/favicon.ico',
   './Favicon/favicon-32x32.png',
   './Favicon/favicon-16x16.png',
@@ -27,6 +28,7 @@ function esRecursoActualizable(request) {
     request.destination === 'document' ||
     path.endsWith('/index.html') ||
     path.endsWith('/script.js') ||
+    path.endsWith('/firebase-config.js') ||
     path.endsWith('/style.css') ||
     path.endsWith('/manifest.json') ||
     path.endsWith('/biblia_catolica_completa.json') ||
@@ -45,6 +47,7 @@ function obtenerCacheDestino(request) {
     request.destination === 'document' ||
     path.endsWith('/index.html') ||
     path.endsWith('/script.js') ||
+    path.endsWith('/firebase-config.js') ||
     path.endsWith('/style.css') ||
     path.endsWith('/manifest.json')
   ) {

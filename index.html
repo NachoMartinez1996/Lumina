@@ -82,6 +82,12 @@
                         <i class="fas fa-moon dark:fa-sun text-lg"></i>
                     </button>
 
+                    <button type="button" id="btn-nube-lumina"
+                        class="header-icon-button text-gray-900 dark:text-gray-200 hover:text-oro transition-colors"
+                        aria-label="Abrir cuenta y nube" title="Cuenta y nube">
+                        <i class="fas fa-cloud text-lg"></i>
+                    </button>
+
                     <button type="button" id="estado-offline"
                         class="header-offline-badge hidden items-center gap-2 text-xs font-sans font-semibold px-3 py-1 rounded-full"
                         aria-live="polite" aria-label="Estado de conexión y modo sin conexión"
@@ -567,13 +573,45 @@
                     <div id="lumina-seccion-ajustes" class="hidden" data-lumina-contenido>
                         <h3>Tu privacidad es sagrada</h3>
                         <p>En <em>Lumina</em> creemos que tu camino espiritual y tus reflexiones son personales. Por
-                            eso, hemos decidido no utilizar registros de usuarios ni almacenar tus datos en la nube.</p>
-                        <p>Todo lo que escribís, tus favoritos y tu progreso de lectura se guardan
-                            exclusivamente en tu dispositivo, ahora mediante una base local más robusta
-                            (<i>IndexedDB</i>). Esto significa que nadie más que vos tiene acceso a tu diario espiritual;
-                            pero también significa que, si cambiás de equipo o borrás la caché de tu navegador, esos
-                            datos podrían perderse.</p>
-                        <p>Para que siempre tengas el control total, te ofrecemos estas herramientas de autogestión:</p>
+                            eso, el funcionamiento principal sigue viviendo en tu dispositivo mediante una base local
+                            robusta (<i>IndexedDB</i>).</p>
+                        <p>Si iniciás sesión con Google, Lumina puede guardar una copia cifrada en tránsito dentro de tu
+                            espacio de Firebase para sincronizar notas, favoritos, progreso, colecciones, Lectio y
+                            preferencias entre tus dispositivos.</p>
+
+                        <div class="panel-lumina-cloud-card" id="lumina-cloud-card">
+                            <div class="panel-lumina-cloud-top">
+                                <span class="panel-lumina-cloud-icon" aria-hidden="true">
+                                    <i class="fas fa-cloud"></i>
+                                </span>
+                                <div>
+                                    <strong id="lumina-cloud-title">Nube Lumina</strong>
+                                    <p id="lumina-cloud-status">Sin sesión iniciada.</p>
+                                </div>
+                            </div>
+                            <div id="lumina-cloud-user" class="panel-lumina-cloud-user hidden"></div>
+                            <div class="panel-lumina-cloud-actions">
+                                <button type="button" id="btn-login-google-lumina" class="panel-lumina-cloud-button"
+                                    onclick="iniciarSesionGoogleLumina()">
+                                    <i class="fab fa-google" aria-hidden="true"></i>
+                                    Entrar con Google
+                                </button>
+                                <button type="button" id="btn-sync-cloud-lumina" class="panel-lumina-cloud-button hidden"
+                                    onclick="sincronizarLuminaConNubeManual()">
+                                    <i class="fas fa-rotate" aria-hidden="true"></i>
+                                    Sincronizar ahora
+                                </button>
+                                <button type="button" id="btn-logout-google-lumina"
+                                    class="panel-lumina-cloud-button panel-lumina-cloud-button-secondary hidden"
+                                    onclick="cerrarSesionGoogleLumina()">
+                                    <i class="fas fa-right-from-bracket" aria-hidden="true"></i>
+                                    Salir
+                                </button>
+                            </div>
+                        </div>
+
+                        <p>Para que siempre tengas el control total, también te ofrecemos estas herramientas de
+                            autogestión:</p>
 
                         <div class="panel-lumina-herramientas">
                             <button type="button" class="panel-lumina-cta panel-lumina-cta-stack"
@@ -1206,6 +1244,7 @@
     <audio id="sonido-guardar" src="paperflip.wav" preload="auto"></audio>
     <audio id="audio-celebracion-biblia" src="Crown_of_the_Altar.mp3" preload="auto"></audio>
     <audio id="audio-celebracion-libro" src="Morning_in_the_Oratory.mp3" preload="auto"></audio>
+    <script type="module" src="firebase-config.js"></script>
     <script src="script.js"></script>
     <div id="toast-confirmacion"
         class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[110] hidden opacity-0 transition-opacity duration-500">

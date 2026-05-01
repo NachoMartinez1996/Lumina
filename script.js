@@ -1378,6 +1378,15 @@ const NOMBRE_BD_PERSISTENCIA_LUMINA = 'lumina_persistencia';
 const VERSION_BD_PERSISTENCIA_LUMINA = 1;
 const STORE_BD_PERSISTENCIA_LUMINA = 'estado';
 const VERSION_RESPALDO_LUMINA = 2;
+const ESTADO_NUBE_LUMINA = {
+    sinFirebase: 'Firebase no está disponible. Lumina sigue guardando todo localmente.',
+    sinSesion: 'Sin sesión iniciada. Tus datos siguen guardados en este dispositivo.',
+    conectando: 'Conectando con Google...',
+    sincronizando: 'Sincronizando con la nube...',
+    sincronizado: 'Sincronizado con la nube.',
+    pendiente: 'Cambios pendientes de subir cuando haya conexión.',
+    error: 'No se pudo completar la sincronización.'
+};
 let faseCelebracionBibliaActual = 1;
 const TITULOS_CELEBRACION_BIBLIA = [
     "¡Misión cumplida!",
@@ -1441,11 +1450,24 @@ const CATEGORIAS_RESPALDO_LUMINA = [
     }
 ];
 let persistenciaLuminaCache = new Map();
+let persistenciaLuminaMeta = new Map();
 let persistenciaLuminaInicializada = false;
 let persistenciaLuminaUsaFallbackLocal = false;
 let basePersistenciaLumina = null;
 let contextoModalRespaldoLumina = null;
 let accionRespaldoLuminaEnCurso = false;
+let firebaseLumina = null;
+let usuarioFirebaseLumina = null;
+let unsubscribeAuthLumina = null;
+let firebaseLuminaInicializado = false;
+let sincronizacionNubeLuminaEnCurso = false;
+let aplicandoDatosNubeLumina = false;
+let temporizadorSincronizacionNubeLumina = null;
+let ultimoEstadoNubeLumina = ESTADO_NUBE_LUMINA.sinSesion;
+const cambiosPendientesNubeLumina = new Map();
+const dispositivoNubeLuminaId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+    ? crypto.randomUUID()
+    : `lumina-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 function esClaveLuminaPersistible(clave) {
     return String(clave || '').startsWith(PREFIJO_CLAVE_LUMINA);
@@ -1453,6 +1475,26 @@ function esClaveLuminaPersistible(clave) {
 
 function normalizarValorPersistencia(valor) {
     return typeof valor === 'string' ? valor : String(valor);
+}
+
+function obtenerMarcaTiempoPersistencia() {
+    return new Date().toISOString();
+}
+
+function obtenerUpdatedAtPersistencia(clave) {
+    return persistenciaLuminaMeta.get(clave) || '1970-01-01T00:00:00.000Z';
+}
+
+function actualizarMetaPersistencia(clave, updatedAt = obtenerMarcaTiempoPersistencia()) {
+    if (!esClaveLuminaPersistible(clave)) return updatedAt;
+    persistenciaLuminaMeta.set(clave, updatedAt);
+    return updatedAt;
+}
+
+function compararFechasPersistencia(a, b) {
+    const tiempoA = Date.parse(a || '') || 0;
+    const tiempoB = Date.parse(b || '') || 0;
+    return tiempoA - tiempoB;
 }
 
 function obtenerEntradasLuminaLegadasLocalStorage() {
@@ -1624,9 +1666,10 @@ async function inicializarPersistenciaLumina() {
     try {
         const registrosPersistidos = await obtenerEntradasPersistenciaLuminaDB();
 
-        registrosPersistidos.forEach(({ key, value }) => {
+        registrosPersistidos.forEach(({ key, value, updatedAt }) => {
             if (esClaveLuminaPersistible(key) && value !== null && typeof value !== 'undefined') {
                 persistenciaLuminaCache.set(key, normalizarValorPersistencia(value));
+                actualizarMetaPersistencia(key, updatedAt || obtenerMarcaTiempoPersistencia());
             }
         });
 
@@ -1634,13 +1677,14 @@ async function inicializarPersistenciaLumina() {
         if (faltantesLegados.length > 0) {
             faltantesLegados.forEach(([clave, valor]) => {
                 persistenciaLuminaCache.set(clave, valor);
+                actualizarMetaPersistencia(clave);
             });
 
             await guardarEntradasPersistenciaLuminaDB(
                 faltantesLegados.map(([key, value]) => ({
                     key,
                     value,
-                    updatedAt: new Date().toISOString()
+                    updatedAt: obtenerUpdatedAtPersistencia(key)
                 }))
             );
         }
@@ -1652,6 +1696,7 @@ async function inicializarPersistenciaLumina() {
 
         entradasLegadas.forEach(([clave, valor]) => {
             persistenciaLuminaCache.set(clave, valor);
+            actualizarMetaPersistencia(clave);
         });
     }
 
@@ -1666,7 +1711,9 @@ function escribirPersistencia(clave, valor) {
     if (!esClaveLuminaPersistible(clave)) return Promise.resolve();
 
     const valorNormalizado = normalizarValorPersistencia(valor);
+    const updatedAt = actualizarMetaPersistencia(clave);
     persistenciaLuminaCache.set(clave, valorNormalizado);
+    encolarCambioNubeLumina({ key: clave, value: valorNormalizado, updatedAtLocal: updatedAt, deleted: false });
 
     if (persistenciaLuminaUsaFallbackLocal) {
         try {
@@ -1678,7 +1725,7 @@ function escribirPersistencia(clave, valor) {
     }
 
     limpiarEntradasLocalStorageLumina([clave]);
-    return guardarEntradasPersistenciaLuminaDB([{ key: clave, value: valorNormalizado }]).catch(error => {
+    return guardarEntradasPersistenciaLuminaDB([{ key: clave, value: valorNormalizado, updatedAt }]).catch(error => {
         console.error(`Lumina no pudo guardar ${clave} en IndexedDB. Volvemos a localStorage para no perder el dato.`, error);
         persistenciaLuminaUsaFallbackLocal = true;
 
@@ -1693,7 +1740,9 @@ function escribirPersistencia(clave, valor) {
 function eliminarPersistencia(clave) {
     if (!esClaveLuminaPersistible(clave)) return Promise.resolve();
 
+    const updatedAt = actualizarMetaPersistencia(clave);
     persistenciaLuminaCache.delete(clave);
+    encolarCambioNubeLumina({ key: clave, value: null, updatedAtLocal: updatedAt, deleted: true });
 
     if (persistenciaLuminaUsaFallbackLocal) {
         try {
@@ -1728,16 +1777,27 @@ async function reemplazarPersistenciaPorCategorias(mapaEntradas, categoriasSelec
     const clavesSeleccionadas = obtenerClavesCategoriasRespaldo(categoriasSeleccionadas);
     const registrosAImportar = [];
 
-    clavesSeleccionadas.forEach(clave => persistenciaLuminaCache.delete(clave));
+    clavesSeleccionadas.forEach(clave => {
+        persistenciaLuminaCache.delete(clave);
+        actualizarMetaPersistencia(clave);
+        encolarCambioNubeLumina({
+            key: clave,
+            value: null,
+            updatedAtLocal: obtenerUpdatedAtPersistencia(clave),
+            deleted: true
+        });
+    });
 
     mapaEntradas.forEach((valor, clave) => {
         if (!clavesSeleccionadas.includes(clave)) return;
         const valorNormalizado = normalizarValorPersistencia(valor);
+        const updatedAt = actualizarMetaPersistencia(clave);
         persistenciaLuminaCache.set(clave, valorNormalizado);
+        encolarCambioNubeLumina({ key: clave, value: valorNormalizado, updatedAtLocal: updatedAt, deleted: false });
         registrosAImportar.push({
             key: clave,
             value: valorNormalizado,
-            updatedAt: new Date().toISOString()
+            updatedAt
         });
     });
 
@@ -1760,6 +1820,8 @@ async function reemplazarPersistenciaPorCategorias(mapaEntradas, categoriasSelec
 
 async function vaciarPersistenciaLuminaCompleta() {
     persistenciaLuminaCache.clear();
+    persistenciaLuminaMeta.clear();
+    cambiosPendientesNubeLumina.clear();
     limpiarEntradasLocalStorageLumina();
 
     if (persistenciaLuminaUsaFallbackLocal) {
@@ -9874,6 +9936,364 @@ function verificarBienvenida() {
     }
 }
 
+function registrarFirebaseLumina(firebase = window.LuminaFirebase) {
+    if (!firebase) return Promise.resolve(null);
+
+    firebaseLumina = firebase;
+
+    if (firebaseLuminaInicializado) {
+        if (persistenciaLuminaInicializada) inicializarAuthNubeLumina(firebase);
+        actualizarUINubeLumina();
+        return Promise.resolve(firebase);
+    }
+
+    firebaseLuminaInicializado = true;
+
+    return Promise.resolve(firebase.persistenceReady)
+        .then(() => {
+            const estado = typeof firebase.getEstado === 'function' ? firebase.getEstado() : {};
+            const detalleOffline = estado.offlinePersistence === 'enabled'
+                ? 'persistencia offline activa'
+                : 'persistencia offline no disponible';
+
+            console.log(`Firebase conectado para Lumina (${detalleOffline}).`);
+            if (persistenciaLuminaInicializada) inicializarAuthNubeLumina(firebase);
+            actualizarEstadoNubeLumina(usuarioFirebaseLumina ? ESTADO_NUBE_LUMINA.sincronizado : ESTADO_NUBE_LUMINA.sinSesion);
+            return firebase;
+        })
+        .catch(error => {
+            console.warn('Firebase se cargó, pero no terminó de inicializarse correctamente:', error);
+            actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.error);
+            return firebase;
+        });
+}
+
+function inicializarFirebaseLumina() {
+    if (!window.LuminaFirebase) {
+        console.warn('Firebase todavía no está disponible. Lumina sigue funcionando con persistencia local.');
+        actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.sinFirebase);
+        return Promise.resolve(null);
+    }
+
+    return registrarFirebaseLumina(window.LuminaFirebase);
+}
+
+function inicializarAuthNubeLumina(firebase) {
+    if (!firebase || unsubscribeAuthLumina || typeof firebase.observeAuth !== 'function') return;
+
+    unsubscribeAuthLumina = firebase.observeAuth(async user => {
+        usuarioFirebaseLumina = user || null;
+        actualizarUINubeLumina();
+
+        if (usuarioFirebaseLumina) {
+            await sincronizarLuminaConNube({ motivo: 'sesion' });
+        } else {
+            cambiosPendientesNubeLumina.clear();
+            actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.sinSesion);
+        }
+    });
+}
+
+function abrirAjustesNubeLumina() {
+    abrirPanelLumina();
+    mostrarSeccionPanelLumina('ajustes');
+}
+
+function obtenerNombreUsuarioNubeLumina(user = usuarioFirebaseLumina) {
+    if (!user) return '';
+    return user.displayName || user.email || 'Cuenta Google';
+}
+
+function actualizarEstadoNubeLumina(mensaje) {
+    ultimoEstadoNubeLumina = mensaje || ultimoEstadoNubeLumina || ESTADO_NUBE_LUMINA.sinSesion;
+    actualizarUINubeLumina();
+}
+
+function actualizarUINubeLumina() {
+    const status = document.getElementById('lumina-cloud-status');
+    const userBox = document.getElementById('lumina-cloud-user');
+    const btnLogin = document.getElementById('btn-login-google-lumina');
+    const btnSync = document.getElementById('btn-sync-cloud-lumina');
+    const btnLogout = document.getElementById('btn-logout-google-lumina');
+    const btnHeader = document.getElementById('btn-nube-lumina');
+    const conectado = Boolean(usuarioFirebaseLumina);
+    const ocupado = sincronizacionNubeLuminaEnCurso || ultimoEstadoNubeLumina === ESTADO_NUBE_LUMINA.conectando;
+
+    if (status) status.textContent = ultimoEstadoNubeLumina || (conectado ? ESTADO_NUBE_LUMINA.sincronizado : ESTADO_NUBE_LUMINA.sinSesion);
+
+    if (userBox) {
+        userBox.classList.toggle('hidden', !conectado);
+        if (conectado) {
+            const nombre = obtenerNombreUsuarioNubeLumina();
+            const email = usuarioFirebaseLumina.email || '';
+            userBox.textContent = email && email !== nombre ? `${nombre} · ${email}` : nombre;
+        } else {
+            userBox.textContent = '';
+        }
+    }
+
+    if (btnLogin) {
+        btnLogin.classList.toggle('hidden', conectado);
+        btnLogin.disabled = ocupado;
+    }
+
+    if (btnSync) {
+        btnSync.classList.toggle('hidden', !conectado);
+        btnSync.disabled = ocupado;
+    }
+
+    if (btnLogout) {
+        btnLogout.classList.toggle('hidden', !conectado);
+        btnLogout.disabled = ocupado;
+    }
+
+    if (btnHeader) {
+        btnHeader.classList.toggle('text-oro', conectado);
+        btnHeader.setAttribute('title', conectado ? `Nube conectada: ${obtenerNombreUsuarioNubeLumina()}` : 'Cuenta y nube');
+        btnHeader.setAttribute('aria-label', conectado ? 'Abrir cuenta y nube conectada' : 'Abrir cuenta y nube');
+    }
+}
+
+async function iniciarSesionGoogleLumina() {
+    if (!firebaseLumina?.signInWithGoogle) {
+        lanzarToast('Firebase todavía no está listo');
+        return;
+    }
+
+    actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.conectando);
+
+    try {
+        await firebaseLumina.signInWithGoogle();
+    } catch (error) {
+        console.error('No se pudo iniciar sesión con Google:', error);
+        actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.sinSesion);
+        lanzarToast('No se pudo iniciar sesión con Google');
+    }
+}
+
+async function cerrarSesionGoogleLumina() {
+    if (!firebaseLumina?.signOutGoogle) return;
+
+    try {
+        await firebaseLumina.signOutGoogle();
+        lanzarToast('Sesión de Google cerrada');
+    } catch (error) {
+        console.error('No se pudo cerrar sesión:', error);
+        lanzarToast('No se pudo cerrar la sesión');
+    }
+}
+
+function obtenerEntradasPersistenciaParaNube() {
+    return [...persistenciaLuminaCache.entries()]
+        .filter(([key]) => esClaveLuminaPersistible(key))
+        .map(([key, value]) => ({
+            key,
+            value,
+            deleted: false,
+            updatedAtLocal: obtenerUpdatedAtPersistencia(key)
+        }));
+}
+
+function normalizarEntradaNubeLumina(entrada) {
+    if (!entrada || !esClaveLuminaPersistible(entrada.key)) return null;
+
+    return {
+        key: entrada.key,
+        value: normalizarValorPersistencia(entrada.value ?? ''),
+        deleted: Boolean(entrada.deleted),
+        updatedAtLocal: entrada.updatedAtLocal || '1970-01-01T00:00:00.000Z'
+    };
+}
+
+async function guardarEntradaPersistenciaDesdeNube(entrada) {
+    const valorNormalizado = normalizarValorPersistencia(entrada.value);
+    persistenciaLuminaCache.set(entrada.key, valorNormalizado);
+    actualizarMetaPersistencia(entrada.key, entrada.updatedAtLocal);
+    limpiarEntradasLocalStorageLumina([entrada.key]);
+
+    if (persistenciaLuminaUsaFallbackLocal) {
+        try {
+            localStorage.setItem(entrada.key, valorNormalizado);
+        } catch (error) {
+            console.error(`Lumina no pudo guardar ${entrada.key} desde la nube en localStorage:`, error);
+        }
+        return;
+    }
+
+    await guardarEntradasPersistenciaLuminaDB([{
+        key: entrada.key,
+        value: valorNormalizado,
+        updatedAt: entrada.updatedAtLocal
+    }]);
+}
+
+async function eliminarEntradaPersistenciaDesdeNube(entrada) {
+    persistenciaLuminaCache.delete(entrada.key);
+    actualizarMetaPersistencia(entrada.key, entrada.updatedAtLocal);
+    limpiarEntradasLocalStorageLumina([entrada.key]);
+
+    if (persistenciaLuminaUsaFallbackLocal) {
+        try {
+            localStorage.removeItem(entrada.key);
+        } catch (error) {
+            console.error(`Lumina no pudo eliminar ${entrada.key} desde la nube en localStorage:`, error);
+        }
+        return;
+    }
+
+    await eliminarClavesPersistenciaLuminaDB([entrada.key]);
+}
+
+function recargarEstadoDesdePersistenciaLumina() {
+    cargarFavoritos();
+    cargarColeccionesVersiculos();
+    cargarLectioDivinaRegistros();
+    cargarBusquedasRecientes();
+    cargarNotasPersonales();
+    cargarLeidos();
+    cargarVersiculoInicioGuardado();
+
+    const darkMode = leerPersistencia(CLAVE_DARKMODE) === 'true';
+    document.body.classList.toggle('dark', darkMode);
+    const toggleDark = document.getElementById('toggle-darkmode');
+    if (toggleDark) {
+        toggleDark.innerHTML = darkMode ? '<i class="fas fa-sun text-lg"></i>' : '<i class="fas fa-moon text-lg"></i>';
+    }
+
+    concordanciaActiva = leerPersistencia(CLAVE_CONCORDANCIA) === 'true';
+    const toggleConcordancia = document.getElementById('toggle-concordancia');
+    if (toggleConcordancia) toggleConcordancia.checked = concordanciaActiva;
+
+    aplicarModoDesierto(leerPersistencia(CLAVE_MODO_DESIERTO) === 'true', { guardar: false });
+    aplicarTextoCorrido(leerPersistencia(CLAVE_TEXTO_CORRIDO) === 'true', { guardar: false });
+    actualizarTabsPanelGuardados();
+    inicializarIndice();
+    if (libroActual && capituloActual) actualizarBotonesLeidoVistaLectura();
+    actualizarProgresoLibroVista();
+    actualizarProgresoTestamentosVista();
+    actualizarProgresoBibliaVista();
+}
+
+function encolarCambioNubeLumina(entrada) {
+    if (aplicandoDatosNubeLumina || !usuarioFirebaseLumina || !firebaseLumina?.guardarEntradasLumina) return;
+
+    cambiosPendientesNubeLumina.set(entrada.key, {
+        ...entrada,
+        deviceId: dispositivoNubeLuminaId
+    });
+    actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.pendiente);
+    programarSubidaNubeLumina();
+}
+
+function programarSubidaNubeLumina(delay = 1200) {
+    clearTimeout(temporizadorSincronizacionNubeLumina);
+    temporizadorSincronizacionNubeLumina = setTimeout(() => {
+        subirCambiosPendientesNubeLumina();
+    }, delay);
+}
+
+async function subirCambiosPendientesNubeLumina() {
+    if (!usuarioFirebaseLumina || !firebaseLumina?.guardarEntradasLumina || cambiosPendientesNubeLumina.size === 0) return;
+
+    const entradas = [...cambiosPendientesNubeLumina.values()];
+    cambiosPendientesNubeLumina.clear();
+
+    try {
+        await firebaseLumina.guardarEntradasLumina(usuarioFirebaseLumina.uid, entradas);
+        if (!sincronizacionNubeLuminaEnCurso) {
+            actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.sincronizado);
+        }
+    } catch (error) {
+        console.error('No se pudieron subir cambios a la nube:', error);
+        entradas.forEach(entrada => cambiosPendientesNubeLumina.set(entrada.key, entrada));
+        actualizarEstadoNubeLumina(navigator.onLine ? ESTADO_NUBE_LUMINA.error : ESTADO_NUBE_LUMINA.pendiente);
+        programarSubidaNubeLumina(8000);
+    }
+}
+
+async function sincronizarLuminaConNube({ manual = false } = {}) {
+    if (!usuarioFirebaseLumina || !firebaseLumina?.cargarEntradasLumina || !firebaseLumina?.guardarEntradasLumina || sincronizacionNubeLuminaEnCurso) {
+        return;
+    }
+
+    sincronizacionNubeLuminaEnCurso = true;
+    aplicandoDatosNubeLumina = true;
+    actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.sincronizando);
+
+    try {
+        const entradasNubeRaw = await firebaseLumina.cargarEntradasLumina(usuarioFirebaseLumina.uid);
+        const entradasNube = new Map();
+        entradasNubeRaw.map(normalizarEntradaNubeLumina).filter(Boolean).forEach(entrada => {
+            entradasNube.set(entrada.key, entrada);
+        });
+
+        const subidas = [];
+        const clavesVisitadas = new Set();
+
+        for (const entradaNube of entradasNube.values()) {
+            const existeLocal = persistenciaLuminaCache.has(entradaNube.key);
+            const localUpdatedAt = obtenerUpdatedAtPersistencia(entradaNube.key);
+            const nubeMasNueva = compararFechasPersistencia(entradaNube.updatedAtLocal, localUpdatedAt) >= 0;
+            clavesVisitadas.add(entradaNube.key);
+
+            if (!existeLocal && !nubeMasNueva) {
+                subidas.push({
+                    key: entradaNube.key,
+                    value: null,
+                    deleted: true,
+                    updatedAtLocal: localUpdatedAt,
+                    deviceId: dispositivoNubeLuminaId
+                });
+            } else if (!existeLocal || nubeMasNueva) {
+                if (entradaNube.deleted) {
+                    await eliminarEntradaPersistenciaDesdeNube(entradaNube);
+                } else {
+                    await guardarEntradaPersistenciaDesdeNube(entradaNube);
+                }
+            } else if (existeLocal) {
+                subidas.push({
+                    key: entradaNube.key,
+                    value: persistenciaLuminaCache.get(entradaNube.key),
+                    deleted: false,
+                    updatedAtLocal: localUpdatedAt,
+                    deviceId: dispositivoNubeLuminaId
+                });
+            }
+        }
+
+        obtenerEntradasPersistenciaParaNube().forEach(entradaLocal => {
+            if (clavesVisitadas.has(entradaLocal.key)) return;
+            subidas.push({ ...entradaLocal, deviceId: dispositivoNubeLuminaId });
+        });
+
+        if (subidas.length > 0) {
+            await firebaseLumina.guardarEntradasLumina(usuarioFirebaseLumina.uid, subidas);
+        }
+
+        aplicandoDatosNubeLumina = false;
+        recargarEstadoDesdePersistenciaLumina();
+        await subirCambiosPendientesNubeLumina();
+        actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.sincronizado);
+        if (manual) lanzarToast('Lumina sincronizada con la nube');
+    } catch (error) {
+        console.error('No se pudo sincronizar Lumina con la nube:', error);
+        actualizarEstadoNubeLumina(navigator.onLine ? ESTADO_NUBE_LUMINA.error : ESTADO_NUBE_LUMINA.pendiente);
+        if (manual) lanzarToast('No se pudo sincronizar con la nube');
+    } finally {
+        aplicandoDatosNubeLumina = false;
+        sincronizacionNubeLuminaEnCurso = false;
+        actualizarUINubeLumina();
+    }
+}
+
+function sincronizarLuminaConNubeManual() {
+    return sincronizarLuminaConNube({ manual: true });
+}
+
+window.addEventListener('lumina:firebase-ready', event => {
+    registrarFirebaseLumina(event.detail);
+});
+
 let registroServiceWorkerLumina = null;
 let hayNuevaVersionLumina = false;
 let recargaPendientePorActualizacion = false;
@@ -9881,6 +10301,7 @@ const RECURSOS_OFFLINE_ESENCIALES = [
     './index.html',
     './style.css',
     './script.js',
+    './firebase-config.js',
     './lumina.css',
     './Biblia_Catolica_Completa.json',
     './Catena_Aurea_Completa.json',
@@ -10063,6 +10484,7 @@ async function registrarServiceWorker() {
 // --------------------------------------------------------------
 window.onload = async () => {
     await inicializarPersistenciaLumina();
+    inicializarFirebaseLumina();
 
     // Registramos Service Worker para modo sin conexión
     await registrarServiceWorker();
@@ -10105,6 +10527,7 @@ window.onload = async () => {
     });
 
     document.getElementById('btn-favoritos').addEventListener('click', () => abrirPanelGuardados());
+    document.getElementById('btn-nube-lumina')?.addEventListener('click', () => abrirAjustesNubeLumina());
     document.getElementById('estado-offline')?.addEventListener('click', () => mostrarDetalleEstadoConexion());
     document.getElementById('tab-guardados-favoritos')?.addEventListener('click', () => mostrarPanelFavoritos());
     document.getElementById('tab-guardados-colecciones')?.addEventListener('click', () => mostrarPanelColecciones(coleccionAbiertaPanelId));
