@@ -1126,6 +1126,23 @@
                     <p id="respaldo-lumina-detalle"></p>
                 </div>
 
+                <div id="bloque-modo-importacion-respaldo-lumina" class="respaldo-import-mode hidden">
+                    <p class="respaldo-import-mode-label">Modo de restauración</p>
+                    <div class="respaldo-import-mode-grid" role="group"
+                        aria-label="Elegir cómo restaurar los datos de Lumina">
+                        <button type="button" id="btn-importacion-fusionar-lumina"
+                            class="respaldo-import-mode-option" data-import-mode="fusionar">
+                            <strong>Fusionar</strong>
+                            <span>Une el archivo con este dispositivo sin borrar tus datos actuales.</span>
+                        </button>
+                        <button type="button" id="btn-importacion-reemplazar-lumina"
+                            class="respaldo-import-mode-option" data-import-mode="reemplazar">
+                            <strong>Reemplazar</strong>
+                            <span>Borra las categorías marcadas y carga las del archivo.</span>
+                        </button>
+                    </div>
+                </div>
+
                 <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
                     <h4 class="text-sm font-sans font-bold uppercase tracking-[0.22em] text-gray-500 dark:text-gray-400">
                         Categorías

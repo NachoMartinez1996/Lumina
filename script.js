@@ -1818,6 +1818,36 @@ async function reemplazarPersistenciaPorCategorias(mapaEntradas, categoriasSelec
     await guardarEntradasPersistenciaLuminaDB(registrosAImportar);
 }
 
+async function fusionarPersistenciaPorCategorias(mapaEntradas, categoriasSeleccionadas) {
+    const clavesSeleccionadas = obtenerClavesCategoriasRespaldo(categoriasSeleccionadas);
+    const cambios = [];
+
+    clavesSeleccionadas.forEach(clave => {
+        if (!mapaEntradas.has(clave)) return;
+
+        const valorImportado = normalizarValorPersistencia(mapaEntradas.get(clave));
+        const existeLocal = persistenciaLuminaCache.has(clave);
+        const valorLocal = existeLocal ? persistenciaLuminaCache.get(clave) : null;
+        let valorFinal = null;
+
+        if (clavePersistenciaUsaFusion(clave)) {
+            valorFinal = fusionarValorPersistenciaLumina(clave, valorLocal, valorImportado);
+        } else if (!existeLocal) {
+            valorFinal = valorImportado;
+        }
+
+        if (valorFinal === null || typeof valorFinal === 'undefined') return;
+
+        const valorNormalizado = normalizarValorPersistencia(valorFinal);
+        if (existeLocal && String(valorLocal ?? '') === valorNormalizado) return;
+
+        cambios.push([clave, valorNormalizado]);
+    });
+
+    await Promise.all(cambios.map(([clave, valor]) => escribirPersistencia(clave, valor)));
+    return cambios.length;
+}
+
 async function vaciarPersistenciaLuminaCompleta() {
     persistenciaLuminaCache.clear();
     persistenciaLuminaMeta.clear();
@@ -11352,6 +11382,8 @@ function actualizarEstadoAccionModalRespaldoLumina() {
     const botonPrincipal = document.getElementById('btn-confirmar-respaldo-lumina');
     const botonTodo = document.getElementById('btn-respaldo-marcar-todo');
     const botonNada = document.getElementById('btn-respaldo-limpiar');
+    const botonFusionar = document.getElementById('btn-importacion-fusionar-lumina');
+    const botonReemplazar = document.getElementById('btn-importacion-reemplazar-lumina');
     if (!botonPrincipal || !contextoModalRespaldoLumina) return;
 
     const cantidadSeleccionadas = contextoModalRespaldoLumina.categoriasSeleccionadas.size;
@@ -11361,7 +11393,7 @@ function actualizarEstadoAccionModalRespaldoLumina() {
     botonPrincipal.classList.toggle('opacity-60', deshabilitado);
     botonPrincipal.classList.toggle('cursor-not-allowed', deshabilitado);
 
-    [botonTodo, botonNada].forEach(boton => {
+    [botonTodo, botonNada, botonFusionar, botonReemplazar].forEach(boton => {
         if (!boton) return;
         boton.disabled = accionRespaldoLuminaEnCurso;
         boton.classList.toggle('opacity-60', accionRespaldoLuminaEnCurso);
@@ -11378,12 +11410,18 @@ function renderizarModalRespaldoLumina() {
     const botonPrincipal = document.getElementById('btn-confirmar-respaldo-lumina');
     const botonTodo = document.getElementById('btn-respaldo-marcar-todo');
     const botonNada = document.getElementById('btn-respaldo-limpiar');
+    const bloqueModoImportacion = document.getElementById('bloque-modo-importacion-respaldo-lumina');
+    const botonFusionar = document.getElementById('btn-importacion-fusionar-lumina');
+    const botonReemplazar = document.getElementById('btn-importacion-reemplazar-lumina');
 
     if (!modal || !etiqueta || !titulo || !subtitulo || !detalle || !lista || !botonPrincipal || !contextoModalRespaldoLumina) {
         return;
     }
 
     const esExportacion = contextoModalRespaldoLumina.modo === 'exportar';
+    const estrategiaImportacion = contextoModalRespaldoLumina.estrategiaImportacion === 'reemplazar'
+        ? 'reemplazar'
+        : 'fusionar';
     const categoriasRender = esExportacion
         ? CATEGORIAS_RESPALDO_LUMINA.map(categoria => categoria.id)
         : contextoModalRespaldoLumina.categoriasDisponibles;
@@ -11392,11 +11430,30 @@ function renderizarModalRespaldoLumina() {
     titulo.textContent = esExportacion ? 'Elegí qué querés exportar' : 'Elegí qué querés restaurar';
     subtitulo.textContent = esExportacion
         ? 'Podés guardar solo las partes de Lumina que te importan hoy.'
-        : 'Las categorías marcadas reemplazarán lo que hoy está guardado en este dispositivo.';
+        : 'Podés fusionar el archivo con este dispositivo o reemplazar las categorías marcadas.';
     detalle.textContent = esExportacion
         ? 'El respaldo nuevo se guarda como archivo JSON estructurado y sigue siendo legible por Lumina.'
-        : `Archivo cargado: ${contextoModalRespaldoLumina.archivoNombre || 'respaldo externo'}.`;
-    botonPrincipal.textContent = esExportacion ? 'Exportar selección' : 'Restaurar selección';
+        : (estrategiaImportacion === 'reemplazar'
+            ? `Archivo cargado: ${contextoModalRespaldoLumina.archivoNombre || 'respaldo externo'}. Reemplazar borra en este dispositivo las categorías marcadas y carga las del archivo.`
+            : `Archivo cargado: ${contextoModalRespaldoLumina.archivoNombre || 'respaldo externo'}. Fusionar suma datos compatibles y conserva tus ajustes locales cuando hay conflicto.`);
+    botonPrincipal.textContent = esExportacion
+        ? 'Exportar selección'
+        : (estrategiaImportacion === 'reemplazar' ? 'Reemplazar selección' : 'Fusionar selección');
+
+    if (bloqueModoImportacion) {
+        bloqueModoImportacion.classList.toggle('hidden', esExportacion);
+    }
+
+    [
+        [botonFusionar, 'fusionar'],
+        [botonReemplazar, 'reemplazar']
+    ].forEach(([boton, estrategia]) => {
+        if (!boton) return;
+        const activo = estrategiaImportacion === estrategia;
+        boton.classList.toggle('respaldo-import-mode-option-active', activo);
+        boton.setAttribute('aria-pressed', String(activo));
+        boton.onclick = () => cambiarEstrategiaImportacionRespaldoLumina(estrategia);
+    });
 
     lista.innerHTML = '';
 
@@ -11474,6 +11531,16 @@ function seleccionarCategoriasRespaldoLumina(marcarTodo) {
     renderizarModalRespaldoLumina();
 }
 
+function cambiarEstrategiaImportacionRespaldoLumina(estrategia) {
+    if (!contextoModalRespaldoLumina || contextoModalRespaldoLumina.modo !== 'importar') return;
+
+    contextoModalRespaldoLumina.estrategiaImportacion = estrategia === 'reemplazar'
+        ? 'reemplazar'
+        : 'fusionar';
+
+    renderizarModalRespaldoLumina();
+}
+
 async function ejecutarExportacionRespaldoLumina(categoriasSeleccionadas) {
     const backup = obtenerDatosBackupLumina(categoriasSeleccionadas);
     const jsonBackup = JSON.stringify(backup, null, 2);
@@ -11509,8 +11576,18 @@ async function ejecutarExportacionRespaldoLumina(categoriasSeleccionadas) {
 async function ejecutarImportacionRespaldoLumina(categoriasSeleccionadas) {
     if (!contextoModalRespaldoLumina) return false;
 
-    await reemplazarPersistenciaPorCategorias(contextoModalRespaldoLumina.mapa, categoriasSeleccionadas);
-    lanzarToast('Datos restaurados. Recargando Lumina...');
+    const estrategiaImportacion = contextoModalRespaldoLumina.estrategiaImportacion === 'reemplazar'
+        ? 'reemplazar'
+        : 'fusionar';
+
+    if (estrategiaImportacion === 'reemplazar') {
+        await reemplazarPersistenciaPorCategorias(contextoModalRespaldoLumina.mapa, categoriasSeleccionadas);
+        lanzarToast('Datos reemplazados. Recargando Lumina...');
+    } else {
+        await fusionarPersistenciaPorCategorias(contextoModalRespaldoLumina.mapa, categoriasSeleccionadas);
+        lanzarToast('Datos fusionados. Recargando Lumina...');
+    }
+
     setTimeout(() => window.location.reload(), 350);
     return true;
 }
@@ -11563,6 +11640,7 @@ async function exportarDatosLumina() {
         categoriasDisponibles,
         categoriasExplicitas: [],
         categoriasSeleccionadas: new Set(categoriasDisponibles),
+        estrategiaImportacion: 'fusionar',
         archivoNombre: ''
     };
 
@@ -11638,6 +11716,7 @@ async function importarProgreso(evento) {
             categoriasDisponibles: respaldo.categoriasDisponibles,
             categoriasExplicitas: respaldo.categoriasExplicitas,
             categoriasSeleccionadas: new Set(respaldo.categoriasDisponibles),
+            estrategiaImportacion: 'fusionar',
             archivoNombre: archivo.name || 'respaldo_lumina.json'
         };
 
