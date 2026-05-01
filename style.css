@@ -6431,7 +6431,7 @@ body:not(.dark) #contenido-busqueda .resultado-busqueda-item .resultado-busqueda
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.9rem 0.95rem;
+    padding: 0.45rem 0.5rem;
     border-radius: 1rem;
     border: 1px solid rgba(184, 134, 11, 0.14);
     background: rgba(255, 252, 246, 0.84);
@@ -6444,6 +6444,51 @@ body:not(.dark) #contenido-busqueda .resultado-busqueda-item .resultado-busqueda
     border-color: rgba(184, 134, 11, 0.28);
     background: rgba(248, 240, 226, 0.96);
     box-shadow: 0 12px 24px rgba(78, 60, 33, 0.08);
+}
+
+.busqueda-reciente-item-contenido {
+    min-width: 0;
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.45rem 0.2rem 0.45rem 0.45rem;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+
+.busqueda-reciente-item-borrar {
+    flex: 0 0 auto;
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(184, 134, 11, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.64);
+    color: #8a6a17;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.75rem;
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.busqueda-reciente-item-borrar:hover {
+    border-color: rgba(185, 28, 28, 0.24);
+    background: rgba(254, 226, 226, 0.82);
+    color: #b91c1c;
+    transform: scale(1.04);
+}
+
+.busqueda-reciente-item-contenido:focus-visible,
+.busqueda-reciente-item-borrar:focus-visible {
+    outline: 2px solid rgba(184, 134, 11, 0.72);
+    outline-offset: 2px;
 }
 
 .busqueda-reciente-item-icono,
@@ -6534,6 +6579,22 @@ body:not(.dark) #contenido-busqueda .resultado-busqueda-item .resultado-busqueda
     box-shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
 }
 
+.dark .busqueda-reciente-item-contenido {
+    color: inherit;
+}
+
+.dark .busqueda-reciente-item-borrar {
+    border-color: rgba(243, 207, 119, 0.12);
+    background: rgba(17, 24, 39, 0.58);
+    color: #f3cf77;
+}
+
+.dark .busqueda-reciente-item-borrar:hover {
+    border-color: rgba(248, 113, 113, 0.35);
+    background: rgba(127, 29, 29, 0.34);
+    color: #fecaca;
+}
+
 .dark .busqueda-reciente-item-icono {
     background: rgba(243, 207, 119, 0.14);
     color: #f3cf77;
@@ -6551,6 +6612,10 @@ body:not(.dark) #contenido-busqueda .resultado-busqueda-item .resultado-busqueda
 
     .busquedas-recientes-limpiar {
         width: 100%;
+    }
+
+    .busqueda-reciente-item {
+        gap: 0.5rem;
     }
 }
 

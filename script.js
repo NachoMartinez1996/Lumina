@@ -2245,6 +2245,25 @@ function limpiarHistorialBusquedasRecientes() {
     lanzarToast('Historial de búsquedas limpiado');
 }
 
+function eliminarBusquedaReciente(termino, filtro = FILTRO_BUSQUEDA_TODOS) {
+    const terminoNormalizado = normalizarTerminoBusqueda(termino);
+    if (!terminoNormalizado) return;
+
+    const filtroNormalizado = normalizarFiltroLibroBusqueda(filtro);
+    const cantidadAnterior = busquedasRecientes.length;
+
+    busquedasRecientes = busquedasRecientes.filter(item => !(
+        item.termino === terminoNormalizado &&
+        normalizarFiltroLibroBusqueda(item.filtro) === filtroNormalizado
+    ));
+
+    if (busquedasRecientes.length === cantidadAnterior) return;
+
+    guardarBusquedasRecientes();
+    actualizarVistaBusquedaSinResultados(terminoBusquedaActual, filtroLibroBusquedaActual);
+    lanzarToast('Búsqueda eliminada del historial');
+}
+
 function generarIdLectioDivina() {
     return `lectio_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -4256,10 +4275,15 @@ function aplicarBusquedaRecienteGuardada(termino, filtro = FILTRO_BUSQUEDA_TODOS
 }
 
 function crearBotonBusquedaReciente(item) {
+    const fila = document.createElement('div');
     const boton = document.createElement('button');
+    const botonBorrar = document.createElement('button');
     const etiquetaFiltro = obtenerEtiquetaFiltroLibroBusqueda(item.filtro);
+
+    fila.className = 'busqueda-reciente-item';
+
     boton.type = 'button';
-    boton.className = 'busqueda-reciente-item';
+    boton.className = 'busqueda-reciente-item-contenido';
     boton.innerHTML = `
         <span class="busqueda-reciente-item-icono" aria-hidden="true"><i class="fas fa-history"></i></span>
         <span class="busqueda-reciente-item-copy">
@@ -4269,7 +4293,20 @@ function crearBotonBusquedaReciente(item) {
         <span class="busqueda-reciente-item-accion" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
     `;
     boton.addEventListener('click', () => aplicarBusquedaRecienteGuardada(item.termino, item.filtro));
-    return boton;
+
+    botonBorrar.type = 'button';
+    botonBorrar.className = 'busqueda-reciente-item-borrar';
+    botonBorrar.title = 'Eliminar esta búsqueda';
+    botonBorrar.setAttribute('aria-label', `Eliminar búsqueda reciente: ${item.termino}`);
+    botonBorrar.innerHTML = '<i class="fas fa-times" aria-hidden="true"></i>';
+    botonBorrar.addEventListener('click', event => {
+        event.stopPropagation();
+        eliminarBusquedaReciente(item.termino, item.filtro);
+    });
+
+    fila.appendChild(boton);
+    fila.appendChild(botonBorrar);
+    return fila;
 }
 
 function crearBloqueBusquedasRecientes() {
