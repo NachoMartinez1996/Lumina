@@ -10604,6 +10604,44 @@ const RECURSOS_OFFLINE_ESENCIALES = [
 
 function marcarNuevaVersionLuminaDisponible(disponible) {
     hayNuevaVersionLumina = disponible;
+    actualizarAvisoNuevaVersionLumina();
+}
+
+function actualizarAvisoNuevaVersionLumina(actualizando = false) {
+    const aviso = document.getElementById('aviso-nueva-version-lumina');
+    if (!aviso) return;
+
+    const visible = hayNuevaVersionLumina || actualizando;
+    const titulo = aviso.querySelector('[data-aviso-version-titulo]');
+    const detalle = aviso.querySelector('[data-aviso-version-detalle]');
+
+    aviso.classList.toggle('hidden', !visible);
+    aviso.disabled = actualizando;
+    aviso.dataset.updateState = actualizando ? 'updating' : 'ready';
+
+    if (titulo) {
+        titulo.textContent = actualizando ? 'Actualizando Lumina...' : 'Nueva versión disponible';
+    }
+
+    if (detalle) {
+        detalle.textContent = actualizando
+            ? 'Preparando la versión más reciente.'
+            : 'Tocá para actualizar Lumina.';
+    }
+}
+
+async function actualizarLuminaDesdeAviso() {
+    if (!hayNuevaVersionLumina) return;
+
+    actualizarAvisoNuevaVersionLumina(true);
+
+    try {
+        await limpiarCacheLumina();
+    } finally {
+        if (hayNuevaVersionLumina) {
+            actualizarAvisoNuevaVersionLumina(false);
+        }
+    }
 }
 
 async function estaRecursoDisponibleEnCache(ruta) {
@@ -10735,7 +10773,6 @@ async function registrarServiceWorker() {
             nuevoWorker.addEventListener('statechange', () => {
                 if (nuevoWorker.state === 'installed' && navigator.serviceWorker.controller) {
                     marcarNuevaVersionLuminaDisponible(true);
-                    lanzarToast('Hay una nueva versión de Lumina lista para actualizar');
 
                     if (recargaPendientePorActualizacion) {
                         nuevoWorker.postMessage({ type: 'SKIP_WAITING' });
@@ -10779,6 +10816,8 @@ async function registrarServiceWorker() {
 window.onload = async () => {
     await inicializarPersistenciaLumina();
     inicializarFirebaseLumina();
+    document.getElementById('aviso-nueva-version-lumina')?.addEventListener('click', () => actualizarLuminaDesdeAviso());
+    actualizarAvisoNuevaVersionLumina();
 
     // Registramos Service Worker para modo sin conexión
     await registrarServiceWorker();

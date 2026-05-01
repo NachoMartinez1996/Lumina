@@ -1246,6 +1246,16 @@
     <audio id="audio-celebracion-libro" src="Morning_in_the_Oratory.mp3" preload="auto"></audio>
     <script type="module" src="firebase-config.js"></script>
     <script src="script.js"></script>
+    <button type="button" id="aviso-nueva-version-lumina" class="aviso-nueva-version-lumina hidden"
+        aria-live="polite">
+        <span class="aviso-nueva-version-icon" aria-hidden="true">
+            <i class="fas fa-arrows-rotate"></i>
+        </span>
+        <span class="aviso-nueva-version-copy">
+            <strong data-aviso-version-titulo>Nueva versión disponible</strong>
+            <span data-aviso-version-detalle>Tocá para actualizar Lumina.</span>
+        </span>
+    </button>
     <div id="toast-confirmacion"
         class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[110] hidden opacity-0 transition-opacity duration-500">
         <div
