@@ -4850,68 +4850,185 @@ function trazarRectanguloRedondeado(ctx, x, y, width, height, radius) {
     ctx.closePath();
 }
 
+function dividirPalabraTarjetaEnLineas(ctx, palabra, maxWidth) {
+    const fragmentos = [];
+    let fragmentoActual = '';
+
+    for (const caracter of String(palabra || '')) {
+        const candidato = `${fragmentoActual}${caracter}`;
+        if (!fragmentoActual || ctx.measureText(candidato).width <= maxWidth) {
+            fragmentoActual = candidato;
+        } else {
+            fragmentos.push(fragmentoActual);
+            fragmentoActual = caracter;
+        }
+    }
+
+    if (fragmentoActual) fragmentos.push(fragmentoActual);
+    return fragmentos;
+}
+
 function dividirTextoTarjetaEnLineas(ctx, texto, maxWidth) {
     const palabras = String(texto || '').trim().split(/\s+/).filter(Boolean);
     if (palabras.length === 0) return [];
 
     const lineas = [];
-    let lineaActual = palabras[0];
+    let lineaActual = '';
 
-    for (let i = 1; i < palabras.length; i++) {
-        const candidata = `${lineaActual} ${palabras[i]}`;
-        if (ctx.measureText(candidata).width <= maxWidth) {
-            lineaActual = candidata;
-        } else {
-            lineas.push(lineaActual);
-            lineaActual = palabras[i];
-        }
-    }
+    palabras.forEach(palabra => {
+        const fragmentos = ctx.measureText(palabra).width <= maxWidth
+            ? [palabra]
+            : dividirPalabraTarjetaEnLineas(ctx, palabra, maxWidth);
 
-    lineas.push(lineaActual);
+        fragmentos.forEach(fragmento => {
+            if (!lineaActual) {
+                lineaActual = fragmento;
+                return;
+            }
+
+            const candidata = `${lineaActual} ${fragmento}`;
+            if (ctx.measureText(candidata).width <= maxWidth) {
+                lineaActual = candidata;
+            } else {
+                lineas.push(lineaActual);
+                lineaActual = fragmento;
+            }
+        });
+    });
+
+    if (lineaActual) lineas.push(lineaActual);
     return lineas;
 }
 
-function limitarLineasTarjetaCanvas(ctx, lineas, maxWidth, maxLines) {
-    if (lineas.length <= maxLines) return lineas;
+function obtenerMetricasTarjetaVersiculo(width, height) {
+    const escala = width / 1080;
+    const margen = Math.round(width * 0.06);
+    const panelX = margen;
+    const panelY = margen;
+    const panelW = width - margen * 2;
+    const panelH = height - margen * 2;
+    const cajaTextoY = panelY + Math.round(272 * escala);
+    const cajaTextoH = Math.max(Math.round(260 * escala), panelH - Math.round(510 * escala));
+    const maxTextWidth = panelW - Math.round(180 * escala);
 
-    const visibles = lineas.slice(0, maxLines);
-    let ultima = visibles[maxLines - 1];
-
-    while (ultima.length > 0 && ctx.measureText(`${ultima}…`).width > maxWidth) {
-        ultima = ultima.slice(0, -1).trimEnd();
-    }
-
-    visibles[maxLines - 1] = `${ultima}…`;
-    return visibles;
+    return {
+        escala,
+        margen,
+        panelX,
+        panelY,
+        panelW,
+        panelH,
+        radio: Math.round(width * 0.045),
+        cajaTextoY,
+        cajaTextoH,
+        maxTextWidth: Math.max(Math.round(width * 0.48), maxTextWidth),
+        pieY: panelY + panelH - Math.round(188 * escala)
+    };
 }
 
-function resolverTipografiaTarjetaVersiculo(ctx, texto, maxWidth, maxHeight) {
-    for (let fontSize = 76; fontSize >= 42; fontSize -= 2) {
-        ctx.font = `italic 600 ${fontSize}px Georgia, serif`;
-        const lineHeight = Math.round(fontSize * 1.34);
-        const maxLines = Math.max(3, Math.floor(maxHeight / lineHeight));
-        let lineas = dividirTextoTarjetaEnLineas(ctx, texto, maxWidth);
+function calcularTipografiaTarjetaVersiculo(ctx, texto, maxWidth, fontSize) {
+    const lineHeight = Math.round(fontSize * (fontSize <= 34 ? 1.28 : 1.32));
+    ctx.font = `italic 600 ${fontSize}px Georgia, serif`;
 
-        if (lineas.length <= maxLines && (lineas.length * lineHeight) <= maxHeight) {
-            return { fontSize, lineHeight, lineas };
-        }
+    return {
+        fontSize,
+        lineHeight,
+        lineas: dividirTextoTarjetaEnLineas(ctx, texto, maxWidth)
+    };
+}
 
-        if (fontSize === 42) {
-            lineas = limitarLineasTarjetaCanvas(ctx, lineas, maxWidth, maxLines);
-            return { fontSize, lineHeight, lineas };
+function resolverTipografiaTarjetaVersiculo(ctx, texto, maxWidth, maxHeight, opciones = {}) {
+    const escala = opciones.escala || 1;
+    const fontMax = Math.round((opciones.fontMax || 76) * escala);
+    const fontMin = Math.max(18, Math.round((opciones.fontMin || 30) * escala));
+    const paso = Math.max(1, Math.round((opciones.paso || 2) * escala));
+
+    for (let fontSize = fontMax; fontSize >= fontMin; fontSize -= paso) {
+        const tipografia = calcularTipografiaTarjetaVersiculo(ctx, texto, maxWidth, fontSize);
+
+        if ((tipografia.lineas.length * tipografia.lineHeight) <= maxHeight) {
+            return { ...tipografia, cabeCompleto: true };
         }
     }
 
-    return { fontSize: 42, lineHeight: 56, lineas: [String(texto || '').trim()] };
+    const tipografiaMinima = calcularTipografiaTarjetaVersiculo(ctx, texto, maxWidth, fontMin);
+    return { ...tipografiaMinima, cabeCompleto: (tipografiaMinima.lineas.length * tipografiaMinima.lineHeight) <= maxHeight };
+}
+
+function resolverLayoutTarjetaVersiculo(ctx, texto, width, alturaBase) {
+    const escala = width / 1080;
+    const altoBase = Math.round(alturaBase || width * 1.25);
+    const altoMaximoComodo = Math.round(width * 2.1);
+    const fontMinComodo = 34;
+    const fontMinAbsoluto = 24;
+    const metricasBase = obtenerMetricasTarjetaVersiculo(width, altoBase);
+    const tipografiaBase = resolverTipografiaTarjetaVersiculo(ctx, texto, metricasBase.maxTextWidth, metricasBase.cajaTextoH, {
+        escala,
+        fontMin: fontMinComodo
+    });
+
+    if (tipografiaBase.cabeCompleto) {
+        return { width, height: altoBase, metricas: metricasBase, tipografia: tipografiaBase };
+    }
+
+    const fontComodo = Math.max(18, Math.round(fontMinComodo * escala));
+    const tipografiaComoda = calcularTipografiaTarjetaVersiculo(ctx, texto, metricasBase.maxTextWidth, fontComodo);
+    const altoTextoComodo = tipografiaComoda.lineas.length * tipografiaComoda.lineHeight;
+    const altoSinCajaTexto = altoBase - metricasBase.cajaTextoH;
+    const altoComodoNecesario = Math.ceil(altoTextoComodo + altoSinCajaTexto + Math.round(12 * escala));
+
+    if (altoComodoNecesario <= altoMaximoComodo) {
+        const height = Math.max(altoBase, altoComodoNecesario);
+        const metricas = obtenerMetricasTarjetaVersiculo(width, height);
+        const tipografia = resolverTipografiaTarjetaVersiculo(ctx, texto, metricas.maxTextWidth, metricas.cajaTextoH, {
+            escala,
+            fontMin: fontMinComodo
+        });
+
+        return { width, height, metricas, tipografia };
+    }
+
+    const metricasMaximas = obtenerMetricasTarjetaVersiculo(width, altoMaximoComodo);
+    let tipografia = resolverTipografiaTarjetaVersiculo(ctx, texto, metricasMaximas.maxTextWidth, metricasMaximas.cajaTextoH, {
+        escala,
+        fontMin: fontMinAbsoluto
+    });
+
+    if (tipografia.cabeCompleto) {
+        return { width, height: altoMaximoComodo, metricas: metricasMaximas, tipografia };
+    }
+
+    const altoTextoNecesario = tipografia.lineas.length * tipografia.lineHeight;
+    const altoNecesario = Math.ceil(altoTextoNecesario + altoSinCajaTexto + Math.round(16 * escala));
+    const height = Math.max(altoMaximoComodo, altoNecesario);
+    const metricas = obtenerMetricasTarjetaVersiculo(width, height);
+    tipografia = resolverTipografiaTarjetaVersiculo(ctx, texto, metricas.maxTextWidth, metricas.cajaTextoH, {
+        escala,
+        fontMin: fontMinAbsoluto
+    });
+
+    return { width, height, metricas, tipografia };
 }
 
 function dibujarTarjetaVersiculoEnCanvas(canvas, contexto, opciones = {}) {
     if (!canvas || !contexto) return false;
 
     const width = opciones.width || 1080;
-    const height = opciones.height || 1350;
     const ctx = canvas.getContext('2d');
     if (!ctx) return false;
+    const layout = resolverLayoutTarjetaVersiculo(ctx, contexto.texto, width, opciones.height);
+    const height = layout.height;
+    const {
+        escala,
+        panelX,
+        panelY,
+        panelW,
+        panelH,
+        radio,
+        cajaTextoY,
+        cajaTextoH,
+        pieY
+    } = layout.metricas;
 
     canvas.width = width;
     canvas.height = height;
@@ -4932,17 +5049,10 @@ function dibujarTarjetaVersiculoEnCanvas(canvas, contexto, opciones = {}) {
     ctx.fillStyle = halo;
     ctx.fillRect(0, 0, width, height);
 
-    const margen = Math.round(width * 0.06);
-    const panelX = margen;
-    const panelY = margen;
-    const panelW = width - margen * 2;
-    const panelH = height - margen * 2;
-    const radio = Math.round(width * 0.045);
-
     ctx.save();
     ctx.shadowColor = 'rgba(76, 52, 18, 0.16)';
-    ctx.shadowBlur = 36;
-    ctx.shadowOffsetY = 18;
+    ctx.shadowBlur = Math.round(36 * escala);
+    ctx.shadowOffsetY = Math.round(18 * escala);
     trazarRectanguloRedondeado(ctx, panelX, panelY, panelW, panelH, radio);
     ctx.fillStyle = 'rgba(255, 252, 245, 0.92)';
     ctx.fill();
@@ -4955,51 +5065,50 @@ function dibujarTarjetaVersiculoEnCanvas(canvas, contexto, opciones = {}) {
     ctx.fillStyle = panelGradiente;
     ctx.fill();
 
-    ctx.lineWidth = 3;
+    ctx.lineWidth = Math.max(2, Math.round(3 * escala));
     ctx.strokeStyle = 'rgba(184, 134, 11, 0.35)';
-    trazarRectanguloRedondeado(ctx, panelX + 8, panelY + 8, panelW - 16, panelH - 16, radio - 8);
+    const bordeInterior = Math.round(8 * escala);
+    trazarRectanguloRedondeado(ctx, panelX + bordeInterior, panelY + bordeInterior, panelW - bordeInterior * 2, panelH - bordeInterior * 2, radio - bordeInterior);
     ctx.stroke();
 
     ctx.fillStyle = 'rgba(184, 134, 11, 0.18)';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
-    ctx.font = `italic 160px Georgia, serif`;
-    ctx.fillText('“', panelX + 58, panelY + 170);
+    ctx.font = `italic ${Math.round(160 * escala)}px Georgia, serif`;
+    ctx.fillText('“', panelX + Math.round(58 * escala), panelY + Math.round(170 * escala));
     ctx.textAlign = 'right';
-    ctx.fillText('”', panelX + panelW - 60, panelY + panelH - 54);
+    ctx.fillText('”', panelX + panelW - Math.round(60 * escala), panelY + panelH - Math.round(54 * escala));
 
-    const pastillaY = panelY + 58;
+    const pastillaY = panelY + Math.round(58 * escala);
     ctx.textAlign = 'center';
-    ctx.font = '600 28px "Segoe UI", sans-serif';
-    const anchoPastilla = Math.max(192, Math.ceil(ctx.measureText('Lumina').width) + 96);
+    ctx.font = `600 ${Math.round(28 * escala)}px "Segoe UI", sans-serif`;
+    const altoPastilla = Math.round(56 * escala);
+    const anchoPastilla = Math.max(Math.round(192 * escala), Math.ceil(ctx.measureText('Lumina').width) + Math.round(96 * escala));
     const pastillaX = (width - anchoPastilla) / 2;
-    trazarRectanguloRedondeado(ctx, pastillaX, pastillaY, anchoPastilla, 56, 28);
+    trazarRectanguloRedondeado(ctx, pastillaX, pastillaY, anchoPastilla, altoPastilla, altoPastilla / 2);
     ctx.fillStyle = 'rgba(184, 134, 11, 0.12)';
     ctx.fill();
     ctx.strokeStyle = 'rgba(184, 134, 11, 0.26)';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = Math.max(1, Math.round(2 * escala));
     ctx.stroke();
     ctx.fillStyle = '#9a6a00';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Lumina', width / 2, pastillaY + 30);
+    ctx.fillText('Lumina', width / 2, pastillaY + altoPastilla / 2 + Math.round(2 * escala));
 
     const referencia = contexto.referencia || formatearReferenciaCompartida(contexto.libro, contexto.capitulo, contexto.versiculo);
-    ctx.font = '600 34px "Segoe UI", sans-serif';
+    ctx.font = `600 ${Math.round(34 * escala)}px "Segoe UI", sans-serif`;
     ctx.fillStyle = '#a67200';
     ctx.textBaseline = 'alphabetic';
-    ctx.fillText(referencia, width / 2, panelY + 180);
+    ctx.fillText(referencia, width / 2, panelY + Math.round(180 * escala));
 
     ctx.strokeStyle = 'rgba(184, 134, 11, 0.24)';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = Math.max(1, Math.round(2 * escala));
     ctx.beginPath();
-    ctx.moveTo(panelX + 120, panelY + 218);
-    ctx.lineTo(panelX + panelW - 120, panelY + 218);
+    ctx.moveTo(panelX + Math.round(120 * escala), panelY + Math.round(218 * escala));
+    ctx.lineTo(panelX + panelW - Math.round(120 * escala), panelY + Math.round(218 * escala));
     ctx.stroke();
 
-    const cajaTextoY = panelY + 272;
-    const cajaTextoH = panelH - 510;
-    const maxTextWidth = panelW - 180;
-    const tipografia = resolverTipografiaTarjetaVersiculo(ctx, contexto.texto, maxTextWidth, cajaTextoH);
+    const tipografia = layout.tipografia;
     const altoBloque = tipografia.lineas.length * tipografia.lineHeight;
     let cursorY = cajaTextoY + Math.max(0, (cajaTextoH - altoBloque) / 2);
 
@@ -5013,20 +5122,19 @@ function dibujarTarjetaVersiculoEnCanvas(canvas, contexto, opciones = {}) {
         cursorY += tipografia.lineHeight;
     });
 
-    const pieY = panelY + panelH - 188;
     ctx.strokeStyle = 'rgba(184, 134, 11, 0.28)';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = Math.max(1, Math.round(2 * escala));
     ctx.beginPath();
-    ctx.moveTo(panelX + 180, pieY);
-    ctx.lineTo(panelX + panelW - 180, pieY);
+    ctx.moveTo(panelX + Math.round(180 * escala), pieY);
+    ctx.lineTo(panelX + panelW - Math.round(180 * escala), pieY);
     ctx.stroke();
 
-    ctx.font = '600 26px "Segoe UI", sans-serif';
+    ctx.font = `600 ${Math.round(26 * escala)}px "Segoe UI", sans-serif`;
     ctx.fillStyle = '#7b5b2a';
     ctx.textAlign = 'center';
-    ctx.fillText('La Tradición Iluminando la Palabra', width / 2, pieY + 56);
+    ctx.fillText('La Tradición Iluminando la Palabra', width / 2, pieY + Math.round(56 * escala));
 
-    ctx.font = '500 22px "Segoe UI", sans-serif';
+    ctx.font = `500 ${Math.round(22 * escala)}px "Segoe UI", sans-serif`;
     ctx.fillStyle = 'rgba(78, 59, 29, 0.72)';
 
     return true;
@@ -5058,8 +5166,8 @@ function renderizarModalCompartirVersiculo() {
     referencia.textContent = contextoModalCompartirVersiculo.referencia;
     texto.textContent = contextoModalCompartirVersiculo.texto;
     dibujarTarjetaVersiculoEnCanvas(canvas, contextoModalCompartirVersiculo, {
-        width: 900,
-        height: 1125
+        width: 1080,
+        height: 1350
     });
 
     modal.classList.remove('hidden');
