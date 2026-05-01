@@ -10133,10 +10133,280 @@ function normalizarEntradaNubeLumina(entrada) {
 
     return {
         key: entrada.key,
-        value: normalizarValorPersistencia(entrada.value ?? ''),
+        value: entrada.deleted ? null : normalizarValorPersistencia(entrada.value ?? ''),
         deleted: Boolean(entrada.deleted),
         updatedAtLocal: entrada.updatedAtLocal || '1970-01-01T00:00:00.000Z'
     };
+}
+
+function parsearJSONPersistencia(valor, fallback) {
+    try {
+        const parsed = JSON.parse(valor);
+        return parsed ?? fallback;
+    } catch (_) {
+        return fallback;
+    }
+}
+
+function serializarPersistenciaFusionada(valor) {
+    return JSON.stringify(valor);
+}
+
+function obtenerEntradaLocalNubeLumina(clave) {
+    const existe = persistenciaLuminaCache.has(clave);
+    return {
+        key: clave,
+        value: existe ? persistenciaLuminaCache.get(clave) : null,
+        deleted: !existe,
+        updatedAtLocal: obtenerUpdatedAtPersistencia(clave)
+    };
+}
+
+function entradasNubeEquivalentes(a, b) {
+    return Boolean(a) === Boolean(b)
+        && (!a || (
+            a.key === b.key
+            && Boolean(a.deleted) === Boolean(b.deleted)
+            && String(a.value ?? '') === String(b.value ?? '')
+            && String(a.updatedAtLocal || '') === String(b.updatedAtLocal || '')
+        ));
+}
+
+function crearEntradaFusionada(clave, valor, updatedAtLocal = obtenerMarcaTiempoPersistencia()) {
+    if (valor === null || typeof valor === 'undefined') {
+        return { key: clave, value: null, deleted: true, updatedAtLocal };
+    }
+
+    return {
+        key: clave,
+        value: normalizarValorPersistencia(valor),
+        deleted: false,
+        updatedAtLocal
+    };
+}
+
+function maxFechaPersistencia(...fechas) {
+    return fechas.reduce((max, fecha) => (
+        compararFechasPersistencia(fecha, max) > 0 ? fecha : max
+    ), '1970-01-01T00:00:00.000Z');
+}
+
+function minFechaPersistencia(...fechas) {
+    const validas = fechas.filter(fecha => Date.parse(fecha || ''));
+    if (validas.length === 0) return obtenerMarcaTiempoPersistencia();
+    return validas.reduce((min, fecha) => (
+        compararFechasPersistencia(fecha, min) < 0 ? fecha : min
+    ), validas[0]);
+}
+
+function fusionarArraysUnicosPersistencia(valorLocal, valorNube) {
+    const local = parsearJSONPersistencia(valorLocal || '[]', []);
+    const nube = parsearJSONPersistencia(valorNube || '[]', []);
+    return Array.from(new Set([
+        ...(Array.isArray(local) ? local : []),
+        ...(Array.isArray(nube) ? nube : [])
+    ].map(item => String(item || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'));
+}
+
+function normalizarNotaFusionLumina(nota) {
+    if (!nota) return null;
+
+    if (typeof nota === 'string') {
+        const texto = nota.trim();
+        return texto ? { texto, fecha: '' } : null;
+    }
+
+    if (typeof nota !== 'object') return null;
+
+    const texto = String(nota.texto || '').trim();
+    if (!texto) return null;
+
+    return {
+        ...nota,
+        texto,
+        fecha: String(nota.fecha || '').trim()
+    };
+}
+
+function fusionarNotasPersistencia(valorLocal, valorNube) {
+    const local = parsearJSONPersistencia(valorLocal || '{}', {});
+    const nube = parsearJSONPersistencia(valorNube || '{}', {});
+    const salida = {};
+    const claves = new Set([...Object.keys(local || {}), ...Object.keys(nube || {})]);
+
+    claves.forEach(clave => {
+        const notas = [
+            ...(Array.isArray(local?.[clave]) ? local[clave] : []),
+            ...(Array.isArray(nube?.[clave]) ? nube[clave] : [])
+        ].map(normalizarNotaFusionLumina).filter(Boolean);
+
+        const vistas = new Set();
+        const fusionadas = [];
+
+        notas.forEach(nota => {
+            const id = `${nota.texto}__${nota.fecha}`;
+            if (vistas.has(id)) return;
+            vistas.add(id);
+            fusionadas.push(nota);
+        });
+
+        if (fusionadas.length > 0) {
+            salida[clave] = fusionadas;
+        }
+    });
+
+    return salida;
+}
+
+function fusionarBusquedasPersistencia(valorLocal, valorNube) {
+    const local = parsearJSONPersistencia(valorLocal || '[]', []);
+    const nube = parsearJSONPersistencia(valorNube || '[]', []);
+    const mapa = new Map();
+
+    [...(Array.isArray(local) ? local : []), ...(Array.isArray(nube) ? nube : [])]
+        .map(normalizarBusquedaReciente)
+        .filter(Boolean)
+        .forEach(item => {
+            const clave = `${item.termino}__${normalizarFiltroLibroBusqueda(item.filtro)}`;
+            const existente = mapa.get(clave);
+            if (!existente || compararFechasPersistencia(item.updatedAt, existente.updatedAt) > 0) {
+                mapa.set(clave, item);
+            }
+        });
+
+    return ordenarBusquedasRecientes([...mapa.values()]).slice(0, LIMITE_BUSQUEDAS_RECIENTES);
+}
+
+function fusionarLectioPersistencia(valorLocal, valorNube) {
+    const local = parsearJSONPersistencia(valorLocal || '[]', []);
+    const nube = parsearJSONPersistencia(valorNube || '[]', []);
+    const mapa = new Map();
+
+    [...(Array.isArray(local) ? local : []), ...(Array.isArray(nube) ? nube : [])]
+        .map(normalizarRegistroLectioDivina)
+        .filter(Boolean)
+        .forEach(registro => {
+            const existente = mapa.get(registro.id);
+            if (!existente || compararFechasPersistencia(registro.updatedAt, existente.updatedAt) >= 0) {
+                mapa.set(registro.id, registro);
+            }
+        });
+
+    return [...mapa.values()].sort((a, b) => compararFechasPersistencia(b.updatedAt, a.updatedAt));
+}
+
+function fusionarColeccionPersistenciaExistente(actual, entrante) {
+    const actualizada = compararFechasPersistencia(entrante.updatedAt, actual.updatedAt) >= 0
+        ? { ...actual, nombre: entrante.nombre, modoOrden: entrante.modoOrden, updatedAt: entrante.updatedAt }
+        : { ...actual };
+    const mapaVersiculos = new Map();
+
+    [...actual.versiculos, ...entrante.versiculos].forEach(entrada => {
+        const clave = obtenerClaveVersiculoColeccion(entrada.libro, entrada.capitulo, entrada.versiculo);
+        const existente = mapaVersiculos.get(clave);
+        if (!existente || compararFechasPersistencia(entrada.agregadoEn, existente.agregadoEn) < 0) {
+            mapaVersiculos.set(clave, entrada);
+        }
+    });
+
+    const versiculos = [...mapaVersiculos.values()];
+    actualizada.versiculos = coleccionUsaOrdenManual(actualizada)
+        ? versiculos
+        : ordenarVersiculosColeccionSegunBiblia(versiculos);
+    actualizada.createdAt = minFechaPersistencia(actual.createdAt, entrante.createdAt);
+    actualizada.updatedAt = maxFechaPersistencia(actual.updatedAt, entrante.updatedAt);
+    return actualizada;
+}
+
+function fusionarColeccionesPersistencia(valorLocal, valorNube) {
+    const local = parsearJSONPersistencia(valorLocal || '[]', []);
+    const nube = parsearJSONPersistencia(valorNube || '[]', []);
+    const porId = new Map();
+    const idPorNombre = new Map();
+
+    [...(Array.isArray(local) ? local : []), ...(Array.isArray(nube) ? nube : [])]
+        .map(normalizarColeccionVersiculos)
+        .filter(Boolean)
+        .forEach(coleccion => {
+            const nombreClave = normalizarNombreColeccionVersiculos(coleccion.nombre).toLocaleLowerCase('es');
+            const idExistente = porId.has(coleccion.id) ? coleccion.id : idPorNombre.get(nombreClave);
+
+            if (idExistente && porId.has(idExistente)) {
+                const fusionada = fusionarColeccionPersistenciaExistente(porId.get(idExistente), coleccion);
+                porId.set(idExistente, fusionada);
+                idPorNombre.set(normalizarNombreColeccionVersiculos(fusionada.nombre).toLocaleLowerCase('es'), idExistente);
+            } else {
+                porId.set(coleccion.id, coleccion);
+                idPorNombre.set(nombreClave, coleccion.id);
+            }
+        });
+
+    return [...porId.values()].sort((a, b) => compararFechasPersistencia(b.updatedAt, a.updatedAt) || a.nombre.localeCompare(b.nombre, 'es'));
+}
+
+function fusionarValorPersistenciaLumina(clave, valorLocal, valorNube) {
+    switch (clave) {
+        case CLAVE_LEIDOS:
+        case CLAVE_FAVORITOS:
+            return serializarPersistenciaFusionada(fusionarArraysUnicosPersistencia(valorLocal, valorNube));
+        case CLAVE_NOTAS:
+            return serializarPersistenciaFusionada(fusionarNotasPersistencia(valorLocal, valorNube));
+        case CLAVE_COLECCIONES_VERSICULOS:
+            return serializarPersistenciaFusionada(fusionarColeccionesPersistencia(valorLocal, valorNube));
+        case CLAVE_LECTIO_DIVINA:
+            return serializarPersistenciaFusionada(fusionarLectioPersistencia(valorLocal, valorNube));
+        case CLAVE_BUSQUEDAS_RECIENTES:
+            return serializarPersistenciaFusionada(fusionarBusquedasPersistencia(valorLocal, valorNube));
+        case CLAVE_EVENTO_BIBLIA_COMPLETA:
+            return String(valorLocal === 'true' || valorNube === 'true');
+        case CLAVE_CONTADOR_CELEBRACION_BIBLIA:
+            return String(Math.max(parseInt(valorLocal || '0', 10) || 0, parseInt(valorNube || '0', 10) || 0));
+        default:
+            return null;
+    }
+}
+
+function clavePersistenciaUsaFusion(clave) {
+    return [
+        CLAVE_LEIDOS,
+        CLAVE_FAVORITOS,
+        CLAVE_NOTAS,
+        CLAVE_COLECCIONES_VERSICULOS,
+        CLAVE_LECTIO_DIVINA,
+        CLAVE_BUSQUEDAS_RECIENTES,
+        CLAVE_EVENTO_BIBLIA_COMPLETA,
+        CLAVE_CONTADOR_CELEBRACION_BIBLIA
+    ].includes(clave);
+}
+
+function fusionarEntradasPersistenciaLumina(local, nube) {
+    if (!local || !nube) return local || nube || null;
+
+    if (clavePersistenciaUsaFusion(local.key)) {
+        if (local.deleted && nube.deleted) {
+            return crearEntradaFusionada(local.key, null, maxFechaPersistencia(local.updatedAtLocal, nube.updatedAtLocal));
+        }
+
+        if (local.deleted) {
+            return { ...nube };
+        }
+
+        if (nube.deleted) {
+            return { ...local };
+        }
+
+        const valorFusionado = fusionarValorPersistenciaLumina(local.key, local.value, nube.value);
+        if (valorFusionado !== null) {
+            const cambio = valorFusionado !== String(local.value ?? '') || valorFusionado !== String(nube.value ?? '');
+            return crearEntradaFusionada(
+                local.key,
+                valorFusionado,
+                cambio ? obtenerMarcaTiempoPersistencia() : maxFechaPersistencia(local.updatedAtLocal, nube.updatedAtLocal)
+            );
+        }
+    }
+
+    return compararFechasPersistencia(nube.updatedAtLocal, local.updatedAtLocal) >= 0 ? { ...nube } : { ...local };
 }
 
 async function guardarEntradaPersistenciaDesdeNube(entrada) {
@@ -10265,31 +10535,21 @@ async function sincronizarLuminaConNube({ manual = false } = {}) {
         const clavesVisitadas = new Set();
 
         for (const entradaNube of entradasNube.values()) {
-            const existeLocal = persistenciaLuminaCache.has(entradaNube.key);
-            const localUpdatedAt = obtenerUpdatedAtPersistencia(entradaNube.key);
-            const nubeMasNueva = compararFechasPersistencia(entradaNube.updatedAtLocal, localUpdatedAt) >= 0;
+            const entradaLocal = obtenerEntradaLocalNubeLumina(entradaNube.key);
+            const entradaFusionada = fusionarEntradasPersistenciaLumina(entradaLocal, entradaNube);
             clavesVisitadas.add(entradaNube.key);
 
-            if (!existeLocal && !nubeMasNueva) {
-                subidas.push({
-                    key: entradaNube.key,
-                    value: null,
-                    deleted: true,
-                    updatedAtLocal: localUpdatedAt,
-                    deviceId: dispositivoNubeLuminaId
-                });
-            } else if (!existeLocal || nubeMasNueva) {
-                if (entradaNube.deleted) {
-                    await eliminarEntradaPersistenciaDesdeNube(entradaNube);
+            if (!entradasNubeEquivalentes(entradaFusionada, entradaLocal)) {
+                if (entradaFusionada.deleted) {
+                    await eliminarEntradaPersistenciaDesdeNube(entradaFusionada);
                 } else {
-                    await guardarEntradaPersistenciaDesdeNube(entradaNube);
+                    await guardarEntradaPersistenciaDesdeNube(entradaFusionada);
                 }
-            } else if (existeLocal) {
+            }
+
+            if (!entradasNubeEquivalentes(entradaFusionada, entradaNube)) {
                 subidas.push({
-                    key: entradaNube.key,
-                    value: persistenciaLuminaCache.get(entradaNube.key),
-                    deleted: false,
-                    updatedAtLocal: localUpdatedAt,
+                    ...entradaFusionada,
                     deviceId: dispositivoNubeLuminaId
                 });
             }
