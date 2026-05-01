@@ -1,4 +1,4 @@
-const VERSION_CACHE = '4.295.033';
+const VERSION_CACHE = '4.295.035';
 const CACHE_SHELL = `lumina-shell-${VERSION_CACHE}`;
 const CACHE_RUNTIME = `lumina-runtime-${VERSION_CACHE}`;
 const APP_SHELL = './index.html';
@@ -8,10 +8,12 @@ const archivosShell = [
   './index.html',
   './style.css',
   './script.js',
-  './favicon.ico',
-  './apple-touch-icon.png',
-  './android-chrome-192x192.png',
-  './android-chrome-512x512.png',
+  './Favicon/favicon.ico',
+  './Favicon/favicon-32x32.png',
+  './Favicon/favicon-16x16.png',
+  './Favicon/apple-icon-180x180.png',
+  './Favicon/android-icon-192x192.png',
+  './Favicon/ms-icon-310x310.png',
   './manifest.json'
 ];
 
