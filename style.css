@@ -7153,6 +7153,12 @@ body.dark #panel-busqueda .panel-busqueda-tirador:hover {
 }
 
 @media (max-width: 640px) {
+    #btn-nube-lumina {
+        display: none !important;
+    }
+}
+
+@media (max-width: 640px) {
     #panel-busqueda.panel-busqueda-asomado {
         transform: translateX(calc(100% - 28px)) !important;
     }

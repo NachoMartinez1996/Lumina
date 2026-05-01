@@ -1,11 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import {
   getAuth,
-  getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithPopup,
-  signInWithRedirect,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import {
@@ -61,33 +59,8 @@ const persistenceReady = Promise.resolve(estadoFirebaseLumina);
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
 
-function usarRedirectParaGoogle() {
-  const standalone = window.matchMedia?.("(display-mode: standalone)")?.matches;
-  const mobile = window.matchMedia?.("(max-width: 768px)")?.matches;
-  return Boolean(standalone || mobile);
-}
-
 async function signInWithGoogle() {
-  if (usarRedirectParaGoogle()) {
-    await signInWithRedirect(auth, googleProvider);
-    return null;
-  }
-
-  try {
-    return await signInWithPopup(auth, googleProvider);
-  } catch (error) {
-    const fallbackRedirect = [
-      "auth/popup-blocked",
-      "auth/popup-closed-by-user",
-      "auth/cancelled-popup-request",
-      "auth/operation-not-supported-in-this-environment"
-    ].includes(error?.code);
-
-    if (!fallbackRedirect) throw error;
-
-    await signInWithRedirect(auth, googleProvider);
-    return null;
-  }
+  return signInWithPopup(auth, googleProvider);
 }
 
 function observeAuth(callback) {
@@ -135,11 +108,6 @@ async function guardarEntradasLumina(uid, entradas) {
 
   await batch.commit();
 }
-
-getRedirectResult(auth).catch(error => {
-  console.warn("No se pudo completar el inicio de sesión por redirección:", error);
-  window.dispatchEvent(new CustomEvent("lumina:firebase-auth-error", { detail: error }));
-});
 
 const luminaFirebase = {
   app,
