@@ -138,6 +138,7 @@ async function guardarEntradasLumina(uid, entradas) {
 
 getRedirectResult(auth).catch(error => {
   console.warn("No se pudo completar el inicio de sesión por redirección:", error);
+  window.dispatchEvent(new CustomEvent("lumina:firebase-auth-error", { detail: error }));
 });
 
 const luminaFirebase = {

@@ -10054,6 +10054,35 @@ function actualizarUINubeLumina() {
     }
 }
 
+function obtenerMensajeErrorAuthLumina(error) {
+    const codigo = error?.code || 'auth/error-desconocido';
+    const dominio = window.location.hostname;
+
+    switch (codigo) {
+        case 'auth/unauthorized-domain':
+            return `Firebase no autorizó este dominio (${dominio}). Agregá "${dominio}" en Authentication > Settings > Authorized domains.`;
+        case 'auth/operation-not-allowed':
+            return 'Google todavía no está habilitado como proveedor de acceso en Firebase Authentication.';
+        case 'auth/popup-blocked':
+            return 'El navegador bloqueó la ventana de Google. Permití popups para Lumina o probá desde el botón otra vez.';
+        case 'auth/popup-closed-by-user':
+            return 'Se cerró la ventana de Google antes de completar el acceso.';
+        case 'auth/network-request-failed':
+            return 'No hubo conexión suficiente para completar el acceso con Google.';
+        case 'auth/invalid-api-key':
+            return 'Firebase rechazó la API key configurada.';
+        default:
+            return `No se pudo iniciar sesión con Google (${codigo}).`;
+    }
+}
+
+function manejarErrorAuthLumina(error) {
+    const mensaje = obtenerMensajeErrorAuthLumina(error);
+    console.error('Error de autenticación Firebase:', error);
+    actualizarEstadoNubeLumina(mensaje);
+    lanzarToast(mensaje);
+}
+
 async function iniciarSesionGoogleLumina() {
     if (!firebaseLumina?.signInWithGoogle) {
         lanzarToast('Firebase todavía no está listo');
@@ -10065,11 +10094,15 @@ async function iniciarSesionGoogleLumina() {
     try {
         await firebaseLumina.signInWithGoogle();
     } catch (error) {
-        console.error('No se pudo iniciar sesión con Google:', error);
-        actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.sinSesion);
-        lanzarToast('No se pudo iniciar sesión con Google');
+        manejarErrorAuthLumina(error);
     }
 }
+
+window.addEventListener('lumina:firebase-auth-error', event => {
+    if (event.detail) {
+        manejarErrorAuthLumina(event.detail);
+    }
+});
 
 async function cerrarSesionGoogleLumina() {
     if (!firebaseLumina?.signOutGoogle) return;
@@ -10079,6 +10112,7 @@ async function cerrarSesionGoogleLumina() {
         lanzarToast('Sesión de Google cerrada');
     } catch (error) {
         console.error('No se pudo cerrar sesión:', error);
+        actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.sinSesion);
         lanzarToast('No se pudo cerrar la sesión');
     }
 }
