@@ -1,11 +1,14 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
 import {
+  browserLocalPersistence,
+  browserSessionPersistence,
   getAuth,
   GoogleAuthProvider,
   onAuthStateChanged,
+  setPersistence,
   signInWithPopup,
   signOut
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
 import {
   collection,
   doc,
@@ -16,7 +19,7 @@ import {
   persistentMultipleTabManager,
   serverTimestamp,
   writeBatch
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAzXdQEcOETByOPlZP_CVJdjqebzWohwAM",
@@ -31,6 +34,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 auth.useDeviceLanguage();
+
+const authReady = setPersistence(auth, browserLocalPersistence)
+  .catch(error => {
+    console.warn("No se pudo usar persistencia local para Auth; probamos con persistencia de sesión:", error);
+    return setPersistence(auth, browserSessionPersistence);
+  })
+  .catch(error => {
+    console.warn("No se pudo configurar persistencia explícita de Auth; seguimos con la configuración del navegador:", error);
+    return null;
+  });
 
 const estadoFirebaseLumina = {
   offlinePersistence: "enabled",
@@ -60,6 +73,7 @@ const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
 
 async function signInWithGoogle() {
+  await authReady;
   return signInWithPopup(auth, googleProvider);
 }
 
@@ -113,6 +127,7 @@ const luminaFirebase = {
   app,
   auth,
   db,
+  authReady,
   cargarEntradasLumina,
   guardarEntradasLumina,
   persistenceReady,

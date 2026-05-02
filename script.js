@@ -9979,7 +9979,10 @@ function registrarFirebaseLumina(firebase = window.LuminaFirebase) {
 
     firebaseLuminaInicializado = true;
 
-    return Promise.resolve(firebase.persistenceReady)
+    return Promise.all([
+        Promise.resolve(firebase.persistenceReady),
+        Promise.resolve(firebase.authReady)
+    ])
         .then(() => {
             const estado = typeof firebase.getEstado === 'function' ? firebase.getEstado() : {};
             const detalleOffline = estado.offlinePersistence === 'enabled'
@@ -10097,6 +10100,15 @@ function obtenerMensajeErrorAuthLumina(error) {
             return 'El navegador bloqueó la ventana de Google. Permití popups para Lumina o probá desde el botón otra vez.';
         case 'auth/popup-closed-by-user':
             return 'Se cerró la ventana de Google antes de completar el acceso.';
+        case 'auth/cancelled-popup-request':
+            return 'Se inició más de un acceso a Google a la vez. Esperá unos segundos y tocá Entrar con Google una sola vez.';
+        case 'auth/missing-initial-state':
+            return 'El navegador perdió el estado inicial del acceso con Google. Actualizá Lumina y volvé a intentar desde el navegador, no desde una vista interna de otra app.';
+        case 'auth/web-storage-unsupported':
+            return 'El navegador no permite guardar la sesión de Google. Activá almacenamiento/cookies para Lumina o probá con otro navegador.';
+        case 'auth/unauthorized-continue-uri':
+        case 'auth/invalid-continue-uri':
+            return `Firebase rechazó la URL de retorno (${window.location.origin}). Revisá los dominios autorizados y las URIs de OAuth.`;
         case 'auth/network-request-failed':
             return 'No hubo conexión suficiente para completar el acceso con Google.';
         case 'auth/invalid-api-key':
@@ -10111,6 +10123,25 @@ function manejarErrorAuthLumina(error) {
     console.error('Error de autenticación Firebase:', error);
     actualizarEstadoNubeLumina(mensaje);
     lanzarToast(mensaje);
+}
+
+function obtenerMensajeErrorNubeLumina(error) {
+    const codigo = error?.code || '';
+
+    switch (codigo) {
+        case 'permission-denied':
+            return 'Google inició sesión, pero Firestore no permitió leer o guardar datos. Revisá las reglas de seguridad de Firestore.';
+        case 'unavailable':
+            return 'Google inició sesión, pero Firestore no está disponible ahora. Lumina reintentará cuando haya conexión.';
+        case 'resource-exhausted':
+            return 'Google inició sesión, pero Firebase rechazó la sincronización por límite de uso.';
+        case 'unauthenticated':
+            return 'Firebase perdió la sesión antes de sincronizar. Cerrá y volvé a entrar con Google.';
+        default:
+            return navigator.onLine
+                ? ESTADO_NUBE_LUMINA.error
+                : ESTADO_NUBE_LUMINA.pendiente;
+    }
 }
 
 async function iniciarSesionGoogleLumina() {
@@ -10540,7 +10571,7 @@ async function subirCambiosPendientesNubeLumina() {
     } catch (error) {
         console.error('No se pudieron subir cambios a la nube:', error);
         entradas.forEach(entrada => cambiosPendientesNubeLumina.set(entrada.key, entrada));
-        actualizarEstadoNubeLumina(navigator.onLine ? ESTADO_NUBE_LUMINA.error : ESTADO_NUBE_LUMINA.pendiente);
+        actualizarEstadoNubeLumina(obtenerMensajeErrorNubeLumina(error));
         programarSubidaNubeLumina(8000);
     }
 }
@@ -10601,8 +10632,9 @@ async function sincronizarLuminaConNube({ manual = false } = {}) {
         if (manual) lanzarToast('Lumina sincronizada con la nube');
     } catch (error) {
         console.error('No se pudo sincronizar Lumina con la nube:', error);
-        actualizarEstadoNubeLumina(navigator.onLine ? ESTADO_NUBE_LUMINA.error : ESTADO_NUBE_LUMINA.pendiente);
-        if (manual) lanzarToast('No se pudo sincronizar con la nube');
+        const mensaje = obtenerMensajeErrorNubeLumina(error);
+        actualizarEstadoNubeLumina(mensaje);
+        if (manual) lanzarToast(mensaje);
     } finally {
         aplicandoDatosNubeLumina = false;
         sincronizacionNubeLuminaEnCurso = false;
