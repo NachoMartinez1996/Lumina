@@ -1464,6 +1464,7 @@ let sincronizacionNubeLuminaEnCurso = false;
 let aplicandoDatosNubeLumina = false;
 let temporizadorSincronizacionNubeLumina = null;
 let ultimoEstadoNubeLumina = ESTADO_NUBE_LUMINA.sinSesion;
+const TIMEOUT_OPERACION_NUBE_LUMINA = 12000;
 const cambiosPendientesNubeLumina = new Map();
 const dispositivoNubeLuminaId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
     ? crypto.randomUUID()
@@ -10050,7 +10051,7 @@ function actualizarUINubeLumina() {
     const btnLogout = document.getElementById('btn-logout-google-lumina');
     const btnHeader = document.getElementById('btn-nube-lumina');
     const conectado = Boolean(usuarioFirebaseLumina);
-    const ocupado = sincronizacionNubeLuminaEnCurso || ultimoEstadoNubeLumina === ESTADO_NUBE_LUMINA.conectando;
+    const iniciandoSesion = !conectado && ultimoEstadoNubeLumina === ESTADO_NUBE_LUMINA.conectando;
 
     if (status) status.textContent = ultimoEstadoNubeLumina || (conectado ? ESTADO_NUBE_LUMINA.sincronizado : ESTADO_NUBE_LUMINA.sinSesion);
 
@@ -10067,17 +10068,17 @@ function actualizarUINubeLumina() {
 
     if (btnLogin) {
         btnLogin.classList.toggle('hidden', conectado);
-        btnLogin.disabled = ocupado;
+        btnLogin.disabled = iniciandoSesion;
     }
 
     if (btnSync) {
         btnSync.classList.toggle('hidden', !conectado);
-        btnSync.disabled = ocupado;
+        btnSync.disabled = sincronizacionNubeLuminaEnCurso;
     }
 
     if (btnLogout) {
         btnLogout.classList.toggle('hidden', !conectado);
-        btnLogout.disabled = ocupado;
+        btnLogout.disabled = false;
     }
 
     if (btnHeader) {
@@ -10129,6 +10130,8 @@ function obtenerMensajeErrorNubeLumina(error) {
     const codigo = error?.code || '';
 
     switch (codigo) {
+        case 'lumina/sync-timeout':
+            return 'Google inició sesión, pero la nube tardó demasiado en responder. Tus datos locales siguen guardados; podés reintentar o salir.';
         case 'permission-denied':
             return 'Google inició sesión, pero Firestore no permitió leer o guardar datos. Revisá las reglas de seguridad de Firestore.';
         case 'unavailable':
@@ -10142,6 +10145,23 @@ function obtenerMensajeErrorNubeLumina(error) {
                 ? ESTADO_NUBE_LUMINA.error
                 : ESTADO_NUBE_LUMINA.pendiente;
     }
+}
+
+function esperarOperacionNubeLumina(operacion, mensaje = 'La operación de nube tardó demasiado') {
+    let timeoutId = null;
+
+    const timeout = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+            const error = new Error(mensaje);
+            error.code = 'lumina/sync-timeout';
+            reject(error);
+        }, TIMEOUT_OPERACION_NUBE_LUMINA);
+    });
+
+    return Promise.race([
+        Promise.resolve(operacion).finally(() => clearTimeout(timeoutId)),
+        timeout
+    ]);
 }
 
 async function iniciarSesionGoogleLumina() {
@@ -10169,6 +10189,10 @@ async function cerrarSesionGoogleLumina() {
     if (!firebaseLumina?.signOutGoogle) return;
 
     try {
+        sincronizacionNubeLuminaEnCurso = false;
+        aplicandoDatosNubeLumina = false;
+        clearTimeout(temporizadorSincronizacionNubeLumina);
+        actualizarUINubeLumina();
         await firebaseLumina.signOutGoogle();
         lanzarToast('Sesión de Google cerrada');
     } catch (error) {
@@ -10560,11 +10584,16 @@ function programarSubidaNubeLumina(delay = 1200) {
 async function subirCambiosPendientesNubeLumina() {
     if (!usuarioFirebaseLumina || !firebaseLumina?.guardarEntradasLumina || cambiosPendientesNubeLumina.size === 0) return;
 
+    const uidSubida = usuarioFirebaseLumina.uid;
     const entradas = [...cambiosPendientesNubeLumina.values()];
     cambiosPendientesNubeLumina.clear();
 
     try {
-        await firebaseLumina.guardarEntradasLumina(usuarioFirebaseLumina.uid, entradas);
+        await esperarOperacionNubeLumina(
+            firebaseLumina.guardarEntradasLumina(uidSubida, entradas),
+            'La subida de cambios a la nube tardó demasiado'
+        );
+        if (usuarioFirebaseLumina?.uid !== uidSubida) return;
         if (!sincronizacionNubeLuminaEnCurso) {
             actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.sincronizado);
         }
@@ -10586,7 +10615,12 @@ async function sincronizarLuminaConNube({ manual = false } = {}) {
     actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.sincronizando);
 
     try {
-        const entradasNubeRaw = await firebaseLumina.cargarEntradasLumina(usuarioFirebaseLumina.uid);
+        const uidSincronizacion = usuarioFirebaseLumina.uid;
+        const entradasNubeRaw = await esperarOperacionNubeLumina(
+            firebaseLumina.cargarEntradasLumina(uidSincronizacion),
+            'La lectura de la nube tardó demasiado'
+        );
+        if (usuarioFirebaseLumina?.uid !== uidSincronizacion) return;
         const entradasNube = new Map();
         entradasNubeRaw.map(normalizarEntradaNubeLumina).filter(Boolean).forEach(entrada => {
             entradasNube.set(entrada.key, entrada);
@@ -10622,7 +10656,11 @@ async function sincronizarLuminaConNube({ manual = false } = {}) {
         });
 
         if (subidas.length > 0) {
-            await firebaseLumina.guardarEntradasLumina(usuarioFirebaseLumina.uid, subidas);
+            await esperarOperacionNubeLumina(
+                firebaseLumina.guardarEntradasLumina(uidSincronizacion, subidas),
+                'La escritura en la nube tardó demasiado'
+            );
+            if (usuarioFirebaseLumina?.uid !== uidSincronizacion) return;
         }
 
         aplicandoDatosNubeLumina = false;
