@@ -1468,6 +1468,11 @@ const TIMEOUT_OPERACION_NUBE_LUMINA = 30000;
 const TIMEOUT_LECTURA_NUBE_LUMINA = 25000;
 const TIMEOUT_ESCRITURA_NUBE_LUMINA = 60000;
 const RUTA_FIRESTORE_NUBE_LUMINA = 'users/{uid}/lumina_estado/{clave}';
+const PARAMETRO_COMPARTIR_LUMINA = 'compartir';
+const TIPOS_COMPARTIDOS_LUMINA = {
+    coleccion: 'coleccion',
+    lectio: 'lectio'
+};
 const cambiosPendientesNubeLumina = new Map();
 const dispositivoNubeLuminaId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
     ? crypto.randomUUID()
@@ -3332,6 +3337,15 @@ function renderizarDetalleColeccion(coleccion, contenedor) {
             'Compartir texto',
             'Copiá la colección en formato simple.',
             () => compartirColeccionComoTexto(coleccion.id)
+        )
+    );
+
+    acciones.appendChild(
+        crearBotonAccionColeccion(
+            'fa-link',
+            'Compartir enlace',
+            'Creá un enlace importable en Lumina.',
+            () => compartirColeccionComoEnlace(coleccion.id)
         )
     );
 
@@ -5611,6 +5625,304 @@ function compartirColeccionComoTexto(coleccionId) {
         .join('\n\n');
     const contenido = `${encabezado}\n\n${cuerpo}\n\n- Compartido desde Lumina`;
     compartirTexto(contenido, `Colección: ${coleccion.nombre}`);
+}
+
+function obtenerUrlCompartirLuminaActual(idCompartido) {
+    const url = new URL(window.location.href);
+    url.hash = '';
+    url.search = '';
+    url.searchParams.set(PARAMETRO_COMPARTIR_LUMINA, idCompartido);
+    return url.toString();
+}
+
+async function compartirEnlaceImportableLumina(url, titulo, texto) {
+    if (navigator.share) {
+        try {
+            await navigator.share({ title: titulo, text: texto, url });
+            return;
+        } catch (error) {
+            if (error?.name === 'AbortError') return;
+            console.warn('No se pudo abrir el panel nativo para compartir el enlace:', error);
+        }
+    }
+
+    try {
+        await navigator.clipboard.writeText(`${texto}\n${url}`);
+        lanzarToast('Enlace copiado al portapapeles');
+    } catch (error) {
+        console.error('No se pudo copiar el enlace compartido:', error);
+        alert(url);
+    }
+}
+
+function crearPaqueteColeccionCompartidaLumina(coleccion) {
+    const normalizada = normalizarColeccionVersiculos(coleccion);
+    if (!normalizada) return null;
+
+    return {
+        tipo: TIPOS_COMPARTIDOS_LUMINA.coleccion,
+        titulo: normalizada.nombre,
+        payload: {
+            coleccion: normalizada,
+            sharedAt: new Date().toISOString()
+        }
+    };
+}
+
+function obtenerDatosLectioActualParaCompartir() {
+    const lectio = obtenerDatosLectioActualParaPDF();
+    if (!lectio) return null;
+
+    const ahora = new Date().toISOString();
+    const registro = lectioRegistroActivoId ? obtenerLectioDivinaPorId(lectioRegistroActivoId) : null;
+
+    return {
+        id: registro?.id || generarIdLectioDivina(),
+        libro: lectio.libro,
+        capitulo: lectio.capitulo,
+        desde: lectio.desde,
+        hasta: lectio.hasta,
+        leer: lectio.leer,
+        meditar: lectio.meditar,
+        orar: lectio.orar,
+        createdAt: registro?.createdAt || ahora,
+        updatedAt: ahora
+    };
+}
+
+function crearPaqueteLectioCompartidaLumina() {
+    const lectio = obtenerDatosLectioActualParaCompartir();
+    if (!lectio) return null;
+
+    return {
+        tipo: TIPOS_COMPARTIDOS_LUMINA.lectio,
+        titulo: formatearReferenciaLectio(lectio.libro, lectio.capitulo, lectio.desde, lectio.hasta),
+        payload: {
+            lectio,
+            sharedAt: new Date().toISOString()
+        }
+    };
+}
+
+async function crearEnlaceCompartidoLumina(paquete) {
+    const usuario = await asegurarSesionNubeParaCompartirLumina();
+    if (!usuario) return null;
+
+    const firebase = firebaseLumina || window.LuminaFirebase;
+    if (!firebase?.crearCompartidoLumina) {
+        lanzarToast('Actualizá Lumina para crear enlaces compartidos');
+        return null;
+    }
+
+    const resultado = await firebase.crearCompartidoLumina(usuario.uid, paquete);
+    return obtenerUrlCompartirLuminaActual(resultado.id);
+}
+
+async function compartirColeccionComoEnlace(coleccionId) {
+    const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
+    if (!coleccion) {
+        lanzarToast('No encontramos esa colección');
+        return;
+    }
+
+    if (coleccion.versiculos.length === 0) {
+        lanzarToast('La colección está vacía');
+        return;
+    }
+
+    try {
+        lanzarToast('Creando enlace compartido...');
+        const paquete = crearPaqueteColeccionCompartidaLumina(coleccion);
+        const url = await crearEnlaceCompartidoLumina(paquete);
+        if (!url) return;
+
+        await compartirEnlaceImportableLumina(
+            url,
+            `Colección: ${coleccion.nombre}`,
+            `Te comparto la colección "${coleccion.nombre}" desde Lumina.`
+        );
+    } catch (error) {
+        console.error('No se pudo crear el enlace de la colección:', error);
+        lanzarToast(obtenerMensajeErrorCompartidoLumina(error));
+    }
+}
+
+async function compartirLectioActualComoEnlace() {
+    if (!renderizarPasajeLectioSeleccionado()) {
+        lanzarToast('Elegí primero un pasaje válido para la Lectio');
+        return;
+    }
+
+    try {
+        lanzarToast('Creando enlace compartido...');
+        const paquete = crearPaqueteLectioCompartidaLumina();
+        if (!paquete) {
+            lanzarToast('No se pudo preparar la Lectio para compartir');
+            return;
+        }
+
+        const url = await crearEnlaceCompartidoLumina(paquete);
+        if (!url) return;
+
+        await compartirEnlaceImportableLumina(
+            url,
+            `Lectio: ${paquete.titulo}`,
+            `Te comparto una Lectio Divina de ${paquete.titulo} desde Lumina.`
+        );
+    } catch (error) {
+        console.error('No se pudo crear el enlace de la Lectio:', error);
+        lanzarToast(obtenerMensajeErrorCompartidoLumina(error));
+    }
+}
+
+function obtenerNombreColeccionImportadaLumina(nombreOriginal) {
+    const base = normalizarNombreColeccionVersiculos(nombreOriginal) || 'Colección compartida';
+    const nombresUsados = new Set(
+        coleccionesVersiculos.map(coleccion => normalizarNombreColeccionVersiculos(coleccion.nombre).toLocaleLowerCase('es'))
+    );
+
+    if (!nombresUsados.has(base.toLocaleLowerCase('es'))) {
+        return base;
+    }
+
+    let indice = 2;
+    let candidato = `${base} compartida`;
+    while (nombresUsados.has(candidato.toLocaleLowerCase('es'))) {
+        candidato = `${base} compartida ${indice}`;
+        indice++;
+    }
+
+    return candidato;
+}
+
+function importarColeccionCompartidaLumina(payload) {
+    const coleccion = normalizarColeccionVersiculos(payload?.coleccion || payload);
+    if (!coleccion) {
+        throw new Error('La colección compartida no tiene un formato válido.');
+    }
+
+    const ahora = new Date().toISOString();
+    const importada = {
+        ...coleccion,
+        id: generarIdColeccionVersiculos(),
+        nombre: obtenerNombreColeccionImportadaLumina(coleccion.nombre),
+        createdAt: ahora,
+        updatedAt: ahora
+    };
+
+    coleccionesVersiculos = [importada, ...coleccionesVersiculos];
+    ultimaColeccionVersiculosId = importada.id;
+    guardarColeccionesVersiculos();
+    mostrarPanelColecciones(importada.id);
+    return `Colección "${importada.nombre}" importada`;
+}
+
+function importarLectioCompartidaLumina(payload) {
+    const lectio = normalizarRegistroLectioDivina(payload?.lectio || payload);
+    if (!lectio) {
+        throw new Error('La Lectio compartida no tiene un formato válido.');
+    }
+
+    const ahora = new Date().toISOString();
+    const importada = {
+        ...lectio,
+        id: generarIdLectioDivina(),
+        createdAt: ahora,
+        updatedAt: ahora
+    };
+
+    lectioDivinaRegistros = [importada, ...lectioDivinaRegistros];
+    guardarLectioDivinaRegistros();
+    cargarLectioGuardada(importada.id);
+    return `Lectio de ${formatearReferenciaLectio(importada.libro, importada.capitulo, importada.desde, importada.hasta)} importada`;
+}
+
+function obtenerResumenCompartidoLumina(compartido) {
+    if (compartido?.tipo === TIPOS_COMPARTIDOS_LUMINA.coleccion) {
+        const coleccion = normalizarColeccionVersiculos(compartido.payload?.coleccion);
+        if (coleccion) {
+            return `la colección "${coleccion.nombre}" con ${coleccion.versiculos.length} versículo${coleccion.versiculos.length === 1 ? '' : 's'}`;
+        }
+    }
+
+    if (compartido?.tipo === TIPOS_COMPARTIDOS_LUMINA.lectio) {
+        const lectio = normalizarRegistroLectioDivina(compartido.payload?.lectio);
+        if (lectio) {
+            return `la Lectio de ${formatearReferenciaLectio(lectio.libro, lectio.capitulo, lectio.desde, lectio.hasta)}`;
+        }
+    }
+
+    return 'este contenido compartido';
+}
+
+function importarCompartidoLumina(compartido) {
+    switch (compartido?.tipo) {
+        case TIPOS_COMPARTIDOS_LUMINA.coleccion:
+            return importarColeccionCompartidaLumina(compartido.payload);
+        case TIPOS_COMPARTIDOS_LUMINA.lectio:
+            return importarLectioCompartidaLumina(compartido.payload);
+        default:
+            throw new Error('Lumina no reconoce este tipo de enlace compartido.');
+    }
+}
+
+function obtenerIdCompartidoLuminaDesdeUrl() {
+    const url = new URL(window.location.href);
+    const directo = url.searchParams.get(PARAMETRO_COMPARTIR_LUMINA) || url.searchParams.get('share');
+    if (directo) return String(directo).trim();
+
+    const pathMatch = url.pathname.match(/\/compartir\/([^/?#]+)/i);
+    if (pathMatch) return decodeURIComponent(pathMatch[1]).trim();
+
+    const hash = decodeURIComponent(url.hash || '');
+    const hashPathMatch = hash.match(/#?\/?compartir\/([^/?#&]+)/i);
+    if (hashPathMatch) return hashPathMatch[1].trim();
+
+    const hashParamMatch = hash.match(/[?&]compartir=([^&]+)/i);
+    if (hashParamMatch) return hashParamMatch[1].trim();
+
+    return '';
+}
+
+function limpiarEnlaceCompartidoLuminaDeUrl() {
+    if (!window.history?.replaceState) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete(PARAMETRO_COMPARTIR_LUMINA);
+    url.searchParams.delete('share');
+    url.hash = '';
+    url.pathname = url.pathname.replace(/\/compartir\/[^/?#]+\/?$/i, '/');
+    window.history.replaceState(null, document.title, url.toString());
+}
+
+async function procesarEnlaceCompartidoLumina() {
+    const idCompartido = obtenerIdCompartidoLuminaDesdeUrl();
+    if (!idCompartido) return;
+
+    const firebase = await esperarFirebaseLuminaDisponible();
+    if (!firebase?.cargarCompartidoLumina) {
+        lanzarToast('Firebase todavía no está listo para abrir este enlace');
+        return;
+    }
+
+    try {
+        lanzarToast('Abriendo enlace compartido...');
+        const compartido = await firebase.cargarCompartidoLumina(idCompartido);
+        const resumen = obtenerResumenCompartidoLumina(compartido);
+        const confirmar = window.confirm(`¿Importar ${resumen} a tu Lumina?`);
+
+        if (!confirmar) {
+            limpiarEnlaceCompartidoLuminaDeUrl();
+            return;
+        }
+
+        const mensaje = importarCompartidoLumina(compartido);
+        limpiarEnlaceCompartidoLuminaDeUrl();
+        lanzarToast(mensaje);
+    } catch (error) {
+        console.error('No se pudo abrir el enlace compartido:', error);
+        lanzarToast(obtenerMensajeErrorCompartidoLumina(error));
+    }
 }
 
 function generarLineasRetiroParaPDF(cantidad = 12) {
@@ -10233,6 +10545,74 @@ async function cerrarSesionGoogleLumina() {
     }
 }
 
+function esperarFirebaseLuminaDisponible(timeoutMs = 8000) {
+    if (firebaseLumina?.cargarCompartidoLumina || window.LuminaFirebase?.cargarCompartidoLumina) {
+        return Promise.resolve(firebaseLumina || window.LuminaFirebase);
+    }
+
+    return new Promise(resolve => {
+        let resuelto = false;
+        const finalizar = firebase => {
+            if (resuelto) return;
+            resuelto = true;
+            window.removeEventListener('lumina:firebase-ready', onReady);
+            clearTimeout(timeoutId);
+            resolve(firebase || firebaseLumina || window.LuminaFirebase || null);
+        };
+        const onReady = event => finalizar(event.detail);
+        const timeoutId = setTimeout(() => finalizar(null), timeoutMs);
+
+        window.addEventListener('lumina:firebase-ready', onReady, { once: true });
+    });
+}
+
+async function asegurarSesionNubeParaCompartirLumina() {
+    if (usuarioFirebaseLumina) return usuarioFirebaseLumina;
+
+    const firebase = await esperarFirebaseLuminaDisponible();
+    if (!firebase?.signInWithGoogle) {
+        lanzarToast('Firebase todavía no está listo para crear enlaces');
+        return null;
+    }
+
+    if (!firebaseLumina) {
+        firebaseLumina = firebase;
+    }
+
+    actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.conectando);
+
+    try {
+        const credencial = await firebase.signInWithGoogle();
+        usuarioFirebaseLumina = credencial?.user || usuarioFirebaseLumina;
+        actualizarUINubeLumina();
+        return usuarioFirebaseLumina;
+    } catch (error) {
+        manejarErrorAuthLumina(error);
+        return null;
+    }
+}
+
+function obtenerMensajeErrorCompartidoLumina(error) {
+    const codigo = error?.code || '';
+
+    switch (codigo) {
+        case 'permission-denied':
+            return 'Firestore no permitió crear o leer este enlace compartido. Revisá las reglas de lumina_compartidos; si era un enlace antiguo, puede haber vencido.';
+        case 'not-found':
+            return 'No encontramos ese enlace compartido.';
+        case 'unauthenticated':
+            return 'Entrá con Google para crear enlaces compartidos.';
+        case 'lumina/share-expired':
+            return 'Este enlace compartido ya venció.';
+        case 'lumina/share-invalid':
+            return 'El enlace compartido no tiene un formato válido.';
+        case 'lumina/share-chunk-missing':
+            return 'El enlace compartido todavía se está guardando. Probá abrirlo otra vez en unos segundos.';
+        default:
+            return error?.message || 'No se pudo completar el enlace compartido.';
+    }
+}
+
 function obtenerEntradasPersistenciaParaNube() {
     return [...persistenciaLuminaCache.entries()]
         .filter(([key]) => esClaveLuminaPersistible(key))
@@ -10980,6 +11360,7 @@ window.onload = async () => {
     aplicarTextoCorrido(leerPersistencia(CLAVE_TEXTO_CORRIDO) === 'true', { guardar: false });
     inicializarLectioDivina();
     actualizarBotonPdfLectioSegunDispositivo();
+    await procesarEnlaceCompartidoLumina();
 
     const toggle = document.getElementById('toggle-concordancia');
     const saved = leerPersistencia(CLAVE_CONCORDANCIA);
@@ -11027,6 +11408,7 @@ window.onload = async () => {
     document.getElementById('btn-escuchar-pasaje-lectio')?.addEventListener('click', (event) => escucharPasajeLectio(event.currentTarget));
     document.getElementById('btn-guardar-lectio')?.addEventListener('click', () => guardarLectioActual());
     document.getElementById('btn-compartir-lectio-pdf')?.addEventListener('click', () => exportarLectioComoPDF());
+    document.getElementById('btn-compartir-lectio-link')?.addEventListener('click', () => compartirLectioActualComoEnlace());
     document.getElementById('btn-nueva-lectio')?.addEventListener('click', () => limpiarHojaLectio(true));
     document.getElementById('btn-lectio-usar-contexto')?.addEventListener('click', () => usarContextoActualEnLectio());
     document.addEventListener('click', () => cerrarMenusAccionesVersiculo());

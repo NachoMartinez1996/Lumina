@@ -12,6 +12,7 @@ import {
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   getFirestore,
   serverTimestamp,
@@ -55,6 +56,9 @@ googleProvider.setCustomParameters({ prompt: "select_account" });
 const BYTES_MAXIMOS_VALOR_DIRECTO_LUMINA = 450 * 1024;
 const MAX_ESCRITURAS_LOTE_LUMINA = 16;
 const SUFIJO_FRAGMENTO_LUMINA = "__chunk__";
+const COLECCION_COMPARTIDOS_LUMINA = "lumina_compartidos";
+const SUBCOLECCION_FRAGMENTOS_COMPARTIDOS_LUMINA = "fragmentos";
+const DIAS_VIGENCIA_COMPARTIDO_LUMINA = 30;
 const codificadorTextoLumina = typeof TextEncoder !== "undefined" ? new TextEncoder() : null;
 
 async function signInWithGoogle() {
@@ -80,6 +84,18 @@ function obtenerDocumentoEstado(uid, key) {
 
 function obtenerRutaColeccionEstado(uid) {
   return `users/${uid}/lumina_estado`;
+}
+
+function obtenerDocumentoCompartidoLumina(id) {
+  return doc(db, COLECCION_COMPARTIDOS_LUMINA, id);
+}
+
+function obtenerColeccionFragmentosCompartidoLumina(id) {
+  return collection(db, COLECCION_COMPARTIDOS_LUMINA, id, SUBCOLECCION_FRAGMENTOS_COMPARTIDOS_LUMINA);
+}
+
+function obtenerDocumentoFragmentoCompartidoLumina(id, indice) {
+  return doc(db, COLECCION_COMPARTIDOS_LUMINA, id, SUBCOLECCION_FRAGMENTOS_COMPARTIDOS_LUMINA, String(indice).padStart(4, "0"));
 }
 
 function contarBytesTextoLumina(texto) {
@@ -121,6 +137,24 @@ function dividirTextoEnFragmentosLumina(texto) {
 
 function obtenerIdFragmentoLumina(key, indice) {
   return `${key}${SUFIJO_FRAGMENTO_LUMINA}${String(indice).padStart(4, "0")}`;
+}
+
+function generarIdCompartidoLumina() {
+  const alfabeto = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const longitud = 12;
+
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const bytes = new Uint8Array(longitud);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, byte => alfabeto[byte % alfabeto.length]).join("");
+  }
+
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`.slice(0, longitud);
+}
+
+function normalizarIdCompartidoLumina(id) {
+  const limpio = String(id || "").trim();
+  return /^[a-zA-Z0-9_-]{8,80}$/.test(limpio) ? limpio : "";
 }
 
 function esDocumentoFragmentoLumina(item) {
@@ -251,7 +285,11 @@ async function confirmarOperacionesLumina(operaciones) {
       escriturasEnLote = 0;
     }
 
-    batch.set(operacion.ref, operacion.data, operacion.options);
+    if (operacion.options) {
+      batch.set(operacion.ref, operacion.data, operacion.options);
+    } else {
+      batch.set(operacion.ref, operacion.data);
+    }
     escriturasEnLote++;
   }
 
@@ -262,6 +300,154 @@ async function confirmarOperacionesLumina(operaciones) {
   for (const lote of lotes) {
     await lote.commit();
   }
+}
+
+function crearOperacionesCompartidoLumina(uid, id, paquete) {
+  const ahora = new Date();
+  const expira = new Date(ahora.getTime() + (DIAS_VIGENCIA_COMPARTIDO_LUMINA * 24 * 60 * 60 * 1000));
+  const tipo = String(paquete?.tipo || "").trim();
+  const titulo = String(paquete?.titulo || "Lumina").trim().slice(0, 160);
+  const payloadTexto = JSON.stringify(paquete?.payload || {});
+  const base = {
+    tipo,
+    titulo,
+    version: 1,
+    ownerUid: uid,
+    createdAt: ahora.toISOString(),
+    createdAtServer: serverTimestamp(),
+    expiresAt: expira,
+    app: "Lumina"
+  };
+
+  if (contarBytesTextoLumina(payloadTexto) <= BYTES_MAXIMOS_VALOR_DIRECTO_LUMINA) {
+    return [{
+      ref: obtenerDocumentoCompartidoLumina(id),
+      data: {
+        ...base,
+        payload: payloadTexto,
+        chunked: false,
+        chunkCount: 0
+      }
+    }];
+  }
+
+  const fragmentos = dividirTextoEnFragmentosLumina(payloadTexto);
+  const operacionesFragmentos = fragmentos.map((fragmento, indice) => ({
+    ref: obtenerDocumentoFragmentoCompartidoLumina(id, indice),
+    data: {
+      ownerUid: uid,
+      chunkIndex: indice,
+      chunkValue: fragmento,
+      createdAt: base.createdAt,
+      createdAtServer: serverTimestamp(),
+      expiresAt: expira
+    }
+  }));
+
+  return [
+    ...operacionesFragmentos,
+    {
+      ref: obtenerDocumentoCompartidoLumina(id),
+      data: {
+        ...base,
+        payload: null,
+        chunked: true,
+        chunkCount: fragmentos.length,
+        chunkBytes: BYTES_MAXIMOS_VALOR_DIRECTO_LUMINA
+      }
+    }
+  ];
+}
+
+async function crearCompartidoLumina(uid, paquete) {
+  if (!uid) {
+    const error = new Error("Hace falta una sesión de Google para crear enlaces compartidos.");
+    error.code = "unauthenticated";
+    throw error;
+  }
+
+  const tipo = String(paquete?.tipo || "").trim();
+  if (!["coleccion", "lectio"].includes(tipo)) {
+    const error = new Error("Tipo de enlace compartido no reconocido.");
+    error.code = "lumina/share-invalid";
+    throw error;
+  }
+
+  const id = generarIdCompartidoLumina();
+  const operaciones = crearOperacionesCompartidoLumina(uid, id, paquete);
+  await confirmarOperacionesLumina(operaciones);
+  return { id, diasVigencia: DIAS_VIGENCIA_COMPARTIDO_LUMINA };
+}
+
+async function cargarPayloadCompartidoLumina(id, data) {
+  if (!data?.chunked) {
+    return String(data?.payload || "");
+  }
+
+  const cantidadFragmentos = Number(data.chunkCount) || 0;
+  const snapshot = await getDocs(obtenerColeccionFragmentosCompartidoLumina(id));
+  const porIndice = new Map(
+    snapshot.docs
+      .map(documento => documento.data())
+      .filter(item => Number.isInteger(item.chunkIndex) && typeof item.chunkValue === "string")
+      .map(item => [item.chunkIndex, item.chunkValue])
+  );
+  const partes = [];
+
+  for (let indice = 0; indice < cantidadFragmentos; indice++) {
+    if (!porIndice.has(indice)) {
+      const error = new Error("El enlace compartido todavía no terminó de guardarse.");
+      error.code = "lumina/share-chunk-missing";
+      throw error;
+    }
+
+    partes.push(porIndice.get(indice));
+  }
+
+  return partes.join("");
+}
+
+async function cargarCompartidoLumina(idRaw) {
+  const id = normalizarIdCompartidoLumina(idRaw);
+  if (!id) {
+    const error = new Error("El enlace compartido no es válido.");
+    error.code = "lumina/share-invalid";
+    throw error;
+  }
+
+  const snapshot = await getDoc(obtenerDocumentoCompartidoLumina(id));
+  if (!snapshot.exists()) {
+    const error = new Error("No encontramos ese enlace compartido.");
+    error.code = "not-found";
+    throw error;
+  }
+
+  const data = snapshot.data();
+  const expira = data.expiresAt?.toDate?.() || (data.expiresAt instanceof Date ? data.expiresAt : null);
+  if (expira && expira.getTime() < Date.now()) {
+    const error = new Error("El enlace compartido ya venció.");
+    error.code = "lumina/share-expired";
+    throw error;
+  }
+
+  const payloadTexto = await cargarPayloadCompartidoLumina(id, data);
+  let payload;
+
+  try {
+    payload = JSON.parse(payloadTexto);
+  } catch (error) {
+    error.code = "lumina/share-invalid";
+    throw error;
+  }
+
+  return {
+    id,
+    tipo: String(data.tipo || ""),
+    titulo: String(data.titulo || ""),
+    createdAt: data.createdAt || "",
+    expiresAt: expira ? expira.toISOString() : "",
+    payload
+  };
 }
 
 async function cargarEntradasLumina(uid) {
@@ -346,7 +532,9 @@ const luminaFirebase = {
     projectId: firebaseConfig.projectId,
     authDomain: firebaseConfig.authDomain
   },
+  cargarCompartidoLumina,
   cargarEntradasLumina,
+  crearCompartidoLumina,
   guardarEntradasLumina,
   persistenceReady,
   observeAuth,
