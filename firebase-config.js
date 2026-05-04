@@ -93,16 +93,39 @@ function obtenerDocumentoEstado(uid, key) {
   return doc(db, "users", uid, "lumina_estado", key);
 }
 
+function obtenerRutaColeccionEstado(uid) {
+  return `users/${uid}/lumina_estado`;
+}
+
 async function cargarEntradasLumina(uid) {
-  const snapshot = await getDocs(obtenerColeccionEstado(uid));
-  return snapshot.docs
-    .map(documento => ({ id: documento.id, ...documento.data() }))
-    .filter(item => typeof item.key === "string" && item.key.trim());
+  const ruta = obtenerRutaColeccionEstado(uid);
+
+  try {
+    console.info("[Lumina Firebase] Leyendo Cloud Firestore", { ruta });
+    const snapshot = await getDocs(obtenerColeccionEstado(uid));
+    console.info("[Lumina Firebase] Lectura de Cloud Firestore completada", {
+      ruta,
+      documentos: snapshot.size,
+      desdeCache: Boolean(snapshot.metadata?.fromCache)
+    });
+
+    return snapshot.docs
+      .map(documento => ({ id: documento.id, ...documento.data() }))
+      .filter(item => typeof item.key === "string" && item.key.trim());
+  } catch (error) {
+    console.error("[Lumina Firebase] Fallo leyendo Cloud Firestore", {
+      ruta,
+      codigo: error?.code || "sin-codigo",
+      mensaje: error?.message || String(error)
+    });
+    throw error;
+  }
 }
 
 async function guardarEntradasLumina(uid, entradas) {
   if (!uid || !Array.isArray(entradas) || entradas.length === 0) return;
 
+  const ruta = obtenerRutaColeccionEstado(uid);
   const batch = writeBatch(db);
   entradas.forEach(entrada => {
     if (!entrada?.key) return;
@@ -120,7 +143,21 @@ async function guardarEntradasLumina(uid, entradas) {
     );
   });
 
-  await batch.commit();
+  try {
+    console.info("[Lumina Firebase] Escribiendo Cloud Firestore", {
+      ruta,
+      documentos: entradas.filter(entrada => entrada?.key).length
+    });
+    await batch.commit();
+    console.info("[Lumina Firebase] Escritura de Cloud Firestore completada", { ruta });
+  } catch (error) {
+    console.error("[Lumina Firebase] Fallo escribiendo Cloud Firestore", {
+      ruta,
+      codigo: error?.code || "sin-codigo",
+      mensaje: error?.message || String(error)
+    });
+    throw error;
+  }
 }
 
 const luminaFirebase = {

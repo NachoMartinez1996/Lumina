@@ -1465,6 +1465,7 @@ let aplicandoDatosNubeLumina = false;
 let temporizadorSincronizacionNubeLumina = null;
 let ultimoEstadoNubeLumina = ESTADO_NUBE_LUMINA.sinSesion;
 const TIMEOUT_OPERACION_NUBE_LUMINA = 12000;
+const RUTA_FIRESTORE_NUBE_LUMINA = 'users/{uid}/lumina_estado';
 const cambiosPendientesNubeLumina = new Map();
 const dispositivoNubeLuminaId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
     ? crypto.randomUUID()
@@ -10131,9 +10132,13 @@ function obtenerMensajeErrorNubeLumina(error) {
 
     switch (codigo) {
         case 'lumina/sync-timeout':
-            return 'Google inició sesión, pero la nube tardó demasiado en responder. Tus datos locales siguen guardados; podés reintentar o salir.';
+            return `Cloud Firestore no respondió a tiempo. Revisá que Firestore esté creado y que sus reglas permitan ${RUTA_FIRESTORE_NUBE_LUMINA}.`;
         case 'permission-denied':
-            return 'Google inició sesión, pero Firestore no permitió leer o guardar datos. Revisá las reglas de seguridad de Firestore.';
+            return `Google inició sesión, pero Cloud Firestore no permitió leer o guardar datos en ${RUTA_FIRESTORE_NUBE_LUMINA}. Revisá las reglas de Firestore, no las de Realtime Database.`;
+        case 'failed-precondition':
+            return 'Cloud Firestore rechazó la operación por configuración pendiente. Revisá que la base Firestore esté creada en modo Native y publicada.';
+        case 'not-found':
+            return 'No se encontró la base de Cloud Firestore del proyecto. Creala desde Firebase > Firestore Database.';
         case 'unavailable':
             return 'Google inició sesión, pero Firestore no está disponible ahora. Lumina reintentará cuando haya conexión.';
         case 'resource-exhausted':
@@ -10154,6 +10159,8 @@ function esperarOperacionNubeLumina(operacion, mensaje = 'La operación de nube 
         timeoutId = setTimeout(() => {
             const error = new Error(mensaje);
             error.code = 'lumina/sync-timeout';
+            error.luminaOperacion = mensaje;
+            error.luminaTimeoutMs = TIMEOUT_OPERACION_NUBE_LUMINA;
             reject(error);
         }, TIMEOUT_OPERACION_NUBE_LUMINA);
     });
