@@ -1464,8 +1464,10 @@ let sincronizacionNubeLuminaEnCurso = false;
 let aplicandoDatosNubeLumina = false;
 let temporizadorSincronizacionNubeLumina = null;
 let ultimoEstadoNubeLumina = ESTADO_NUBE_LUMINA.sinSesion;
-const TIMEOUT_OPERACION_NUBE_LUMINA = 12000;
-const RUTA_FIRESTORE_NUBE_LUMINA = 'users/{uid}/lumina_estado';
+const TIMEOUT_OPERACION_NUBE_LUMINA = 30000;
+const TIMEOUT_LECTURA_NUBE_LUMINA = 25000;
+const TIMEOUT_ESCRITURA_NUBE_LUMINA = 60000;
+const RUTA_FIRESTORE_NUBE_LUMINA = 'users/{uid}/lumina_estado/{clave}';
 const cambiosPendientesNubeLumina = new Map();
 const dispositivoNubeLuminaId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
     ? crypto.randomUUID()
@@ -9987,9 +9989,11 @@ function registrarFirebaseLumina(firebase = window.LuminaFirebase) {
     ])
         .then(() => {
             const estado = typeof firebase.getEstado === 'function' ? firebase.getEstado() : {};
-            const detalleOffline = estado.offlinePersistence === 'enabled'
-                ? 'persistencia offline activa'
-                : 'persistencia offline no disponible';
+            const detalleOffline = estado.firestoreSdk === 'lite'
+                ? 'Firestore Lite; persistencia local propia de Lumina'
+                : (estado.offlinePersistence === 'enabled'
+                    ? 'persistencia offline activa'
+                    : 'persistencia offline no disponible');
 
             console.log(`Firebase conectado para Lumina (${detalleOffline}).`);
             if (persistenciaLuminaInicializada) inicializarAuthNubeLumina(firebase);
@@ -10127,14 +10131,29 @@ function manejarErrorAuthLumina(error) {
     lanzarToast(mensaje);
 }
 
+function obtenerProyectoFirebaseNubeLumina() {
+    return firebaseLumina?.config?.projectId || firebaseLumina?.app?.options?.projectId || 'el proyecto Firebase configurado';
+}
+
+function obtenerRutaFirestoreNubeLumina(uid = usuarioFirebaseLumina?.uid) {
+    return uid
+        ? `users/${uid}/lumina_estado/{clave}`
+        : RUTA_FIRESTORE_NUBE_LUMINA;
+}
+
+function obtenerDestinoFirestoreNubeLumina() {
+    return `${obtenerRutaFirestoreNubeLumina()} en ${obtenerProyectoFirebaseNubeLumina()}`;
+}
+
 function obtenerMensajeErrorNubeLumina(error) {
     const codigo = error?.code || '';
+    const destino = obtenerDestinoFirestoreNubeLumina();
 
     switch (codigo) {
         case 'lumina/sync-timeout':
-            return `Cloud Firestore no respondió a tiempo. Revisá que Firestore esté creado y que sus reglas permitan ${RUTA_FIRESTORE_NUBE_LUMINA}.`;
+            return `Cloud Firestore tardó demasiado en responder (${Math.round((error?.luminaTimeoutMs || TIMEOUT_OPERACION_NUBE_LUMINA) / 1000)}s). Revisá que Firestore esté creado, publicado y accesible para ${destino}.`;
         case 'permission-denied':
-            return `Google inició sesión, pero Cloud Firestore no permitió leer o guardar datos en ${RUTA_FIRESTORE_NUBE_LUMINA}. Revisá las reglas de Firestore, no las de Realtime Database.`;
+            return `Google inició sesión, pero Cloud Firestore no permitió leer o guardar datos en ${destino}. Revisá las reglas de Firestore, no las de Realtime Database.`;
         case 'failed-precondition':
             return 'Cloud Firestore rechazó la operación por configuración pendiente. Revisá que la base Firestore esté creada en modo Native y publicada.';
         case 'not-found':
@@ -10152,7 +10171,7 @@ function obtenerMensajeErrorNubeLumina(error) {
     }
 }
 
-function esperarOperacionNubeLumina(operacion, mensaje = 'La operación de nube tardó demasiado') {
+function esperarOperacionNubeLumina(operacion, mensaje = 'La operación de nube tardó demasiado', timeoutMs = TIMEOUT_OPERACION_NUBE_LUMINA) {
     let timeoutId = null;
 
     const timeout = new Promise((_, reject) => {
@@ -10160,9 +10179,9 @@ function esperarOperacionNubeLumina(operacion, mensaje = 'La operación de nube 
             const error = new Error(mensaje);
             error.code = 'lumina/sync-timeout';
             error.luminaOperacion = mensaje;
-            error.luminaTimeoutMs = TIMEOUT_OPERACION_NUBE_LUMINA;
+            error.luminaTimeoutMs = timeoutMs;
             reject(error);
-        }, TIMEOUT_OPERACION_NUBE_LUMINA);
+        }, timeoutMs);
     });
 
     return Promise.race([
@@ -10598,7 +10617,8 @@ async function subirCambiosPendientesNubeLumina() {
     try {
         await esperarOperacionNubeLumina(
             firebaseLumina.guardarEntradasLumina(uidSubida, entradas),
-            'La subida de cambios a la nube tardó demasiado'
+            'La subida de cambios a la nube tardó demasiado',
+            TIMEOUT_ESCRITURA_NUBE_LUMINA
         );
         if (usuarioFirebaseLumina?.uid !== uidSubida) return;
         if (!sincronizacionNubeLuminaEnCurso) {
@@ -10625,7 +10645,8 @@ async function sincronizarLuminaConNube({ manual = false } = {}) {
         const uidSincronizacion = usuarioFirebaseLumina.uid;
         const entradasNubeRaw = await esperarOperacionNubeLumina(
             firebaseLumina.cargarEntradasLumina(uidSincronizacion),
-            'La lectura de la nube tardó demasiado'
+            'La lectura de la nube tardó demasiado',
+            TIMEOUT_LECTURA_NUBE_LUMINA
         );
         if (usuarioFirebaseLumina?.uid !== uidSincronizacion) return;
         const entradasNube = new Map();
@@ -10665,7 +10686,8 @@ async function sincronizarLuminaConNube({ manual = false } = {}) {
         if (subidas.length > 0) {
             await esperarOperacionNubeLumina(
                 firebaseLumina.guardarEntradasLumina(uidSincronizacion, subidas),
-                'La escritura en la nube tardó demasiado'
+                'La escritura en la nube tardó demasiado',
+                TIMEOUT_ESCRITURA_NUBE_LUMINA
             );
             if (usuarioFirebaseLumina?.uid !== uidSincronizacion) return;
         }

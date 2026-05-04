@@ -14,12 +14,9 @@ import {
   doc,
   getDocs,
   getFirestore,
-  initializeFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
   serverTimestamp,
   writeBatch
-} from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore-lite.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAzXdQEcOETByOPlZP_CVJdjqebzWohwAM",
@@ -46,28 +43,12 @@ const authReady = setPersistence(auth, browserLocalPersistence)
   });
 
 const estadoFirebaseLumina = {
-  offlinePersistence: "enabled",
+  firestoreSdk: "lite",
+  offlinePersistence: "lumina-local",
   offlinePersistenceError: null
 };
 
-let db;
-
-try {
-  db = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-      tabManager: persistentMultipleTabManager()
-    })
-  });
-} catch (error) {
-  estadoFirebaseLumina.offlinePersistence = "disabled";
-  estadoFirebaseLumina.offlinePersistenceError = {
-    code: error?.code || "unknown",
-    message: error?.message || "No se pudo habilitar la persistencia offline de Firestore."
-  };
-  db = getFirestore(app);
-  console.warn("No se pudo habilitar la persistencia offline de Firestore:", error);
-}
-
+const db = getFirestore(app);
 const persistenceReady = Promise.resolve(estadoFirebaseLumina);
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
@@ -101,9 +82,10 @@ async function cargarEntradasLumina(uid) {
   const ruta = obtenerRutaColeccionEstado(uid);
 
   try {
-    console.info("[Lumina Firebase] Leyendo Cloud Firestore", { ruta });
+    console.info("[Lumina Firebase] Leyendo Cloud Firestore", { proyecto: firebaseConfig.projectId, ruta });
     const snapshot = await getDocs(obtenerColeccionEstado(uid));
     console.info("[Lumina Firebase] Lectura de Cloud Firestore completada", {
+      proyecto: firebaseConfig.projectId,
       ruta,
       documentos: snapshot.size,
       desdeCache: Boolean(snapshot.metadata?.fromCache)
@@ -114,6 +96,7 @@ async function cargarEntradasLumina(uid) {
       .filter(item => typeof item.key === "string" && item.key.trim());
   } catch (error) {
     console.error("[Lumina Firebase] Fallo leyendo Cloud Firestore", {
+      proyecto: firebaseConfig.projectId,
       ruta,
       codigo: error?.code || "sin-codigo",
       mensaje: error?.message || String(error)
@@ -145,13 +128,15 @@ async function guardarEntradasLumina(uid, entradas) {
 
   try {
     console.info("[Lumina Firebase] Escribiendo Cloud Firestore", {
+      proyecto: firebaseConfig.projectId,
       ruta,
       documentos: entradas.filter(entrada => entrada?.key).length
     });
     await batch.commit();
-    console.info("[Lumina Firebase] Escritura de Cloud Firestore completada", { ruta });
+    console.info("[Lumina Firebase] Escritura de Cloud Firestore completada", { proyecto: firebaseConfig.projectId, ruta });
   } catch (error) {
     console.error("[Lumina Firebase] Fallo escribiendo Cloud Firestore", {
+      proyecto: firebaseConfig.projectId,
       ruta,
       codigo: error?.code || "sin-codigo",
       mensaje: error?.message || String(error)
@@ -165,6 +150,10 @@ const luminaFirebase = {
   auth,
   db,
   authReady,
+  config: {
+    projectId: firebaseConfig.projectId,
+    authDomain: firebaseConfig.authDomain
+  },
   cargarEntradasLumina,
   guardarEntradasLumina,
   persistenceReady,
