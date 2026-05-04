@@ -10155,7 +10155,12 @@ function obtenerMensajeErrorNubeLumina(error) {
         case 'permission-denied':
             return `Google inició sesión, pero Cloud Firestore no permitió leer o guardar datos en ${destino}. Revisá las reglas de Firestore, no las de Realtime Database.`;
         case 'failed-precondition':
-            return 'Cloud Firestore rechazó la operación por configuración pendiente. Revisá que la base Firestore esté creada en modo Native y publicada.';
+            if (/longer than\s+\d+\s+bytes|too large|larger than|exceeds/i.test(String(error?.message || ''))) {
+                return 'Cloud Firestore rechazó un dato porque superaba el límite por documento. Actualizá Lumina y volvé a sincronizar: esta versión divide los datos grandes en fragmentos.';
+            }
+            return `Cloud Firestore rechazó la operación en ${destino}. Detalle técnico: ${error?.message || 'failed-precondition'}.`;
+        case 'lumina/cloud-chunk-missing':
+            return 'Lumina encontró datos de nube incompletos. Esperá unos segundos y volvé a sincronizar.';
         case 'not-found':
             return 'No se encontró la base de Cloud Firestore del proyecto. Creala desde Firebase > Firestore Database.';
         case 'unavailable':
