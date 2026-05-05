@@ -1328,10 +1328,11 @@ function obtenerComentarios(libro, capitulo, versiculo) {
 // --------------------------------------------------------------
 let notasPersonales = {};
 let favoritos = new Set();
+// Por defecto mostrar las secciones de favoritos desplegadas
 let estadoSeccionesFavoritos = {
-    versiculos: false,
-    comentarios: false,
-    notas: false
+    versiculos: true,
+    comentarios: true,
+    notas: true
 };
 let coleccionesVersiculos = [];
 let panelGuardadosTabActiva = 'favoritos';
@@ -3119,11 +3120,29 @@ function crearSeccionPanel(claseBase, estadoStore, clave, titulo, icono, items, 
     const contenido = document.createElement('div');
     contenido.className = `${claseBase}-seccion-contenido`;
 
+    // Botón para ir al inicio del scroll de la sección
+    const scrollTopBtn = document.createElement('button');
+    scrollTopBtn.type = 'button';
+    scrollTopBtn.className = `${claseBase}-seccion-scrolltop favoritos-scroll-top`;
+    scrollTopBtn.title = 'Ir al inicio';
+    scrollTopBtn.setAttribute('aria-label', 'Ir al inicio de la sección');
+    scrollTopBtn.innerHTML = '<i class="fas fa-arrow-up" aria-hidden="true"></i>';
+
+    // Función que sincroniza estado (expandida/collapsada) y visibilidad del botón
     const sincronizar = () => {
         const expandida = estadoStore[clave] !== false;
         toggle.setAttribute('aria-expanded', expandida ? 'true' : 'false');
         contenido.hidden = !expandida;
         seccion.classList.toggle('seccion-expandida', expandida);
+
+        if (!expandida) {
+            scrollTopBtn.classList.remove('visible');
+            return;
+        }
+
+        // Si está expandida, mostrar/ocultar botón según scroll
+        if (contenido.scrollTop > 40) scrollTopBtn.classList.add('visible');
+        else scrollTopBtn.classList.remove('visible');
     };
 
     toggle.innerHTML = `
@@ -3150,9 +3169,28 @@ function crearSeccionPanel(claseBase, estadoStore, clave, titulo, icono, items, 
         contenido.appendChild(lista);
     }
 
+    // Mostrar/ocultar botón según scroll del contenido
+    const onScroll = () => {
+        if (contenido.hidden) {
+            scrollTopBtn.classList.remove('visible');
+            return;
+        }
+        if (contenido.scrollTop > 40) scrollTopBtn.classList.add('visible');
+        else scrollTopBtn.classList.remove('visible');
+    };
+
+    contenido.addEventListener('scroll', onScroll, { passive: true });
+
+    // Acción del botón: ir al inicio del contenedor de la sección
+    scrollTopBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        contenido.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
     sincronizar();
     seccion.appendChild(toggle);
     seccion.appendChild(contenido);
+    seccion.appendChild(scrollTopBtn);
     return seccion;
 }
 
@@ -3183,21 +3221,98 @@ function actualizarTabsPanelGuardados() {
 
     if (contenidoFavoritos) contenidoFavoritos.classList.toggle('hidden', !enFavoritos);
     if (contenidoColecciones) contenidoColecciones.classList.toggle('hidden', enFavoritos);
+    actualizarEstadoControlesFavoritos();
+}
+
+function contarFavoritosClasificados(grupos) {
+    return (grupos?.versiculos?.length || 0)
+        + (grupos?.comentarios?.length || 0)
+        + (grupos?.notas?.length || 0);
+}
+
+function filtrarFavoritosClasificados(grupos, filtro = filtroLibroFavoritosActual) {
+    const valorFiltro = normalizarFiltroLibroBusqueda(filtro);
+    if (valorFiltro === FILTRO_BUSQUEDA_TODOS) return grupos;
+
+    return {
+        versiculos: aplicarFiltroLibroBusqueda(grupos.versiculos, valorFiltro),
+        comentarios: aplicarFiltroLibroBusqueda(grupos.comentarios, valorFiltro),
+        notas: aplicarFiltroLibroBusqueda(grupos.notas, valorFiltro)
+    };
+}
+
+function obtenerMensajeVacioSeccionFavoritos(tipo, filtro = filtroLibroFavoritosActual) {
+    const valorFiltro = normalizarFiltroLibroBusqueda(filtro);
+    const etiquetaFiltro = obtenerEtiquetaFiltroLibroBusqueda(valorFiltro);
+    const ubicacion = valorFiltro === FILTRO_BUSQUEDA_TODOS
+        ? ''
+        : ` en ${escapeHtml(etiquetaFiltro)}`;
+
+    if (tipo === 'versiculos') return `Todavía no guardaste versículos${ubicacion} en favoritos.`;
+    if (tipo === 'comentarios') return `Todavía no guardaste comentarios${ubicacion} en favoritos.`;
+    return `Todavía no guardaste notas${ubicacion} en favoritos.`;
+}
+
+function renderizarEstadoFavoritosVacio(totalGlobal, filtro = filtroLibroFavoritosActual) {
+    const valorFiltro = normalizarFiltroLibroBusqueda(filtro);
+    const etiquetaFiltro = obtenerEtiquetaFiltroLibroBusqueda(valorFiltro);
+
+    if (totalGlobal === 0) {
+        return '<div class="favoritos-vacio-global text-gray-400 italic text-center py-8">No tienes favoritos aún.<br>Puedes marcar versículos, comentarios y notas como favoritos.</div>';
+    }
+
+    return `
+        <div class="favoritos-vacio-global text-gray-400 italic text-center py-8">
+            No hay favoritos guardados en ${escapeHtml(etiquetaFiltro)}.<br>
+            Cambiá el filtro para ver favoritos de otros libros.
+        </div>
+    `;
+}
+
+function actualizarEstadoControlesFavoritos() {
+    const selector = document.getElementById('favoritos-filtro-libro');
+    const botonLimpiar = document.getElementById('btn-limpiar-filtro-favoritos');
+
+    filtroLibroFavoritosActual = normalizarFiltroLibroBusqueda(selector?.value || filtroLibroFavoritosActual);
+    sincronizarSelectorFiltroLibroFavoritos();
+
+    if (botonLimpiar) {
+        botonLimpiar.hidden = filtroLibroFavoritosActual === FILTRO_BUSQUEDA_TODOS;
+    }
+}
+
+function limpiarFiltroFavoritos() {
+    filtroLibroFavoritosActual = FILTRO_BUSQUEDA_TODOS;
+    sincronizarSelectorFiltroLibroFavoritos();
+    actualizarEstadoControlesFavoritos();
+    renderizarPanelFavoritosGuardados();
 }
 
 function renderizarPanelFavoritosGuardados() {
     const listaDiv = document.getElementById('lista-favoritos');
     if (!listaDiv) return;
 
+    filtroLibroFavoritosActual = normalizarFiltroLibroBusqueda(
+        document.getElementById('favoritos-filtro-libro')?.value || filtroLibroFavoritosActual
+    );
+    sincronizarSelectorFiltroLibroFavoritos();
+
     const favoritosClasificados = obtenerFavoritosClasificados();
-    const totalFavoritos = favoritosClasificados.versiculos.length
-        + favoritosClasificados.comentarios.length
-        + favoritosClasificados.notas.length;
+    const totalFavoritos = contarFavoritosClasificados(favoritosClasificados);
+    const favoritosVisibles = filtrarFavoritosClasificados(favoritosClasificados, filtroLibroFavoritosActual);
+    const totalFavoritosVisibles = contarFavoritosClasificados(favoritosVisibles);
 
     listaDiv.innerHTML = "";
+    actualizarEstadoControlesFavoritos();
 
     if (totalFavoritos === 0) {
-        listaDiv.innerHTML = '<div class="favoritos-vacio-global text-gray-400 italic text-center py-8">No tienes favoritos aún.<br>Puedes marcar versículos, comentarios y notas como favoritos.</div>';
+        listaDiv.innerHTML = renderizarEstadoFavoritosVacio(totalFavoritos, filtroLibroFavoritosActual);
+        abrirPanelLateral('panel-favoritos');
+        return;
+    }
+
+    if (totalFavoritosVisibles === 0) {
+        listaDiv.innerHTML = renderizarEstadoFavoritosVacio(totalFavoritos, filtroLibroFavoritosActual);
         abrirPanelLateral('panel-favoritos');
         return;
     }
@@ -3207,9 +3322,9 @@ function renderizarPanelFavoritosGuardados() {
             'versiculos',
             'Versículos',
             'fa-bible',
-            favoritosClasificados.versiculos,
+            favoritosVisibles.versiculos,
             crearBotonFavoritoVersiculo,
-            'Todavía no guardaste versículos en favoritos.'
+            obtenerMensajeVacioSeccionFavoritos('versiculos', filtroLibroFavoritosActual)
         )
     );
 
@@ -3218,9 +3333,9 @@ function renderizarPanelFavoritosGuardados() {
             'comentarios',
             'Comentarios',
             'fa-comment-dots',
-            favoritosClasificados.comentarios,
+            favoritosVisibles.comentarios,
             crearBotonFavoritoComentario,
-            'Todavía no guardaste comentarios en favoritos.'
+            obtenerMensajeVacioSeccionFavoritos('comentarios', filtroLibroFavoritosActual)
         )
     );
 
@@ -3229,9 +3344,9 @@ function renderizarPanelFavoritosGuardados() {
             'notas',
             'Notas',
             'fa-pen',
-            favoritosClasificados.notas,
+            favoritosVisibles.notas,
             crearBotonFavoritoNota,
-            'Todavía no guardaste notas en favoritos.'
+            obtenerMensajeVacioSeccionFavoritos('notas', filtroLibroFavoritosActual)
         )
     );
 }
@@ -4202,6 +4317,7 @@ let terminoBusquedaActual = '';
 const FILTRO_BUSQUEDA_TODOS = '__todos__';
 const FILTRO_BUSQUEDA_EVANGELIO = '__evangelio__';
 let filtroLibroBusquedaActual = FILTRO_BUSQUEDA_TODOS;
+let filtroLibroFavoritosActual = FILTRO_BUSQUEDA_TODOS;
 
 function normalizarTerminoBusqueda(termino) {
     return (termino || '').trim().replace(/\s+/g, ' ');
@@ -4223,11 +4339,10 @@ function obtenerEtiquetaFiltroLibroBusqueda(filtro = filtroLibroBusquedaActual) 
     return valorNormalizado;
 }
 
-function poblarSelectorFiltroLibroBusqueda() {
-    const selector = document.getElementById('busqueda-filtro-libro');
-    if (!selector) return;
+function poblarSelectorFiltroLibroLumina(selector, valorInicial = FILTRO_BUSQUEDA_TODOS) {
+    if (!selector) return normalizarFiltroLibroBusqueda(valorInicial);
 
-    const valorActual = normalizarFiltroLibroBusqueda(selector.value || filtroLibroBusquedaActual);
+    const valorActual = normalizarFiltroLibroBusqueda(selector.value || valorInicial);
     selector.innerHTML = '';
 
     const atajos = document.createElement('optgroup');
@@ -4259,8 +4374,18 @@ function poblarSelectorFiltroLibroBusqueda() {
         selector.appendChild(grupo);
     });
 
-    filtroLibroBusquedaActual = valorActual;
     selector.value = valorActual;
+    return valorActual;
+}
+
+function poblarSelectorFiltroLibroBusqueda() {
+    const selector = document.getElementById('busqueda-filtro-libro');
+    filtroLibroBusquedaActual = poblarSelectorFiltroLibroLumina(selector, filtroLibroBusquedaActual);
+}
+
+function poblarSelectorFiltroLibroFavoritos() {
+    const selector = document.getElementById('favoritos-filtro-libro');
+    filtroLibroFavoritosActual = poblarSelectorFiltroLibroLumina(selector, filtroLibroFavoritosActual);
 }
 
 function sincronizarSelectorFiltroLibroBusqueda() {
@@ -4268,6 +4393,14 @@ function sincronizarSelectorFiltroLibroBusqueda() {
     if (!selector) return;
     if (selector.value !== filtroLibroBusquedaActual) {
         selector.value = filtroLibroBusquedaActual;
+    }
+}
+
+function sincronizarSelectorFiltroLibroFavoritos() {
+    const selector = document.getElementById('favoritos-filtro-libro');
+    if (!selector) return;
+    if (selector.value !== filtroLibroFavoritosActual) {
+        selector.value = filtroLibroFavoritosActual;
     }
 }
 
@@ -11769,13 +11902,16 @@ window.onload = async () => {
     const busquedaInputMovil = document.getElementById('busqueda-input-movil');
     const busquedaPanelInput = document.getElementById('busqueda-panel-input');
     const filtroLibroBusquedaSelect = document.getElementById('busqueda-filtro-libro');
+    const filtroLibroFavoritosSelect = document.getElementById('favoritos-filtro-libro');
     const btnBuscarMovil = document.getElementById('btn-buscar-movil');
     const btnEjecutarBusquedaMovil = document.getElementById('btn-ejecutar-busqueda-movil');
     const btnEjecutarBusquedaPanel = document.getElementById('btn-ejecutar-busqueda-panel');
     const btnLimpiarBusquedaMovil = document.getElementById('btn-limpiar-busqueda-movil');
     const btnLimpiarPanelBusqueda = document.getElementById('btn-limpiar-panel-busqueda');
+    const btnLimpiarFiltroFavoritos = document.getElementById('btn-limpiar-filtro-favoritos');
 
     poblarSelectorFiltroLibroBusqueda();
+    poblarSelectorFiltroLibroFavoritos();
 
     const realizarBusqueda = (terminoPreferido = '') => {
         filtroLibroBusquedaActual = normalizarFiltroLibroBusqueda(filtroLibroBusquedaSelect?.value || filtroLibroBusquedaActual);
@@ -11819,6 +11955,14 @@ window.onload = async () => {
         });
     }
 
+    if (filtroLibroFavoritosSelect) {
+        filtroLibroFavoritosSelect.addEventListener('change', (event) => {
+            filtroLibroFavoritosActual = normalizarFiltroLibroBusqueda(event.target.value);
+            sincronizarSelectorFiltroLibroFavoritos();
+            renderizarPanelFavoritosGuardados();
+        });
+    }
+
     if (btnLimpiarBusquedaMovil) {
         btnLimpiarBusquedaMovil.addEventListener('click', () => {
             limpiarBusqueda();
@@ -11830,6 +11974,13 @@ window.onload = async () => {
         btnLimpiarPanelBusqueda.addEventListener('click', () => {
             limpiarBusqueda();
             if (busquedaPanelInput) busquedaPanelInput.focus();
+        });
+    }
+
+    if (btnLimpiarFiltroFavoritos) {
+        btnLimpiarFiltroFavoritos.addEventListener('click', () => {
+            limpiarFiltroFavoritos();
+            if (filtroLibroFavoritosSelect) filtroLibroFavoritosSelect.focus();
         });
     }
 

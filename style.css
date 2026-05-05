@@ -520,6 +520,32 @@ body:not(.dark) #contenido-colecciones-guardados {
     background-color: inherit;
 }
 
+#contenido-favoritos-guardados {
+    min-height: 0;
+}
+
+#contenido-favoritos-guardados:not(.hidden) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.panel-favoritos-tools {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.65rem;
+    flex: 0 0 auto;
+}
+
+.panel-favoritos-filter-field {
+    min-height: 2.8rem;
+}
+
+#btn-limpiar-filtro-favoritos {
+    width: 100%;
+    justify-content: center;
+}
+
 body:not(.dark) .panel-guardados-tab {
     background: rgba(255, 255, 255, 0.82);
 }
@@ -555,6 +581,7 @@ body:not(.dark) #lista-favoritos {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    position: relative;
     border: 1px solid rgba(184, 134, 11, 0.16);
     border-radius: 1.25rem;
     overflow: hidden;
@@ -648,6 +675,42 @@ body:not(.dark) #lista-favoritos {
     display: none;
 }
 
+/* Botón flotante para ir al inicio del scroll en cada sección de favoritos */
+#lista-favoritos .favoritos-scroll-top {
+    position: absolute;
+    right: 0.9rem;
+    bottom: 0.9rem;
+    z-index: 30;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 999px;
+    background: rgba(184, 134, 11, 0.12);
+    color: #8a6a17;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.18s ease, transform 0.12s ease;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 8px 20px rgba(35, 27, 19, 0.08);
+}
+
+#lista-favoritos .favoritos-scroll-top.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+#lista-favoritos .favoritos-scroll-top:hover {
+    transform: translateY(-3px);
+}
+
+.dark #lista-favoritos .favoritos-scroll-top {
+    background: rgba(255, 255, 255, 0.06);
+    color: #f3cf77;
+}
+
 #lista-favoritos .favoritos-seccion-lista {
     display: flex;
     flex-direction: column;
@@ -680,7 +743,7 @@ body:not(.dark) #lista-favoritos {
     }
 
     #lista-favoritos {
-        height: 100%;
+        flex: 1 1 auto;
         min-height: 0;
         display: flex;
         flex-direction: column;

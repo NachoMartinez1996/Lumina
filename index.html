@@ -835,6 +835,21 @@
             </div>
             <div class="panel-guardados-body flex-1 overflow-y-auto min-h-0">
                 <div id="contenido-favoritos-guardados" class="p-4 md:p-5 pt-0 pb-4">
+                    <div class="panel-favoritos-tools">
+                        <label class="panel-busqueda-filter-field panel-favoritos-filter-field"
+                            for="favoritos-filtro-libro">
+                            <i class="fas fa-book-open" aria-hidden="true"></i>
+                            <select id="favoritos-filtro-libro" class="panel-busqueda-filter-select"
+                                aria-label="Filtrar favoritos por libro">
+                            </select>
+                            <span class="panel-busqueda-filter-caret" aria-hidden="true">
+                                <i class="fas fa-chevron-down"></i>
+                            </span>
+                        </label>
+                        <button type="button" id="btn-limpiar-filtro-favoritos" class="btn-busqueda-secundaria" hidden>
+                            Limpiar filtro
+                        </button>
+                    </div>
                     <div id="lista-favoritos" class="space-y-3"></div>
                 </div>
                 <div id="contenido-colecciones-guardados" class="hidden p-4 md:p-5 pt-0 pb-4">
