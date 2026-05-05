@@ -1378,8 +1378,44 @@ body:not(.dark) #lista-favoritos .favorito-entrada-texto {
 }
 
 @media (max-width: 380px) {
+    .panel-colecciones-cta {
+        font-size: 0.8rem;
+        padding-inline: 0.75rem;
+    }
+
     .coleccion-detalle-toolbar-botones {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .panel-colecciones-hero {
+        align-items: stretch;
+        flex-direction: column;
+        justify-content: flex-start;
+        gap: 1rem;
+    }
+
+    .panel-colecciones-hero-copy {
+        width: 100%;
+    }
+
+    .panel-colecciones-hero-eyebrow,
+    .panel-colecciones-hero-titulo,
+    .panel-colecciones-hero-texto {
+        text-align: left;
+        overflow-wrap: normal;
+        word-break: normal;
+    }
+
+    .panel-colecciones-hero-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .panel-colecciones-hero-actions .panel-colecciones-cta {
+        flex: 1 1 0;
+        min-width: 0;
     }
 }
 
