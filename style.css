@@ -4326,8 +4326,13 @@ body.dark .panel-lumina-placeholder {
     font-size: 0.98rem;
     line-height: 1.75;
     color: #2f261d;
-    text-align: left;
+    text-align: justify;
     text-align-last: left;
+    text-justify: inter-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+    overflow-wrap: break-word;
+    word-break: normal;
 }
 
 body.dark .panel-lumina-contenido p,
@@ -4349,8 +4354,13 @@ body.dark .panel-lumina-contenido li {
     background: rgba(184, 134, 11, 0.08);
     border-radius: 0 1rem 1rem 0;
     color: #5c4630;
-    text-align: left;
+    text-align: justify;
     text-align-last: left;
+    text-justify: inter-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+    overflow-wrap: break-word;
+    word-break: normal;
 }
 
 body.dark .panel-lumina-contenido blockquote {
@@ -4401,6 +4411,13 @@ body.dark .panel-lumina-contenido blockquote {
     color: #6b5a44;
     font-size: 0.9rem !important;
     line-height: 1.6 !important;
+    text-align: justify;
+    text-align-last: left;
+    text-justify: inter-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+    overflow-wrap: break-word;
+    word-break: normal;
 }
 
 .panel-lumina-cloud-card {
@@ -4443,6 +4460,13 @@ body.dark .panel-lumina-contenido blockquote {
     color: #6b5a44;
     font-size: 0.86rem !important;
     line-height: 1.5 !important;
+    text-align: justify;
+    text-align-last: left;
+    text-justify: inter-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+    overflow-wrap: break-word;
+    word-break: normal;
 }
 
 .panel-lumina-cloud-user {
@@ -4518,6 +4542,13 @@ body.dark .panel-lumina-contenido blockquote {
     line-height: 1.55;
     font-weight: 500;
     color: #6b5a44;
+    text-align: justify;
+    text-align-last: left;
+    text-justify: inter-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+    overflow-wrap: break-word;
+    word-break: normal;
 }
 
 .panel-lumina-cta-alerta {
