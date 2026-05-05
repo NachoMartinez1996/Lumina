@@ -1328,11 +1328,11 @@ function obtenerComentarios(libro, capitulo, versiculo) {
 // --------------------------------------------------------------
 let notasPersonales = {};
 let favoritos = new Set();
-// Por defecto mostrar las secciones de favoritos desplegadas
+// Las secciones de favoritos se abren solo cuando el usuario toca su boton.
 let estadoSeccionesFavoritos = {
-    versiculos: true,
-    comentarios: true,
-    notas: true
+    versiculos: false,
+    comentarios: false,
+    notas: false
 };
 let coleccionesVersiculos = [];
 let panelGuardadosTabActiva = 'favoritos';
@@ -2152,21 +2152,65 @@ function eliminarNota(libro, capitulo, versiculo, index) {
     btnConfirmar.onclick = ejecutarEliminacion;
 }
 
+function reconciliarFavoritosNotasTrasEliminacion(libro, capitulo, versiculo, index) {
+    const prefijo = `comentario:${libro}_${capitulo}_${versiculo}_personal_`;
+    const favoritosActualizados = new Set();
+    let huboCambios = false;
+
+    favoritos.forEach(key => {
+        if (!key.startsWith(prefijo)) {
+            favoritosActualizados.add(key);
+            return;
+        }
+
+        const idxFavorito = Number.parseInt(key.slice(prefijo.length), 10);
+        if (!Number.isInteger(idxFavorito)) {
+            favoritosActualizados.add(key);
+            return;
+        }
+
+        if (idxFavorito === index) {
+            huboCambios = true;
+            return;
+        }
+
+        if (idxFavorito > index) {
+            favoritosActualizados.add(`${prefijo}${idxFavorito - 1}`);
+            huboCambios = true;
+            return;
+        }
+
+        favoritosActualizados.add(key);
+    });
+
+    if (!huboCambios) return;
+    favoritos = favoritosActualizados;
+    guardarFavoritos();
+}
+
 function ejecutarEliminacion() {
     if (!notaAPuntoDeBorrar) return;
 
     const { libro, capitulo, versiculo, index } = notaAPuntoDeBorrar;
     const key = `${libro}_${capitulo}_${versiculo}`;
+    if (!Array.isArray(notasPersonales[key])) {
+        cerrarModalConfirmacion();
+        notaAPuntoDeBorrar = null;
+        return;
+    }
 
     // Lógica de borrado original
     notasPersonales[key].splice(index, 1);
     if (notasPersonales[key].length === 0) delete notasPersonales[key];
 
+    reconciliarFavoritosNotasTrasEliminacion(libro, capitulo, versiculo, index);
     escribirPersistencia(CLAVE_NOTAS, JSON.stringify(notasPersonales));
 
     // Feedback visual y cierre
     cerrarModalConfirmacion();
     mostrarNotasPersonales(libro, capitulo, versiculo);
+    refrescarPanelGuardadosSiVisible();
+    lanzarToast('Nota eliminada');
 
     // Opcional: podrías disparar un console.log o un toast de "éxito" aqué
     notaAPuntoDeBorrar = null;
@@ -3089,13 +3133,21 @@ function crearBotonFavoritoNota(item) {
                 ${item.fecha ? `<p class="favorito-entrada-meta">${escapeHtml(item.fecha)}</p>` : ''}
                 <p class="favorito-entrada-texto">${escapeHtml(truncarTextoFavorito(item.texto))}</p>
             </div>
-            <button
-                type="button"
-                data-favorito-comentario="${identificadorFavorito}"
-                class="favorito-entrada-fav estrella-fav-comentario ${favorito ? 'activa' : ''}"
-                title="${accionFavorito}"
-                aria-label="${accionFavorito} nota de ${escapeHtml(referencia)}"
-                aria-pressed="${favorito ? 'true' : 'false'}"><i class="fas fa-star"></i></button>
+            <div class="favorito-entrada-acciones">
+                <button
+                    type="button"
+                    data-favorito-comentario="${identificadorFavorito}"
+                    class="favorito-entrada-fav estrella-fav-comentario ${favorito ? 'activa' : ''}"
+                    title="${accionFavorito}"
+                    aria-label="${accionFavorito} nota de ${escapeHtml(referencia)}"
+                    aria-pressed="${favorito ? 'true' : 'false'}"><i class="fas fa-star"></i></button>
+                <button
+                    type="button"
+                    data-eliminar-nota-favorita="${identificadorFavorito}"
+                    class="favorito-entrada-delete"
+                    title="Eliminar nota"
+                    aria-label="Eliminar nota de ${escapeHtml(referencia)}"><i class="fas fa-trash-alt" aria-hidden="true"></i></button>
+            </div>
         </div>
     `;
     configurarEntradaPanelFavoritos(entrada, () => abrirFavoritoAnotacion(item.libro, item.capitulo, item.versiculo, 'personal', item.idx));
@@ -3106,10 +3158,17 @@ function crearBotonFavoritoNota(item) {
         toggleFavoritoComentario(item.libro, item.capitulo, item.versiculo, 'personal', item.idx);
     });
 
+    const botonEliminar = entrada.querySelector('[data-eliminar-nota-favorita]');
+    botonEliminar?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        eliminarNota(item.libro, item.capitulo, item.versiculo, item.idx);
+    });
+
     return entrada;
 }
 
 function crearSeccionPanel(claseBase, estadoStore, clave, titulo, icono, items, crearItem, mensajeVacio) {
+    const usaScrollDePanel = claseBase === 'favoritos' || claseBase === 'busqueda';
     const seccion = document.createElement('section');
     seccion.className = `${claseBase}-seccion`;
 
@@ -3128,21 +3187,36 @@ function crearSeccionPanel(claseBase, estadoStore, clave, titulo, icono, items, 
     scrollTopBtn.setAttribute('aria-label', 'Ir al inicio de la sección');
     scrollTopBtn.innerHTML = '<i class="fas fa-arrow-up" aria-hidden="true"></i>';
 
+    const obtenerContenedorScrollSeccion = () => {
+        if (!usaScrollDePanel) return contenido;
+        const selectorPanel = claseBase === 'favoritos' ? '.panel-guardados-body' : '.panel-busqueda-body';
+        return seccion.closest(selectorPanel) || contenido;
+    };
+
+    const actualizarBotonScrollTop = () => {
+        if (contenido.hidden) {
+            scrollTopBtn.classList.remove('visible');
+            return;
+        }
+
+        const contenedorScroll = obtenerContenedorScrollSeccion();
+        if (contenedorScroll === contenido) {
+            scrollTopBtn.classList.toggle('visible', contenido.scrollTop > 40);
+            return;
+        }
+
+        const contenedorRect = contenedorScroll.getBoundingClientRect();
+        const toggleRect = toggle.getBoundingClientRect();
+        scrollTopBtn.classList.toggle('visible', toggleRect.top < contenedorRect.top - 24);
+    };
+
     // Función que sincroniza estado (expandida/collapsada) y visibilidad del botón
     const sincronizar = () => {
         const expandida = estadoStore[clave] !== false;
         toggle.setAttribute('aria-expanded', expandida ? 'true' : 'false');
         contenido.hidden = !expandida;
         seccion.classList.toggle('seccion-expandida', expandida);
-
-        if (!expandida) {
-            scrollTopBtn.classList.remove('visible');
-            return;
-        }
-
-        // Si está expandida, mostrar/ocultar botón según scroll
-        if (contenido.scrollTop > 40) scrollTopBtn.classList.add('visible');
-        else scrollTopBtn.classList.remove('visible');
+        actualizarBotonScrollTop();
     };
 
     toggle.innerHTML = `
@@ -3156,8 +3230,11 @@ function crearSeccionPanel(claseBase, estadoStore, clave, titulo, icono, items, 
         </span>
     `;
     toggle.onclick = () => {
-        estadoStore[clave] = !(estadoStore[clave] !== false);
+        const seVaAExpandir = !(estadoStore[clave] !== false);
+
+        estadoStore[clave] = seVaAExpandir;
         sincronizar();
+        requestAnimationFrame(actualizarBotonScrollTop);
     };
 
     if (items.length === 0) {
@@ -3169,22 +3246,26 @@ function crearSeccionPanel(claseBase, estadoStore, clave, titulo, icono, items, 
         contenido.appendChild(lista);
     }
 
-    // Mostrar/ocultar botón según scroll del contenido
-    const onScroll = () => {
-        if (contenido.hidden) {
-            scrollTopBtn.classList.remove('visible');
-            return;
-        }
-        if (contenido.scrollTop > 40) scrollTopBtn.classList.add('visible');
-        else scrollTopBtn.classList.remove('visible');
-    };
+    const onScroll = () => actualizarBotonScrollTop();
 
     contenido.addEventListener('scroll', onScroll, { passive: true });
+    requestAnimationFrame(() => {
+        const contenedorScroll = obtenerContenedorScrollSeccion();
+        if (contenedorScroll !== contenido) {
+            contenedorScroll.addEventListener('scroll', onScroll, { passive: true });
+        }
+        actualizarBotonScrollTop();
+    });
 
     // Acción del botón: ir al inicio del contenedor de la sección
     scrollTopBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        contenido.scrollTo({ top: 0, behavior: 'smooth' });
+        const contenedorScroll = obtenerContenedorScrollSeccion();
+        if (contenedorScroll === contenido) {
+            contenido.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            contenedorScroll.scrollTo({ top: Math.max(0, seccion.offsetTop - 8), behavior: 'smooth' });
+        }
     });
 
     sincronizar();

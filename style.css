@@ -662,13 +662,15 @@ body:not(.dark) #lista-favoritos {
 
 #lista-favoritos .favoritos-seccion-contenido {
     min-height: 0;
-    max-height: clamp(14rem, 42vh, 28rem);
-    overflow-y: auto;
-    overflow-x: hidden;
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable;
+    max-height: none;
+    overflow: visible;
     padding: 0 1rem 1rem;
     border-top: 1px solid rgba(184, 134, 11, 0.12);
+    scroll-behavior: smooth;
+}
+
+#lista-favoritos .favoritos-seccion.seccion-expandida {
+    min-height: 0;
 }
 
 #lista-favoritos .favoritos-seccion-contenido[hidden] {
@@ -677,10 +679,10 @@ body:not(.dark) #lista-favoritos {
 
 /* Botón flotante para ir al inicio del scroll en cada sección de favoritos */
 #lista-favoritos .favoritos-scroll-top {
-    position: absolute;
-    right: 0.9rem;
-    bottom: 0.9rem;
-    z-index: 30;
+    position: fixed;
+    right: 1.2rem;
+    bottom: 1rem;
+    z-index: 80;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -732,22 +734,22 @@ body:not(.dark) #lista-favoritos {
 
 @media (min-width: 768px) {
     #panel-favoritos .panel-guardados-body {
-        overflow: hidden;
+        overflow-y: auto;
+        overflow-x: hidden;
         min-height: 0;
     }
 
     #contenido-favoritos-guardados {
-        height: 100%;
+        height: auto;
         min-height: 0;
-        overflow: hidden;
+        overflow: visible;
     }
 
     #lista-favoritos {
-        flex: 1 1 auto;
+        flex: 0 0 auto;
         min-height: 0;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
+        display: block;
+        overflow: visible;
     }
 
     #lista-favoritos .favoritos-seccion {
@@ -755,11 +757,13 @@ body:not(.dark) #lista-favoritos {
     }
 
     #lista-favoritos .favoritos-seccion.seccion-expandida {
-        flex: 1 1 auto;
+        flex: 0 0 auto;
+        min-height: 0;
     }
 
     #lista-favoritos .favoritos-seccion.seccion-expandida .favoritos-seccion-contenido {
-        flex: 1 1 auto;
+        flex: 0 0 auto;
+        height: auto;
         max-height: none;
     }
 
@@ -846,6 +850,13 @@ body:not(.dark) #lista-favoritos {
     line-height: 1.5;
 }
 
+#lista-favoritos .favorito-entrada-acciones {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
 #lista-favoritos .favorito-entrada-fav {
     display: inline-flex;
     align-items: center;
@@ -882,6 +893,34 @@ body:not(.dark) #lista-favoritos {
 
 #lista-favoritos .favorito-entrada-fav.estrella-fav-comentario:hover {
     color: #8a6a17;
+}
+
+#lista-favoritos .favorito-entrada-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: #b84a4a;
+    align-self: flex-start;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+#lista-favoritos .favorito-entrada-delete:focus-visible {
+    outline: 2px solid rgba(184, 74, 74, 0.4);
+    outline-offset: 2px;
+}
+
+#lista-favoritos .favorito-entrada-delete:hover {
+    background: rgba(184, 74, 74, 0.1);
+    color: #9f2f2f;
+    transform: scale(1.08);
 }
 
 body:not(.dark) #lista-favoritos .favoritos-seccion-etiqueta,
@@ -961,6 +1000,15 @@ body:not(.dark) #lista-favoritos .favorito-entrada-texto {
 
 .dark #lista-favoritos .favorito-entrada-fav.estrella-fav-comentario {
     color: #cbd5e0;
+}
+
+.dark #lista-favoritos .favorito-entrada-delete {
+    color: #f87171;
+}
+
+.dark #lista-favoritos .favorito-entrada-delete:hover {
+    background: rgba(248, 113, 113, 0.12);
+    color: #fca5a5;
 }
 
 #lista-colecciones .colecciones-vacio-global,
@@ -6274,6 +6322,7 @@ body.dark .panel-busqueda-filter-select {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    position: relative;
     border: 1px solid rgba(184, 134, 11, 0.16);
     border-radius: 1.25rem;
     overflow: hidden;
@@ -6350,17 +6399,54 @@ body.dark .panel-busqueda-filter-select {
 
 .busqueda-seccion-contenido {
     min-height: 0;
-    max-height: clamp(18rem, 56vh, 40rem);
-    overflow-y: auto;
-    overflow-x: hidden;
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable;
+    max-height: none;
+    overflow: visible;
     padding: 0 1rem 1rem;
     border-top: 1px solid rgba(184, 134, 11, 0.12);
+    scroll-behavior: smooth;
+}
+
+.busqueda-seccion.seccion-expandida {
+    min-height: 0;
 }
 
 .busqueda-seccion-contenido[hidden] {
     display: none;
+}
+
+#contenido-busqueda .busqueda-seccion-scrolltop {
+    position: fixed;
+    right: 1.2rem;
+    bottom: 1rem;
+    z-index: 80;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 999px;
+    background: rgba(184, 134, 11, 0.12);
+    color: #8a6a17;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.18s ease, transform 0.12s ease;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 8px 20px rgba(35, 27, 19, 0.08);
+}
+
+#contenido-busqueda .busqueda-seccion-scrolltop.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+#contenido-busqueda .busqueda-seccion-scrolltop:hover {
+    transform: translateY(-3px);
+}
+
+.dark #contenido-busqueda .busqueda-seccion-scrolltop {
+    background: rgba(255, 255, 255, 0.06);
+    color: #f3cf77;
 }
 
 .busqueda-seccion-lista {
@@ -6505,11 +6591,10 @@ body:not(.dark) #contenido-busqueda .busqueda-seccion-vacio {
     }
 
     #contenido-busqueda.busqueda-con-resultados {
-        height: 100%;
+        height: auto;
         min-height: 0;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
+        display: block;
+        overflow: visible;
         padding: 0.8rem 1.25rem 1.15rem !important;
     }
 
@@ -6518,12 +6603,13 @@ body:not(.dark) #contenido-busqueda .busqueda-seccion-vacio {
     }
 
     #contenido-busqueda.busqueda-con-resultados .busqueda-seccion.seccion-expandida {
-        flex: 1 1 0%;
+        flex: 0 0 auto;
+        min-height: 0;
     }
 
     #contenido-busqueda.busqueda-con-resultados .busqueda-seccion.seccion-expandida .busqueda-seccion-contenido {
-        flex: 1 1 auto;
-        height: 100%;
+        flex: 0 0 auto;
+        height: auto;
         max-height: none;
     }
 }
