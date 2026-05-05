@@ -5406,6 +5406,43 @@ function descargarBlobCompartido(blob, nombreArchivo) {
     setTimeout(() => URL.revokeObjectURL(url), 1200);
 }
 
+async function intentarCompartirArchivoLumina(archivo, datos = {}) {
+    if (!archivo || !navigator.share) return false;
+
+    const puedeCompartirArchivo = !navigator.canShare || navigator.canShare({ files: [archivo] });
+    if (!puedeCompartirArchivo) return false;
+
+    const intentos = [
+        {
+            title: datos.title,
+            text: datos.text,
+            files: [archivo]
+        },
+        {
+            title: datos.title,
+            files: [archivo]
+        },
+        {
+            files: [archivo]
+        }
+    ];
+
+    for (const intento of intentos) {
+        try {
+            await navigator.share(intento);
+            return true;
+        } catch (error) {
+            if (error?.name === 'AbortError') {
+                throw error;
+            }
+
+            console.warn('No se pudo compartir archivo con este formato. Probamos otro.', error);
+        }
+    }
+
+    return false;
+}
+
 async function compartirTarjetaVersiculo() {
     if (!contextoModalCompartirVersiculo || accionTarjetaVersiculoEnCurso) return;
 
@@ -5423,26 +5460,23 @@ async function compartirTarjetaVersiculo() {
             ? new File([blob], nombreArchivo, { type: 'image/png' })
             : null;
 
-        if (archivo && navigator.share) {
-            const datosCompartir = {
-                title: `Versículo: ${contextoModalCompartirVersiculo.referencia}`,
-                text: `${contextoModalCompartirVersiculo.referencia}\nCompartido desde Lumina`,
-                files: [archivo]
-            };
+        if (archivo) {
+            try {
+                const compartido = await intentarCompartirArchivoLumina(archivo, {
+                    title: `Versículo: ${contextoModalCompartirVersiculo.referencia}`,
+                    text: `${contextoModalCompartirVersiculo.referencia}\nCompartido desde Lumina`
+                });
 
-            const puedeCompartirArchivo = !navigator.canShare || navigator.canShare(datosCompartir);
-            if (puedeCompartirArchivo) {
-                try {
-                    await navigator.share(datosCompartir);
+                if (compartido) {
                     lanzarToast('Tarjeta lista para compartir');
                     cerrarModalCompartirVersiculo();
                     return;
-                } catch (errorCompartir) {
-                    if (errorCompartir && errorCompartir.name === 'AbortError') {
-                        return;
-                    }
-                    console.warn('No se pudo compartir el archivo directamente. Probamos con descarga.', errorCompartir);
                 }
+            } catch (errorCompartir) {
+                if (errorCompartir?.name === 'AbortError') {
+                    return;
+                }
+                console.warn('No se pudo compartir el archivo directamente. Probamos con descarga.', errorCompartir);
             }
         }
 
