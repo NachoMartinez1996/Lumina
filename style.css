@@ -937,6 +937,14 @@ body:not(.dark) #lista-favoritos .favorito-entrada-texto {
     min-width: 0;
 }
 
+.panel-colecciones-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.55rem;
+    flex-shrink: 0;
+}
+
 .panel-colecciones-hero-eyebrow,
 .coleccion-detalle-eyebrow {
     margin: 0 0 0.45rem;

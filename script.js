@@ -1349,6 +1349,7 @@ let estadoSeccionesBusqueda = {
 const CLAVE_NOTAS = 'lumina_notas';
 const CLAVE_FAVORITOS = 'lumina_favoritos';
 const CLAVE_LEIDOS = 'lumina_leidos';
+const CLAVE_LEIDOS_RESET_AT = 'lumina_leidos_reset_at_v1';
 const CLAVE_MODO_DESIERTO = 'lumina_modo_desierto_v1';
 const CLAVE_TEXTO_CORRIDO = 'lumina_texto_corrido_v1';
 const CLAVE_VERSICULO_INICIO = 'lumina_versiculo_inicio_v1';
@@ -1403,7 +1404,7 @@ const CATEGORIAS_RESPALDO_LUMINA = [
         id: 'progreso',
         titulo: 'Progreso de lectura',
         descripcion: 'Marcas de lectura y celebraciones del recorrido.',
-        claves: [CLAVE_LEIDOS, CLAVE_EVENTO_BIBLIA_COMPLETA, CLAVE_CONTADOR_CELEBRACION_BIBLIA]
+        claves: [CLAVE_LEIDOS, CLAVE_LEIDOS_RESET_AT, CLAVE_EVENTO_BIBLIA_COMPLETA, CLAVE_CONTADOR_CELEBRACION_BIBLIA]
     },
     {
         id: 'notas',
@@ -1716,13 +1717,13 @@ function leerPersistencia(clave, fallback = null) {
     return persistenciaLuminaCache.has(clave) ? persistenciaLuminaCache.get(clave) : fallback;
 }
 
-function escribirPersistencia(clave, valor) {
+function escribirPersistencia(clave, valor, updatedAt = obtenerMarcaTiempoPersistencia()) {
     if (!esClaveLuminaPersistible(clave)) return Promise.resolve();
 
     const valorNormalizado = normalizarValorPersistencia(valor);
-    const updatedAt = actualizarMetaPersistencia(clave);
+    const updatedAtFinal = actualizarMetaPersistencia(clave, updatedAt);
     persistenciaLuminaCache.set(clave, valorNormalizado);
-    encolarCambioNubeLumina({ key: clave, value: valorNormalizado, updatedAtLocal: updatedAt, deleted: false });
+    encolarCambioNubeLumina({ key: clave, value: valorNormalizado, updatedAtLocal: updatedAtFinal, deleted: false });
 
     if (persistenciaLuminaUsaFallbackLocal) {
         try {
@@ -1734,7 +1735,7 @@ function escribirPersistencia(clave, valor) {
     }
 
     limpiarEntradasLocalStorageLumina([clave]);
-    return guardarEntradasPersistenciaLuminaDB([{ key: clave, value: valorNormalizado, updatedAt }]).catch(error => {
+    return guardarEntradasPersistenciaLuminaDB([{ key: clave, value: valorNormalizado, updatedAt: updatedAtFinal }]).catch(error => {
         console.error(`Lumina no pudo guardar ${clave} en IndexedDB. Volvemos a localStorage para no perder el dato.`, error);
         persistenciaLuminaUsaFallbackLocal = true;
 
@@ -1746,12 +1747,12 @@ function escribirPersistencia(clave, valor) {
     });
 }
 
-function eliminarPersistencia(clave) {
+function eliminarPersistencia(clave, updatedAt = obtenerMarcaTiempoPersistencia()) {
     if (!esClaveLuminaPersistible(clave)) return Promise.resolve();
 
-    const updatedAt = actualizarMetaPersistencia(clave);
+    const updatedAtFinal = actualizarMetaPersistencia(clave, updatedAt);
     persistenciaLuminaCache.delete(clave);
-    encolarCambioNubeLumina({ key: clave, value: null, updatedAtLocal: updatedAt, deleted: true });
+    encolarCambioNubeLumina({ key: clave, value: null, updatedAtLocal: updatedAtFinal, deleted: true });
 
     if (persistenciaLuminaUsaFallbackLocal) {
         try {
@@ -3508,7 +3509,18 @@ function renderizarPanelColeccionesGuardados() {
     botonNueva.className = 'panel-colecciones-cta';
     botonNueva.innerHTML = '<i class="fas fa-plus" aria-hidden="true"></i><span>Nueva</span>';
     botonNueva.addEventListener('click', abrirModalNuevaColeccion);
-    hero.appendChild(botonNueva);
+
+    const botonCompartirBiblioteca = document.createElement('button');
+    botonCompartirBiblioteca.type = 'button';
+    botonCompartirBiblioteca.className = 'panel-colecciones-cta';
+    botonCompartirBiblioteca.innerHTML = '<i class="fas fa-link" aria-hidden="true"></i><span>Biblioteca</span>';
+    botonCompartirBiblioteca.addEventListener('click', compartirBibliotecaColeccionesComoEnlace);
+
+    const accionesHero = document.createElement('div');
+    accionesHero.className = 'panel-colecciones-hero-actions';
+    accionesHero.appendChild(botonNueva);
+    accionesHero.appendChild(botonCompartirBiblioteca);
+    hero.appendChild(accionesHero);
     listaDiv.appendChild(hero);
 
     const colecciones = obtenerColeccionesVersiculosOrdenadas();
@@ -5655,7 +5667,25 @@ async function compartirEnlaceImportableLumina(url, titulo, texto) {
     }
 }
 
-function crearPaqueteColeccionCompartidaLumina(coleccion) {
+function pedirNotaAcompanamientoCompartidoLumina(tipo) {
+    const contexto = tipo === 'biblioteca'
+        ? 'estas colecciones'
+        : (tipo === 'lectio' ? 'esta Lectio' : 'esta colección');
+    const nota = window.prompt(`Mensaje opcional para quien reciba ${contexto}:`, '');
+
+    if (nota === null) return null;
+
+    return String(nota || '')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .slice(0, 280);
+}
+
+function obtenerNotaCompartidaLumina(compartido) {
+    return String(compartido?.payload?.nota || '').trim();
+}
+
+function crearPaqueteColeccionCompartidaLumina(coleccion, nota = '') {
     const normalizada = normalizarColeccionVersiculos(coleccion);
     if (!normalizada) return null;
 
@@ -5664,6 +5694,26 @@ function crearPaqueteColeccionCompartidaLumina(coleccion) {
         titulo: normalizada.nombre,
         payload: {
             coleccion: normalizada,
+            nota,
+            sharedAt: new Date().toISOString()
+        }
+    };
+}
+
+function crearPaqueteBibliotecaColeccionesCompartidaLumina(colecciones, nota = '') {
+    const normalizadas = (Array.isArray(colecciones) ? colecciones : [])
+        .map(normalizarColeccionVersiculos)
+        .filter(Boolean);
+
+    if (normalizadas.length === 0) return null;
+
+    return {
+        tipo: TIPOS_COMPARTIDOS_LUMINA.coleccion,
+        titulo: `Biblioteca de ${normalizadas.length} colecciones`,
+        payload: {
+            tipoContenido: 'biblioteca-colecciones',
+            colecciones: normalizadas,
+            nota,
             sharedAt: new Date().toISOString()
         }
     };
@@ -5690,7 +5740,7 @@ function obtenerDatosLectioActualParaCompartir() {
     };
 }
 
-function crearPaqueteLectioCompartidaLumina() {
+function crearPaqueteLectioCompartidaLumina(nota = '') {
     const lectio = obtenerDatosLectioActualParaCompartir();
     if (!lectio) return null;
 
@@ -5699,6 +5749,7 @@ function crearPaqueteLectioCompartidaLumina() {
         titulo: formatearReferenciaLectio(lectio.libro, lectio.capitulo, lectio.desde, lectio.hasta),
         payload: {
             lectio,
+            nota,
             sharedAt: new Date().toISOString()
         }
     };
@@ -5730,19 +5781,55 @@ async function compartirColeccionComoEnlace(coleccionId) {
         return;
     }
 
+    const nota = pedirNotaAcompanamientoCompartidoLumina('coleccion');
+    if (nota === null) return;
+
     try {
         lanzarToast('Creando enlace compartido...');
-        const paquete = crearPaqueteColeccionCompartidaLumina(coleccion);
+        const paquete = crearPaqueteColeccionCompartidaLumina(coleccion, nota);
         const url = await crearEnlaceCompartidoLumina(paquete);
         if (!url) return;
 
         await compartirEnlaceImportableLumina(
             url,
             `Colección: ${coleccion.nombre}`,
-            `Te comparto la colección "${coleccion.nombre}" desde Lumina.`
+            nota || `Te comparto la colección "${coleccion.nombre}" desde Lumina.`
         );
     } catch (error) {
         console.error('No se pudo crear el enlace de la colección:', error);
+        lanzarToast(obtenerMensajeErrorCompartidoLumina(error));
+    }
+}
+
+async function compartirBibliotecaColeccionesComoEnlace() {
+    const colecciones = obtenerColeccionesVersiculosOrdenadas();
+
+    if (colecciones.length === 0) {
+        lanzarToast('Todavía no tenés colecciones para compartir');
+        return;
+    }
+
+    const nota = pedirNotaAcompanamientoCompartidoLumina('biblioteca');
+    if (nota === null) return;
+
+    try {
+        lanzarToast('Creando enlace de biblioteca...');
+        const paquete = crearPaqueteBibliotecaColeccionesCompartidaLumina(colecciones, nota);
+        if (!paquete) {
+            lanzarToast('No se pudo preparar la biblioteca');
+            return;
+        }
+
+        const url = await crearEnlaceCompartidoLumina(paquete);
+        if (!url) return;
+
+        await compartirEnlaceImportableLumina(
+            url,
+            paquete.titulo,
+            nota || `Te comparto mi biblioteca de ${colecciones.length} colecciones desde Lumina.`
+        );
+    } catch (error) {
+        console.error('No se pudo crear el enlace de la biblioteca:', error);
         lanzarToast(obtenerMensajeErrorCompartidoLumina(error));
     }
 }
@@ -5753,9 +5840,12 @@ async function compartirLectioActualComoEnlace() {
         return;
     }
 
+    const nota = pedirNotaAcompanamientoCompartidoLumina('lectio');
+    if (nota === null) return;
+
     try {
         lanzarToast('Creando enlace compartido...');
-        const paquete = crearPaqueteLectioCompartidaLumina();
+        const paquete = crearPaqueteLectioCompartidaLumina(nota);
         if (!paquete) {
             lanzarToast('No se pudo preparar la Lectio para compartir');
             return;
@@ -5767,7 +5857,7 @@ async function compartirLectioActualComoEnlace() {
         await compartirEnlaceImportableLumina(
             url,
             `Lectio: ${paquete.titulo}`,
-            `Te comparto una Lectio Divina de ${paquete.titulo} desde Lumina.`
+            nota || `Te comparto una Lectio Divina de ${paquete.titulo} desde Lumina.`
         );
     } catch (error) {
         console.error('No se pudo crear el enlace de la Lectio:', error);
@@ -5775,11 +5865,12 @@ async function compartirLectioActualComoEnlace() {
     }
 }
 
-function obtenerNombreColeccionImportadaLumina(nombreOriginal) {
+function obtenerNombreColeccionImportadaLumina(nombreOriginal, nombresReservados = new Set()) {
     const base = normalizarNombreColeccionVersiculos(nombreOriginal) || 'Colección compartida';
     const nombresUsados = new Set(
         coleccionesVersiculos.map(coleccion => normalizarNombreColeccionVersiculos(coleccion.nombre).toLocaleLowerCase('es'))
     );
+    nombresReservados.forEach(nombre => nombresUsados.add(normalizarNombreColeccionVersiculos(nombre).toLocaleLowerCase('es')));
 
     if (!nombresUsados.has(base.toLocaleLowerCase('es'))) {
         return base;
@@ -5795,20 +5886,57 @@ function obtenerNombreColeccionImportadaLumina(nombreOriginal) {
     return candidato;
 }
 
+function obtenerFirmaColeccionCompartidaLumina(coleccion) {
+    const normalizada = normalizarColeccionVersiculos(coleccion);
+    if (!normalizada) return '';
+
+    const nombre = normalizarNombreColeccionVersiculos(normalizada.nombre).toLocaleLowerCase('es');
+    const versiculos = obtenerVersiculosColeccionOrdenados(normalizada)
+        .map(item => [
+            String(item.libro || '').trim().toLocaleLowerCase('es'),
+            Number(item.capitulo) || 0,
+            Number(item.versiculo) || 0,
+            String(item.texto || '').trim()
+        ].join('|'));
+
+    const contenido = versiculos.join('||');
+    return contenido || `sin-versiculos::${nombre}`;
+}
+
+function buscarColeccionDuplicadaCompartidaLumina(coleccion) {
+    const firma = obtenerFirmaColeccionCompartidaLumina(coleccion);
+    if (!firma) return null;
+    return coleccionesVersiculos.find(item => obtenerFirmaColeccionCompartidaLumina(item) === firma) || null;
+}
+
+function crearColeccionImportadaCompartidaLumina(coleccion, nombresReservados = new Set(), ahora = new Date().toISOString()) {
+    return {
+        ...coleccion,
+        id: generarIdColeccionVersiculos(),
+        nombre: obtenerNombreColeccionImportadaLumina(coleccion.nombre, nombresReservados),
+        createdAt: ahora,
+        updatedAt: ahora
+    };
+}
+
 function importarColeccionCompartidaLumina(payload) {
+    if (Array.isArray(payload?.colecciones)) {
+        return importarBibliotecaColeccionesCompartidaLumina(payload);
+    }
+
     const coleccion = normalizarColeccionVersiculos(payload?.coleccion || payload);
     if (!coleccion) {
         throw new Error('La colección compartida no tiene un formato válido.');
     }
 
+    const duplicada = buscarColeccionDuplicadaCompartidaLumina(coleccion);
+    if (duplicada) {
+        mostrarPanelColecciones(duplicada.id);
+        return `Ya tenías "${duplicada.nombre}" en tus colecciones`;
+    }
+
     const ahora = new Date().toISOString();
-    const importada = {
-        ...coleccion,
-        id: generarIdColeccionVersiculos(),
-        nombre: obtenerNombreColeccionImportadaLumina(coleccion.nombre),
-        createdAt: ahora,
-        updatedAt: ahora
-    };
+    const importada = crearColeccionImportadaCompartidaLumina(coleccion, new Set(), ahora);
 
     coleccionesVersiculos = [importada, ...coleccionesVersiculos];
     ultimaColeccionVersiculosId = importada.id;
@@ -5817,10 +5945,85 @@ function importarColeccionCompartidaLumina(payload) {
     return `Colección "${importada.nombre}" importada`;
 }
 
+function importarBibliotecaColeccionesCompartidaLumina(payload) {
+    const recibidas = Array.isArray(payload?.colecciones)
+        ? payload.colecciones.map(normalizarColeccionVersiculos).filter(Boolean)
+        : [];
+
+    if (recibidas.length === 0) {
+        throw new Error('La biblioteca compartida no tiene colecciones válidas.');
+    }
+
+    const firmasExistentes = new Set(coleccionesVersiculos.map(obtenerFirmaColeccionCompartidaLumina).filter(Boolean));
+    const firmasImportadas = new Set();
+    const nombresReservados = new Set();
+    const ahora = new Date().toISOString();
+    const importadas = [];
+    let duplicadas = 0;
+
+    recibidas.forEach(coleccion => {
+        const firma = obtenerFirmaColeccionCompartidaLumina(coleccion);
+        if (!firma || firmasExistentes.has(firma) || firmasImportadas.has(firma)) {
+            duplicadas++;
+            return;
+        }
+
+        const importada = crearColeccionImportadaCompartidaLumina(coleccion, nombresReservados, ahora);
+        importadas.push(importada);
+        firmasImportadas.add(firma);
+        nombresReservados.add(importada.nombre);
+    });
+
+    if (importadas.length > 0) {
+        coleccionesVersiculos = [...importadas, ...coleccionesVersiculos];
+        ultimaColeccionVersiculosId = importadas[0].id;
+        guardarColeccionesVersiculos();
+        mostrarPanelColecciones();
+    } else {
+        mostrarPanelColecciones();
+    }
+
+    if (importadas.length === 0) {
+        return `Ya tenías las ${duplicadas} colecciones de esta biblioteca`;
+    }
+
+    const detalleDuplicadas = duplicadas > 0
+        ? `; ${duplicadas} ya existía${duplicadas === 1 ? '' : 'n'}`
+        : '';
+    return `${importadas.length} colección${importadas.length === 1 ? '' : 'es'} importada${importadas.length === 1 ? '' : 's'}${detalleDuplicadas}`;
+}
+
+function obtenerFirmaLectioCompartidaLumina(lectio) {
+    const normalizada = normalizarRegistroLectioDivina(lectio);
+    if (!normalizada) return '';
+
+    return [
+        String(normalizada.libro || '').trim().toLocaleLowerCase('es'),
+        Number(normalizada.capitulo) || 0,
+        Number(normalizada.desde) || 0,
+        Number(normalizada.hasta) || 0,
+        String(normalizada.leer || '').trim(),
+        String(normalizada.meditar || '').trim(),
+        String(normalizada.orar || '').trim()
+    ].join('|');
+}
+
+function buscarLectioDuplicadaCompartidaLumina(lectio) {
+    const firma = obtenerFirmaLectioCompartidaLumina(lectio);
+    if (!firma) return null;
+    return lectioDivinaRegistros.find(item => obtenerFirmaLectioCompartidaLumina(item) === firma) || null;
+}
+
 function importarLectioCompartidaLumina(payload) {
     const lectio = normalizarRegistroLectioDivina(payload?.lectio || payload);
     if (!lectio) {
         throw new Error('La Lectio compartida no tiene un formato válido.');
+    }
+
+    const duplicada = buscarLectioDuplicadaCompartidaLumina(lectio);
+    if (duplicada) {
+        cargarLectioGuardada(duplicada.id);
+        return `Ya tenías la Lectio de ${formatearReferenciaLectio(duplicada.libro, duplicada.capitulo, duplicada.desde, duplicada.hasta)}`;
     }
 
     const ahora = new Date().toISOString();
@@ -5839,6 +6042,14 @@ function importarLectioCompartidaLumina(payload) {
 
 function obtenerResumenCompartidoLumina(compartido) {
     if (compartido?.tipo === TIPOS_COMPARTIDOS_LUMINA.coleccion) {
+        const colecciones = Array.isArray(compartido.payload?.colecciones)
+            ? compartido.payload.colecciones.map(normalizarColeccionVersiculos).filter(Boolean)
+            : [];
+        if (colecciones.length > 0) {
+            const totalVersiculos = colecciones.reduce((total, coleccion) => total + coleccion.versiculos.length, 0);
+            return `una biblioteca con ${colecciones.length} colección${colecciones.length === 1 ? '' : 'es'} y ${totalVersiculos} versículo${totalVersiculos === 1 ? '' : 's'}`;
+        }
+
         const coleccion = normalizarColeccionVersiculos(compartido.payload?.coleccion);
         if (coleccion) {
             return `la colección "${coleccion.nombre}" con ${coleccion.versiculos.length} versículo${coleccion.versiculos.length === 1 ? '' : 's'}`;
@@ -5853,6 +6064,15 @@ function obtenerResumenCompartidoLumina(compartido) {
     }
 
     return 'este contenido compartido';
+}
+
+function crearTextoConfirmacionCompartidoLumina(compartido, resumen) {
+    const nota = obtenerNotaCompartidaLumina(compartido);
+    const pregunta = `¿Importar ${resumen} a tu Lumina?`;
+
+    return nota
+        ? `${nota}\n\n${pregunta}`
+        : pregunta;
 }
 
 function importarCompartidoLumina(compartido) {
@@ -5909,7 +6129,7 @@ async function procesarEnlaceCompartidoLumina() {
         lanzarToast('Abriendo enlace compartido...');
         const compartido = await firebase.cargarCompartidoLumina(idCompartido);
         const resumen = obtenerResumenCompartidoLumina(compartido);
-        const confirmar = window.confirm(`¿Importar ${resumen} a tu Lumina?`);
+        const confirmar = window.confirm(crearTextoConfirmacionCompartidoLumina(compartido, resumen));
 
         if (!confirmar) {
             limpiarEnlaceCompartidoLuminaDeUrl();
@@ -8998,15 +9218,31 @@ function verificarEventoBibliaCompleta() {
     }
 }
 
-function reiniciarProgresoBiblia() {
+function crearEntradasResetProgresoLecturaLumina(resetAt) {
+    return [
+        { key: CLAVE_LEIDOS, value: '[]', deleted: false, updatedAtLocal: resetAt, deviceId: dispositivoNubeLuminaId },
+        { key: CLAVE_LEIDOS_RESET_AT, value: resetAt, deleted: false, updatedAtLocal: resetAt, deviceId: dispositivoNubeLuminaId },
+        { key: CLAVE_EVENTO_BIBLIA_COMPLETA, value: null, deleted: true, updatedAtLocal: resetAt, deviceId: dispositivoNubeLuminaId }
+    ];
+}
+
+async function registrarResetProgresoLecturaLumina(resetAt = obtenerMarcaTiempoPersistencia()) {
     leidos = new Set();
-    guardarLeidos();
-    actualizarBotonesLeidoLibros();
-    eliminarPersistencia(CLAVE_EVENTO_BIBLIA_COMPLETA);
     bibliaCompletaCelebrada = false;
     celebracionBibliaPendiente = false;
     document.body.classList.remove('biblia-completa-activa');
 
+    await Promise.all([
+        escribirPersistencia(CLAVE_LEIDOS, '[]', resetAt),
+        escribirPersistencia(CLAVE_LEIDOS_RESET_AT, resetAt, resetAt),
+        eliminarPersistencia(CLAVE_EVENTO_BIBLIA_COMPLETA, resetAt)
+    ]);
+
+    return crearEntradasResetProgresoLecturaLumina(resetAt);
+}
+
+function refrescarVistaTrasResetProgresoLecturaLumina(mostrarToast = true) {
+    actualizarBotonesLeidoLibros();
     cerrarConfirmacionReinicioBiblia();
     cerrarCelebracionBibliaCompleta();
 
@@ -9024,7 +9260,9 @@ function reiniciarProgresoBiblia() {
     actualizarProgresoLibroVista();
     actualizarProgresoTestamentosVista();
     actualizarProgresoBibliaVista();
-    lanzarToast('Progreso de lectura reiniciado');
+    if (mostrarToast) {
+        lanzarToast('Progreso de lectura reiniciado');
+    }
 }
 
 function actualizarBotonesLeidoLibros() {
@@ -10704,6 +10942,37 @@ function fusionarArraysUnicosPersistencia(valorLocal, valorNube) {
     ].map(item => String(item || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'));
 }
 
+function obtenerMarcaResetLecturaLocal() {
+    return String(leerPersistencia(CLAVE_LEIDOS_RESET_AT, '') || '');
+}
+
+function obtenerMarcaResetLecturaNube(entradasNube) {
+    const entradaReset = entradasNube?.get?.(CLAVE_LEIDOS_RESET_AT);
+    return maxFechaPersistencia(
+        entradaReset?.value || '',
+        entradaReset?.updatedAtLocal || ''
+    );
+}
+
+function obtenerMarcaResetLecturaFusion(entradasNube) {
+    return maxFechaPersistencia(
+        obtenerMarcaResetLecturaLocal(),
+        obtenerMarcaResetLecturaNube(entradasNube)
+    );
+}
+
+function aplicarResetLecturaSiCorresponde(entrada, resetAt) {
+    if (!entrada || entrada.key !== CLAVE_LEIDOS) return entrada;
+    if (!resetAt || compararFechasPersistencia(resetAt, entrada.updatedAtLocal) <= 0) return entrada;
+
+    return {
+        ...entrada,
+        value: '[]',
+        deleted: false,
+        updatedAtLocal: resetAt
+    };
+}
+
 function normalizarNotaFusionLumina(nota) {
     if (!nota) return null;
 
@@ -10974,6 +11243,49 @@ function recargarEstadoDesdePersistenciaLumina() {
     actualizarProgresoBibliaVista();
 }
 
+async function reiniciarProgresoBiblia() {
+    await registrarResetProgresoLecturaLumina();
+    refrescarVistaTrasResetProgresoLecturaLumina();
+}
+
+async function restablecerProgresoLecturaEnNubeLumina() {
+    const confirmar = window.confirm(
+        '¿Restablecer solo el progreso de lectura? Se borrarán las marcas de leído en este dispositivo y se subirá una orden de reinicio a tu nube Lumina. Tus notas, favoritos, colecciones y Lectio no se tocan.'
+    );
+
+    if (!confirmar) return;
+
+    const usuario = usuarioFirebaseLumina || await asegurarSesionNubeParaCompartirLumina();
+    if (!usuario) return;
+
+    const firebase = firebaseLumina || window.LuminaFirebase;
+    if (!firebase?.guardarEntradasLumina) {
+        lanzarToast('Firebase todavía no está listo para restablecer la lectura');
+        return;
+    }
+
+    try {
+        lanzarToast('Restableciendo progreso de lectura...');
+        clearTimeout(temporizadorSincronizacionNubeLumina);
+
+        const resetAt = obtenerMarcaTiempoPersistencia();
+        const entradasReset = await registrarResetProgresoLecturaLumina(resetAt);
+        refrescarVistaTrasResetProgresoLecturaLumina(false);
+        await esperarOperacionNubeLumina(
+            firebase.guardarEntradasLumina(usuario.uid, entradasReset),
+            'El reinicio del progreso de lectura tardó demasiado',
+            TIMEOUT_ESCRITURA_NUBE_LUMINA
+        );
+        entradasReset.forEach(entrada => cambiosPendientesNubeLumina.delete(entrada.key));
+        actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.sincronizado);
+
+        lanzarToast('Progreso de lectura restablecido en la nube');
+    } catch (error) {
+        console.error('No se pudo restablecer el progreso de lectura en la nube:', error);
+        lanzarToast('No se pudo restablecer el progreso de lectura');
+    }
+}
+
 function encolarCambioNubeLumina(entrada) {
     if (aplicandoDatosNubeLumina || !usuarioFirebaseLumina || !firebaseLumina?.guardarEntradasLumina) return;
 
@@ -11038,16 +11350,19 @@ async function sincronizarLuminaConNube({ manual = false } = {}) {
         entradasNubeRaw.map(normalizarEntradaNubeLumina).filter(Boolean).forEach(entrada => {
             entradasNube.set(entrada.key, entrada);
         });
+        const resetLecturaAt = obtenerMarcaResetLecturaFusion(entradasNube);
 
         const subidas = [];
         const clavesVisitadas = new Set();
 
-        for (const entradaNube of entradasNube.values()) {
-            const entradaLocal = obtenerEntradaLocalNubeLumina(entradaNube.key);
+        for (const entradaNubeRaw of entradasNube.values()) {
+            const entradaNube = aplicarResetLecturaSiCorresponde(entradaNubeRaw, resetLecturaAt);
+            const entradaLocalRaw = obtenerEntradaLocalNubeLumina(entradaNube.key);
+            const entradaLocal = aplicarResetLecturaSiCorresponde(entradaLocalRaw, resetLecturaAt);
             const entradaFusionada = fusionarEntradasPersistenciaLumina(entradaLocal, entradaNube);
             clavesVisitadas.add(entradaNube.key);
 
-            if (!entradasNubeEquivalentes(entradaFusionada, entradaLocal)) {
+            if (!entradasNubeEquivalentes(entradaFusionada, entradaLocalRaw)) {
                 if (entradaFusionada.deleted) {
                     await eliminarEntradaPersistenciaDesdeNube(entradaFusionada);
                 } else {
@@ -11055,7 +11370,7 @@ async function sincronizarLuminaConNube({ manual = false } = {}) {
                 }
             }
 
-            if (!entradasNubeEquivalentes(entradaFusionada, entradaNube)) {
+            if (!entradasNubeEquivalentes(entradaFusionada, entradaNubeRaw)) {
                 subidas.push({
                     ...entradaFusionada,
                     deviceId: dispositivoNubeLuminaId
@@ -11063,8 +11378,9 @@ async function sincronizarLuminaConNube({ manual = false } = {}) {
             }
         }
 
-        obtenerEntradasPersistenciaParaNube().forEach(entradaLocal => {
-            if (clavesVisitadas.has(entradaLocal.key)) return;
+        obtenerEntradasPersistenciaParaNube().forEach(entradaLocalRaw => {
+            if (clavesVisitadas.has(entradaLocalRaw.key)) return;
+            const entradaLocal = aplicarResetLecturaSiCorresponde(entradaLocalRaw, resetLecturaAt);
             subidas.push({ ...entradaLocal, deviceId: dispositivoNubeLuminaId });
         });
 
