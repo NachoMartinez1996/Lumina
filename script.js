@@ -6134,7 +6134,7 @@ async function pedirNotaAcompanamientoCompartidoLumina(tipo) {
         : (tipo === 'lectio' ? 'esta Lectio' : 'esta colección');
     const nota = await pedirTextoLumina(
         'Mensaje opcional',
-        `Deseás agregar una dedicatoria breve para quien reciba esta colección? ${contexto}. Podés dejarlo vacío.`,
+        `¿Deseás agregar una dedicatoria breve para quien reciba ${contexto}? Podés dejarlo vacío.`,
         {
             etiqueta: 'Mensaje',
             placeholder: 'Ej.: Te comparto esto para rezarlo juntos.',
