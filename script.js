@@ -2015,6 +2015,195 @@ function lanzarToast(mensaje) {
     }, 2500);
 }
 
+let dialogoLuminaActual = null;
+
+function asegurarDialogoLumina() {
+    let modal = document.getElementById('modal-dialogo-lumina');
+    if (modal) return modal;
+
+    modal = document.createElement('div');
+    modal.id = 'modal-dialogo-lumina';
+    modal.className = 'modal-dialogo-lumina hidden';
+    modal.innerHTML = `
+        <div class="dialogo-lumina-card" role="dialog" aria-modal="true" aria-labelledby="dialogo-lumina-titulo" aria-describedby="dialogo-lumina-mensaje" onclick="event.stopPropagation()">
+            <button type="button" class="dialogo-lumina-close" aria-label="Cerrar">
+                <i class="fas fa-times" aria-hidden="true"></i>
+            </button>
+            <p class="dialogo-lumina-eyebrow">Lumina</p>
+            <h3 id="dialogo-lumina-titulo" class="dialogo-lumina-titulo"></h3>
+            <p id="dialogo-lumina-mensaje" class="dialogo-lumina-mensaje"></p>
+            <label class="dialogo-lumina-campo hidden">
+                <span class="dialogo-lumina-label"></span>
+                <input type="text" class="dialogo-lumina-input">
+                <textarea class="dialogo-lumina-textarea" rows="4"></textarea>
+            </label>
+            <div class="dialogo-lumina-acciones">
+                <button type="button" class="dialogo-lumina-btn dialogo-lumina-cancelar">Cancelar</button>
+                <button type="button" class="dialogo-lumina-btn dialogo-lumina-confirmar">Aceptar</button>
+            </div>
+        </div>
+    `;
+
+    modal.addEventListener('click', () => cerrarDialogoLumina(null));
+    modal.querySelector('.dialogo-lumina-close')?.addEventListener('click', () => cerrarDialogoLumina(null));
+    modal.querySelector('.dialogo-lumina-cancelar')?.addEventListener('click', () => cerrarDialogoLumina(null));
+    modal.querySelector('.dialogo-lumina-confirmar')?.addEventListener('click', () => confirmarDialogoLumina());
+    modal.querySelector('.dialogo-lumina-input')?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            confirmarDialogoLumina();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        const dialogo = document.getElementById('modal-dialogo-lumina');
+        if (!dialogo || dialogo.classList.contains('hidden')) return;
+
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            cerrarDialogoLumina(null);
+        }
+    });
+
+    document.body.appendChild(modal);
+    return modal;
+}
+
+function cerrarDialogoLumina(valor) {
+    const modal = document.getElementById('modal-dialogo-lumina');
+    if (modal) modal.classList.add('hidden');
+    document.body.classList.remove('dialogo-lumina-abierto');
+
+    const estado = dialogoLuminaActual;
+    dialogoLuminaActual = null;
+
+    if (estado?.focoPrevio?.focus) {
+        requestAnimationFrame(() => estado.focoPrevio.focus());
+    }
+
+    estado?.resolver?.(valor);
+}
+
+function confirmarDialogoLumina() {
+    if (!dialogoLuminaActual) return;
+
+    const modal = document.getElementById('modal-dialogo-lumina');
+    if (dialogoLuminaActual.tipo === 'prompt') {
+        const campo = dialogoLuminaActual.multilinea
+            ? modal?.querySelector('.dialogo-lumina-textarea')
+            : modal?.querySelector('.dialogo-lumina-input');
+        cerrarDialogoLumina(String(campo?.value || ''));
+        return;
+    }
+
+    cerrarDialogoLumina(true);
+}
+
+function mostrarDialogoLumina(opciones = {}) {
+    const modal = asegurarDialogoLumina();
+    if (dialogoLuminaActual?.resolver) {
+        dialogoLuminaActual.resolver(null);
+    }
+
+    const tipo = opciones.tipo || 'alerta';
+    const esPrompt = tipo === 'prompt';
+    const esConfirmacion = tipo === 'confirmar';
+    const multilinea = opciones.multilinea === true;
+    const titulo = opciones.titulo || 'Lumina';
+    const mensaje = opciones.mensaje || '';
+    const etiqueta = opciones.etiqueta || 'Mensaje';
+    const textoConfirmar = opciones.textoConfirmar || (esConfirmacion ? 'Aceptar' : 'Entendido');
+    const textoCancelar = opciones.textoCancelar || 'Cancelar';
+
+    const tituloNodo = modal.querySelector('.dialogo-lumina-titulo');
+    const mensajeNodo = modal.querySelector('.dialogo-lumina-mensaje');
+    const campoWrap = modal.querySelector('.dialogo-lumina-campo');
+    const labelNodo = modal.querySelector('.dialogo-lumina-label');
+    const input = modal.querySelector('.dialogo-lumina-input');
+    const textarea = modal.querySelector('.dialogo-lumina-textarea');
+    const cancelar = modal.querySelector('.dialogo-lumina-cancelar');
+    const confirmar = modal.querySelector('.dialogo-lumina-confirmar');
+
+    tituloNodo.textContent = titulo;
+    mensajeNodo.textContent = mensaje;
+    campoWrap.classList.toggle('hidden', !esPrompt);
+    labelNodo.textContent = etiqueta;
+    input.classList.toggle('hidden', !esPrompt || multilinea);
+    textarea.classList.toggle('hidden', !esPrompt || !multilinea);
+    cancelar.hidden = !esConfirmacion && !esPrompt;
+    cancelar.textContent = textoCancelar;
+    confirmar.textContent = textoConfirmar;
+    confirmar.classList.toggle('dialogo-lumina-confirmar-peligro', opciones.peligro === true);
+
+    const campoActivo = multilinea ? textarea : input;
+    input.value = '';
+    textarea.value = '';
+    input.removeAttribute('maxlength');
+    textarea.removeAttribute('maxlength');
+    input.placeholder = '';
+    textarea.placeholder = '';
+
+    if (esPrompt) {
+        campoActivo.value = opciones.valorInicial || '';
+        campoActivo.placeholder = opciones.placeholder || '';
+        if (opciones.maxLength) campoActivo.setAttribute('maxlength', String(opciones.maxLength));
+    }
+
+    modal.classList.remove('hidden');
+    document.body.classList.add('dialogo-lumina-abierto');
+
+    return new Promise(resolve => {
+        dialogoLuminaActual = {
+            resolver: resolve,
+            tipo,
+            multilinea,
+            focoPrevio: document.activeElement
+        };
+
+        requestAnimationFrame(() => {
+            if (esPrompt) campoActivo.focus();
+            else confirmar.focus();
+        });
+    });
+}
+
+function mostrarAlertaLumina(titulo, mensaje, opciones = {}) {
+    return mostrarDialogoLumina({
+        ...opciones,
+        tipo: 'alerta',
+        titulo,
+        mensaje,
+        textoConfirmar: opciones.textoConfirmar || 'Entendido'
+    });
+}
+
+async function confirmarLumina(titulo, mensaje, opciones = {}) {
+    const resultado = await mostrarDialogoLumina({
+        ...opciones,
+        tipo: 'confirmar',
+        titulo,
+        mensaje,
+        textoConfirmar: opciones.textoConfirmar || 'Aceptar',
+        textoCancelar: opciones.textoCancelar || 'Cancelar'
+    });
+    return resultado === true;
+}
+
+function pedirTextoLumina(titulo, mensaje, opciones = {}) {
+    return mostrarDialogoLumina({
+        ...opciones,
+        tipo: 'prompt',
+        titulo,
+        mensaje,
+        textoConfirmar: opciones.textoConfirmar || 'Aceptar',
+        textoCancelar: opciones.textoCancelar || 'Cancelar'
+    });
+}
+
+function avisarLecturaVozAltaNoDisponible() {
+    mostrarAlertaLumina('Lectura en voz alta', 'Tu navegador no admite lectura en voz alta.');
+}
+
 function renderizarModalVersiculoInicio() {
     const referencia = document.getElementById('versiculo-inicio-referencia');
     const texto = document.getElementById('versiculo-inicio-texto');
@@ -3914,11 +4103,21 @@ function crearColeccionDesdeModal() {
     mostrarPanelColecciones(resultado.coleccion.id);
 }
 
-function renombrarColeccionDesdePanel(coleccionId) {
+async function renombrarColeccionDesdePanel(coleccionId) {
     const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
     if (!coleccion) return;
 
-    const nuevoNombre = window.prompt('Nuevo nombre para la colección:', coleccion.nombre);
+    const nuevoNombre = await pedirTextoLumina(
+        'Renombrar colección',
+        'Elegí un nuevo nombre para esta colección.',
+        {
+            etiqueta: 'Nombre',
+            valorInicial: coleccion.nombre,
+            placeholder: 'Ej.: Pascua, Retiro, Sacramentos',
+            maxLength: 60,
+            textoConfirmar: 'Renombrar'
+        }
+    );
     if (nuevoNombre === null) return;
 
     const resultado = renombrarColeccionVersiculos(coleccionId, nuevoNombre);
@@ -3932,11 +4131,18 @@ function renombrarColeccionDesdePanel(coleccionId) {
     }
 }
 
-function eliminarColeccionDesdePanel(coleccionId) {
+async function eliminarColeccionDesdePanel(coleccionId) {
     const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
     if (!coleccion) return;
 
-    const confirmar = window.confirm(`¿Eliminar la colección "${coleccion.nombre}"?`);
+    const confirmar = await confirmarLumina(
+        'Eliminar colección',
+        `¿Eliminar la colección "${coleccion.nombre}"? Esta acción no se puede deshacer.`,
+        {
+            textoConfirmar: 'Eliminar',
+            peligro: true
+        }
+    );
     if (!confirmar) return;
 
     if (eliminarColeccionVersiculos(coleccionId)) {
@@ -4307,11 +4513,18 @@ function guardarLectioActual() {
     lanzarToast(registroExistente ? 'Lectio actualizada' : 'Lectio guardada');
 }
 
-function eliminarLectioGuardada(registroId) {
+async function eliminarLectioGuardada(registroId) {
     const registro = obtenerLectioDivinaPorId(registroId);
     if (!registro) return;
 
-    const confirmar = window.confirm(`¿Eliminar la Lectio de ${formatearReferenciaLectio(registro.libro, registro.capitulo, registro.desde, registro.hasta)}?`);
+    const confirmar = await confirmarLumina(
+        'Eliminar Lectio',
+        `¿Eliminar la Lectio de ${formatearReferenciaLectio(registro.libro, registro.capitulo, registro.desde, registro.hasta)}?`,
+        {
+            textoConfirmar: 'Eliminar',
+            peligro: true
+        }
+    );
     if (!confirmar) return;
 
     lectioDivinaRegistros = lectioDivinaRegistros.filter(item => item.id !== registroId);
@@ -5188,7 +5401,7 @@ async function compartirTexto(texto, titulo) {
         } catch (err) { console.log('Error al compartir:', err); }
     } else {
         await navigator.clipboard.writeText(texto);
-        alert('Texto copiado al portapapeles');
+        await mostrarAlertaLumina('Texto copiado', 'Texto copiado al portapapeles');
     }
 }
 
@@ -5732,7 +5945,7 @@ async function descargarTarjetaVersiculo() {
 
 function escucharComentario(autor, texto, btn) {
     if (!navegadorSoportaLectura()) {
-        alert('Tu navegador no admite lectura en voz alta.');
+        avisarLecturaVozAltaNoDisponible();
         return;
     }
 
@@ -5767,7 +5980,7 @@ function escucharComentario(autor, texto, btn) {
 
 function escucharNota(texto, btn) {
     if (!navegadorSoportaLectura()) {
-        alert('Tu navegador no admite lectura en voz alta.');
+        avisarLecturaVozAltaNoDisponible();
         return;
     }
 
@@ -5801,7 +6014,7 @@ function escucharNota(texto, btn) {
 
 function escucharPasajeLectio(btn) {
     if (!navegadorSoportaLectura()) {
-        alert('Tu navegador no admite lectura en voz alta.');
+        avisarLecturaVozAltaNoDisponible();
         return;
     }
 
@@ -5911,15 +6124,25 @@ async function compartirEnlaceImportableLumina(url, titulo, texto) {
         lanzarToast('Enlace copiado al portapapeles');
     } catch (error) {
         console.error('No se pudo copiar el enlace compartido:', error);
-        alert(url);
+        await mostrarAlertaLumina('No pudimos copiar el enlace', url);
     }
 }
 
-function pedirNotaAcompanamientoCompartidoLumina(tipo) {
+async function pedirNotaAcompanamientoCompartidoLumina(tipo) {
     const contexto = tipo === 'biblioteca'
         ? 'estas colecciones'
         : (tipo === 'lectio' ? 'esta Lectio' : 'esta colección');
-    const nota = window.prompt(`Mensaje opcional para quien reciba ${contexto}:`, '');
+    const nota = await pedirTextoLumina(
+        'Mensaje opcional',
+        `Escribí un mensaje breve para quien reciba ${contexto}. Podés dejarlo vacío.`,
+        {
+            etiqueta: 'Mensaje',
+            placeholder: 'Ej.: Te comparto esto para rezarlo juntos.',
+            maxLength: 280,
+            multilinea: true,
+            textoConfirmar: 'Continuar'
+        }
+    );
 
     if (nota === null) return null;
 
@@ -6029,7 +6252,7 @@ async function compartirColeccionComoEnlace(coleccionId) {
         return;
     }
 
-    const nota = pedirNotaAcompanamientoCompartidoLumina('coleccion');
+    const nota = await pedirNotaAcompanamientoCompartidoLumina('coleccion');
     if (nota === null) return;
 
     try {
@@ -6057,7 +6280,7 @@ async function compartirBibliotecaColeccionesComoEnlace() {
         return;
     }
 
-    const nota = pedirNotaAcompanamientoCompartidoLumina('biblioteca');
+    const nota = await pedirNotaAcompanamientoCompartidoLumina('biblioteca');
     if (nota === null) return;
 
     try {
@@ -6088,7 +6311,7 @@ async function compartirLectioActualComoEnlace() {
         return;
     }
 
-    const nota = pedirNotaAcompanamientoCompartidoLumina('lectio');
+    const nota = await pedirNotaAcompanamientoCompartidoLumina('lectio');
     if (nota === null) return;
 
     try {
@@ -6377,7 +6600,13 @@ async function procesarEnlaceCompartidoLumina() {
         lanzarToast('Abriendo enlace compartido...');
         const compartido = await firebase.cargarCompartidoLumina(idCompartido);
         const resumen = obtenerResumenCompartidoLumina(compartido);
-        const confirmar = window.confirm(crearTextoConfirmacionCompartidoLumina(compartido, resumen));
+        const confirmar = await confirmarLumina(
+            'Abrir enlace compartido',
+            crearTextoConfirmacionCompartidoLumina(compartido, resumen),
+            {
+                textoConfirmar: 'Importar'
+            }
+        );
 
         if (!confirmar) {
             limpiarEnlaceCompartidoLuminaDeUrl();
@@ -8653,7 +8882,7 @@ function manejarBotonLeerLibroActual() {
 
 function escucharVersiculo(libro, capitulo, versiculo, texto) {
     if (!navegadorSoportaLectura()) {
-        alert('Tu navegador no admite lectura en voz alta.');
+        avisarLecturaVozAltaNoDisponible();
         return;
     }
 
@@ -8717,7 +8946,7 @@ function escucharVersiculo(libro, capitulo, versiculo, texto) {
 }
 function leerCapituloEntero() {
     if (!navegadorSoportaLectura()) {
-        alert('Tu navegador no admite lectura en voz alta.');
+        avisarLecturaVozAltaNoDisponible();
         return;
     }
 
@@ -8761,7 +8990,7 @@ let capituloEnReproduccion = null;
 
 function leerCapituloEspecifico(capitulo) {
     if (!navegadorSoportaLectura()) {
-        alert('Tu navegador no admite lectura en voz alta.');
+        avisarLecturaVozAltaNoDisponible();
         return;
     }
 
@@ -8799,7 +9028,7 @@ function leerCapituloEspecifico(capitulo) {
 
 function leerLibroEntero(libroNombre) {
     if (!navegadorSoportaLectura()) {
-        alert('Tu navegador no admite lectura en voz alta.');
+        avisarLecturaVozAltaNoDisponible();
         return;
     }
 
@@ -8815,7 +9044,7 @@ function leerLibroEntero(libroNombre) {
     // Obtener todos los versículos del libro
     const libroContenido = bibleContent[libroNombre];
     if (!libroContenido) {
-        alert(`No se encontró contenido para ${libroNombre}`);
+        mostrarAlertaLumina('Contenido no disponible', `No se encontró contenido para ${libroNombre}`);
         return;
     }
 
@@ -11497,8 +11726,13 @@ async function reiniciarProgresoBiblia() {
 }
 
 async function restablecerProgresoLecturaEnNubeLumina() {
-    const confirmar = window.confirm(
-        '¿Restablecer solo el progreso de lectura? Se borrarán las marcas de leído en este dispositivo y se subirá una orden de reinicio a tu nube Lumina. Tus notas, favoritos, colecciones y Lectio no se tocan.'
+    const confirmar = await confirmarLumina(
+        'Restablecer progreso',
+        '¿Restablecer solo el progreso de lectura? Se borrarán las marcas de leído en este dispositivo y se subirá una orden de reinicio a tu nube Lumina. Tus notas, favoritos, colecciones y Lectio no se tocan.',
+        {
+            textoConfirmar: 'Restablecer',
+            peligro: true
+        }
     );
 
     if (!confirmar) return;
@@ -12138,7 +12372,7 @@ function cerrarModalCompartir() {
 }
 
 // 3. Tu función original, intacta (llamada desde el botón del modal)
-function compartirEnlaceLumina() {
+async function compartirEnlaceLumina() {
     if (navigator.share) {
         navigator.share({
             title: 'Lumina - La Tradición Iluminando la Palabra',
@@ -12148,8 +12382,8 @@ function compartirEnlaceLumina() {
             .then(() => console.log('Gracias por compartir la Luz'))
             .catch((error) => console.log('Error al compartir', error));
     } else {
-        navigator.clipboard.writeText('https://nachomartinez1996.github.io/Lumina/');
-        alert('¡Enlace copiado! Ya podés pegarlo y compartir la Luz.');
+        await navigator.clipboard.writeText('https://nachomartinez1996.github.io/Lumina/');
+        await mostrarAlertaLumina('Enlace copiado', '¡Enlace copiado! Ya podés pegarlo y compartir la Luz.');
     }
 }
 // ========== FUNCIONES PARA RESALTAR VERSÍCULOS EN REPRODUCCIÓN ==========
@@ -12791,7 +13025,7 @@ async function importarProgreso(evento) {
         renderizarModalRespaldoLumina();
     } catch (error) {
         console.error('No se pudo leer el respaldo seleccionado:', error);
-        alert('Mmm... Parece que el archivo está corrupto o no es un backup válido.');
+        mostrarAlertaLumina('Respaldo inválido', 'Mmm... Parece que el archivo está corrupto o no es un backup válido.');
     } finally {
         const input = document.getElementById('archivoBackup');
         if (input) input.value = '';
