@@ -1360,6 +1360,7 @@ const CLAVE_LECTIO_DIVINA = 'lumina_lectio_divina_v1';
 const CLAVE_BUSQUEDAS_RECIENTES = 'lumina_busquedas_recientes_v1';
 const CLAVE_DARKMODE = 'lumina_darkmode';
 const CLAVE_CONCORDANCIA = 'lumina_concordancia';
+const CLAVE_VOZ_SELECCIONADA = 'lumina_voz_seleccionada_v1';
 const CLAVE_BIENVENIDA = 'lumina_bienvenida_v1';
 const LIMITE_BUSQUEDAS_RECIENTES = 12;
 let modoDesiertoActivo = false;
@@ -8162,6 +8163,7 @@ let tokenLecturaActiva = 0;
 let timeoutLecturaActiva = null;
 let speechSynthesisDesbloqueada = false;
 let vozEspanolPrecargada = null;
+let listenerVocesLecturaRegistrado = false;
 
 function navegadorSoportaLectura() {
     return 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
@@ -8174,6 +8176,35 @@ function esDispositivoMovilLectura() {
         window.matchMedia?.('(pointer: coarse)').matches ||
         /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent)
     );
+}
+
+function obtenerVocesEnEspanol() {
+    if (!navegadorSoportaLectura()) return [];
+
+    const voces = window.speechSynthesis.getVoices();
+    const vocesEspanol = voces.filter(v => v.lang && v.lang.toLowerCase().startsWith('es'));
+
+    return vocesEspanol.sort((a, b) => {
+        const esArgentinaA = a.lang && a.lang.toLowerCase() === 'es-ar';
+        const esArgentinaB = b.lang && b.lang.toLowerCase() === 'es-ar';
+        if (esArgentinaA && !esArgentinaB) return -1;
+        if (!esArgentinaA && esArgentinaB) return 1;
+        return a.name.localeCompare(b.name);
+    });
+}
+
+function obtenerClaveVoz(voz) {
+    if (!voz) return '';
+    return voz.voiceURI || `${voz.name || 'voz'}::${voz.lang || 'es'}`;
+}
+
+function buscarVozPorClave(voces, claveVoz) {
+    if (!claveVoz) return null;
+
+    return voces.find(voz =>
+        obtenerClaveVoz(voz) === claveVoz ||
+        (voz.voiceURI && voz.voiceURI === claveVoz)
+    ) || null;
 }
 
 function seleccionarVozEspanol(voces) {
@@ -8220,7 +8251,7 @@ function sincronizarVozEspanol() {
         return null;
     }
 
-    vozEspanolPrecargada = seleccionarVozEspanol(voces);
+    vozEspanolPrecargada = obtenerVozEspanol();
 
     if (vozEspanolPrecargada) {
         console.log(`Sincronizando voces para Lumina... ${vozEspanolPrecargada.name} (${vozEspanolPrecargada.lang})`);
@@ -8233,10 +8264,18 @@ function obtenerVozEspanol() {
     if (!navegadorSoportaLectura()) return null;
     const voces = window.speechSynthesis.getVoices();
 
-    // Si no hay voces disponibles, esperar a que se carguen (común en móvil)
     if (voces.length === 0) {
         vozEspanolPrecargada = null;
         return null;
+    }
+
+    const vozGuardadaURI = leerPersistencia(CLAVE_VOZ_SELECCIONADA);
+    if (vozGuardadaURI) {
+        const vozGuardada = buscarVozPorClave(voces, vozGuardadaURI);
+        if (vozGuardada) {
+            vozEspanolPrecargada = vozGuardada;
+            return vozGuardada;
+        }
     }
 
     if (vozEspanolPrecargada) {
@@ -8376,13 +8415,15 @@ function crearUtteranceLectura(texto) {
     const textoLimpio = normalizarTextoParaLectura(texto);
     const utterance = new SpeechSynthesisUtterance(textoLimpio);
 
-    // 2. Obtenemos la mejor voz disponible con nuestra nueva lógica
+    // 2. Asignamos la voz seleccionada por el usuario (si existe) o la mejor voz es-
+    // Nota: SpeechSynthesis suele cargar voces en diferido; obtenerVozEspanol() ya contempla el fallback.
     const voz = obtenerVozEspanol();
 
     if (voz) {
         utterance.voice = voz;
-        utterance.lang = voz.lang;
-        console.log(`Utterance configurada con voz: ${voz.name} (${voz.lang})`);
+        // Aseguramos que el speech synthesis use el idioma de la voz elegida
+        utterance.lang = voz.lang || 'es';
+        console.log(`Utterance configurada con voz: ${voz.name} (${utterance.lang})`);
     } else {
         // Fallback: usar "es" genérico evita silenciar equipos que no tengan es-AR.
         utterance.lang = 'es';
@@ -9074,16 +9115,136 @@ function leerLibroEntero(libroNombre) {
     }
 }
 
-function initDarkMode() {
-    const darkMode = leerPersistencia(CLAVE_DARKMODE) === 'true';
-    if (darkMode) document.body.classList.add('dark');
-    const toggle = document.getElementById('toggle-darkmode');
-    toggle.addEventListener('click', () => {
-        document.body.classList.toggle('dark');
-        const isDark = document.body.classList.contains('dark');
-        escribirPersistencia(CLAVE_DARKMODE, String(isDark));
-        toggle.innerHTML = isDark ? '<i class="fas fa-sun text-lg"></i>' : '<i class="fas fa-moon text-lg"></i>';
+function actualizarControlesDarkMode(isDark) {
+    const btnClaro = document.getElementById('theme-light-option');
+    const btnOscuro = document.getElementById('theme-dark-option');
+    const toggleLegacy = document.getElementById('toggle-darkmode');
+
+    if (toggleLegacy) toggleLegacy.checked = isDark;
+
+    [
+        { boton: btnClaro, activo: !isDark },
+        { boton: btnOscuro, activo: isDark }
+    ].forEach(({ boton, activo }) => {
+        if (!boton) return;
+        boton.classList.toggle('settings-theme-option-active', activo);
+        boton.setAttribute('aria-pressed', String(activo));
     });
+}
+
+function aplicarDarkMode(activo, { guardar = true } = {}) {
+    const isDark = Boolean(activo);
+    document.body.classList.toggle('dark', isDark);
+    actualizarControlesDarkMode(isDark);
+
+    if (guardar) {
+        escribirPersistencia(CLAVE_DARKMODE, String(isDark));
+    }
+}
+
+function registrarActualizacionVocesLectura() {
+    if (!navegadorSoportaLectura() || listenerVocesLecturaRegistrado) return;
+
+    const actualizarVoces = () => {
+        sincronizarVozEspanol();
+        cargarVocesEnSelector();
+    };
+
+    if (typeof window.speechSynthesis.addEventListener === 'function') {
+        window.speechSynthesis.addEventListener('voiceschanged', actualizarVoces);
+    } else {
+        const listenerAnterior = window.speechSynthesis.onvoiceschanged;
+        window.speechSynthesis.onvoiceschanged = (event) => {
+            if (typeof listenerAnterior === 'function') {
+                listenerAnterior.call(window.speechSynthesis, event);
+            }
+            actualizarVoces();
+        };
+    }
+
+    listenerVocesLecturaRegistrado = true;
+}
+
+function initSettingsMenu() {
+    const btnSettings = document.getElementById('btn-settings-menu');
+    const settingsMenu = document.getElementById('settings-menu');
+
+    if (!btnSettings || !settingsMenu) return;
+
+    btnSettings.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = !settingsMenu.classList.contains('hidden');
+        settingsMenu.classList.toggle('hidden');
+        btnSettings.setAttribute('aria-expanded', !isOpen ? 'true' : 'false');
+    });
+
+    settingsMenu.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+
+    document.addEventListener('click', () => {
+        if (!settingsMenu.classList.contains('hidden')) {
+            settingsMenu.classList.add('hidden');
+            btnSettings.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    const darkMode = leerPersistencia(CLAVE_DARKMODE) === 'true';
+    aplicarDarkMode(darkMode, { guardar: false });
+
+    document.getElementById('theme-light-option')?.addEventListener('click', () => aplicarDarkMode(false));
+    document.getElementById('theme-dark-option')?.addEventListener('click', () => aplicarDarkMode(true));
+
+    cargarVocesEnSelector();
+    registrarActualizacionVocesLectura();
+}
+
+function cargarVocesEnSelector() {
+    const selectorVoz = document.getElementById('selector-voz-espanol');
+    if (!selectorVoz) return;
+
+    if (!navegadorSoportaLectura()) {
+        selectorVoz.innerHTML = '<option value="">Lectura no compatible</option>';
+        selectorVoz.disabled = true;
+        return;
+    }
+
+    const vocesEspanol = obtenerVocesEnEspanol();
+    const vozActualURI = leerPersistencia(CLAVE_VOZ_SELECCIONADA);
+
+    if (vocesEspanol.length === 0) {
+        selectorVoz.innerHTML = '<option value="">Cargando voces...</option>';
+        selectorVoz.disabled = true;
+        return;
+    }
+
+    selectorVoz.disabled = false;
+    selectorVoz.innerHTML = '<option value="">Usar voz predeterminada</option>';
+
+    vocesEspanol.forEach(voz => {
+        const option = document.createElement('option');
+        option.value = obtenerClaveVoz(voz);
+        option.textContent = `${voz.name} (${voz.lang})`;
+
+        if (vozActualURI === option.value) {
+            option.selected = true;
+        }
+
+        selectorVoz.appendChild(option);
+    });
+
+    selectorVoz.onchange = (e) => {
+        const vozSeleccionada = e.target.value;
+        if (vozSeleccionada) {
+            escribirPersistencia(CLAVE_VOZ_SELECCIONADA, vozSeleccionada);
+            vozEspanolPrecargada = buscarVozPorClave(window.speechSynthesis.getVoices(), vozSeleccionada);
+            console.log(`Voz seleccionada: ${vozSeleccionada}`);
+        } else {
+            eliminarPersistencia(CLAVE_VOZ_SELECCIONADA);
+            sincronizarVozEspanol();
+            console.log('Voz predeterminada seleccionada');
+        }
+    };
 }
 
 // --------------------------------------------------------------
@@ -11700,11 +11861,7 @@ function recargarEstadoDesdePersistenciaLumina() {
     cargarVersiculoInicioGuardado();
 
     const darkMode = leerPersistencia(CLAVE_DARKMODE) === 'true';
-    document.body.classList.toggle('dark', darkMode);
-    const toggleDark = document.getElementById('toggle-darkmode');
-    if (toggleDark) {
-        toggleDark.innerHTML = darkMode ? '<i class="fas fa-sun text-lg"></i>' : '<i class="fas fa-moon text-lg"></i>';
-    }
+    aplicarDarkMode(darkMode, { guardar: false });
 
     concordanciaActiva = leerPersistencia(CLAVE_CONCORDANCIA) === 'true';
     const toggleConcordancia = document.getElementById('toggle-concordancia');
@@ -12153,7 +12310,7 @@ window.onload = async () => {
     ]);
     await actualizarIndicadorConexion();
 
-    initDarkMode();
+    initSettingsMenu();
     aplicarModoDesierto(leerPersistencia(CLAVE_MODO_DESIERTO) === 'true', { guardar: false });
     aplicarTextoCorrido(leerPersistencia(CLAVE_TEXTO_CORRIDO) === 'true', { guardar: false });
     inicializarLectioDivina();
@@ -12339,9 +12496,7 @@ window.onload = async () => {
     if (navegadorSoportaLectura()) {
         window.speechSynthesis.getVoices();
         sincronizarVozEspanol();
-        window.speechSynthesis.onvoiceschanged = () => {
-            sincronizarVozEspanol();
-        };
+        registrarActualizacionVocesLectura();
     }
 };
 
