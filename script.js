@@ -2027,9 +2027,6 @@ function asegurarDialogoLumina() {
     modal.className = 'modal-dialogo-lumina hidden';
     modal.innerHTML = `
         <div class="dialogo-lumina-card" role="dialog" aria-modal="true" aria-labelledby="dialogo-lumina-titulo" aria-describedby="dialogo-lumina-mensaje" onclick="event.stopPropagation()">
-            <button type="button" class="dialogo-lumina-close" aria-label="Cerrar">
-                <i class="fas fa-times" aria-hidden="true"></i>
-            </button>
             <p class="dialogo-lumina-eyebrow">Lumina</p>
             <h3 id="dialogo-lumina-titulo" class="dialogo-lumina-titulo"></h3>
             <p id="dialogo-lumina-mensaje" class="dialogo-lumina-mensaje"></p>
@@ -2046,7 +2043,6 @@ function asegurarDialogoLumina() {
     `;
 
     modal.addEventListener('click', () => cerrarDialogoLumina(null));
-    modal.querySelector('.dialogo-lumina-close')?.addEventListener('click', () => cerrarDialogoLumina(null));
     modal.querySelector('.dialogo-lumina-cancelar')?.addEventListener('click', () => cerrarDialogoLumina(null));
     modal.querySelector('.dialogo-lumina-confirmar')?.addEventListener('click', () => confirmarDialogoLumina());
     modal.querySelector('.dialogo-lumina-input')?.addEventListener('keydown', (event) => {
@@ -3208,7 +3204,7 @@ function crearBotonFavoritoVersiculo(item) {
                     <i class="fas fa-bible favorito-entrada-icono" aria-hidden="true"></i>
                     <span class="favorito-entrada-ref">${escapeHtml(referencia)}</span>
                 </div>
-                <p class="favorito-entrada-texto">${escapeHtml(truncarTextoFavorito(item.texto))}</p>
+                <p class="favorito-entrada-texto">${escapeHtml(item.texto)}</p>
             </div>
             <button
                 type="button"
@@ -5022,7 +5018,7 @@ function crearTarjetaResultadoBusquedaVersiculo(item, terminoBusqueda = '') {
                 <span class="resultado-busqueda-numero">${item.numeroResultado}</span>
             </div>
         </div>
-        <div class="resultado-busqueda-texto">${texto}</div>
+        <div class="resultado-busqueda-texto resultado-busqueda-texto-completo">${texto}</div>
     `;
 
     configurarTarjetaResultadoBusqueda(tarjeta, () => irAVersiculo(item.libro, item.capitulo, item.versiculo, 'busqueda', terminoBusqueda));
