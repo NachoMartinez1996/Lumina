@@ -1323,6 +1323,65 @@ function obtenerComentarios(libro, capitulo, versiculo) {
     return comentarios.sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
 }
 
+function formatearReferenciaRangoTradicion(libro, capitulo, desde, hasta) {
+    const rango = desde === hasta ? `${desde}` : `${desde}-${hasta}`;
+    return `${libro} ${capitulo},${rango}`;
+}
+
+function obtenerGruposTradicionCompartidaCapitulo(libro, capitulo) {
+    return (comentariosDB.__ranges || [])
+        .filter(rango => {
+            if (rango.libro !== libro || Number(rango.capitulo) !== Number(capitulo)) return false;
+            if (!Number.isFinite(rango.desde) || !Number.isFinite(rango.hasta)) return false;
+            if (rango.hasta <= rango.desde) return false;
+            return Array.isArray(comentariosDB[rango.key]) && comentariosDB[rango.key].length > 0;
+        })
+        .map(rango => ({
+            ...rango,
+            desde: Math.ceil(rango.desde),
+            hasta: Math.floor(rango.hasta)
+        }))
+        .filter(rango => rango.hasta > rango.desde)
+        .sort((a, b) => a.desde - b.desde || a.hasta - b.hasta || String(a.key).localeCompare(String(b.key)))
+        .map((rango, indice) => ({
+            ...rango,
+            indiceVisual: indice + 1,
+            tono: (indice % 6) + 1,
+            referencia: formatearReferenciaRangoTradicion(libro, capitulo, rango.desde, rango.hasta)
+        }));
+}
+
+function obtenerGruposTradicionCompartidaVersiculo(grupos, versiculo) {
+    if (!esVersiculoLeible(versiculo)) return [];
+    return grupos.filter(grupo => versiculo >= grupo.desde && versiculo <= grupo.hasta);
+}
+
+function construirMarcadorTradicionCompartidaHtml(grupos, versiculo) {
+    const gruposVersiculo = obtenerGruposTradicionCompartidaVersiculo(grupos, versiculo);
+    if (gruposVersiculo.length === 0) {
+        return {
+            clasesCard: '',
+            html: ''
+        };
+    }
+
+    const grupo = gruposVersiculo[0];
+    let posicion = 'medio';
+    if (versiculo === grupo.desde) posicion = 'inicio';
+    else if (versiculo === grupo.hasta) posicion = 'fin';
+
+    const clasesCard = [
+        'verse-card-tradicion-grupo',
+        `verse-card-tradicion-tono-${grupo.tono}`,
+        `verse-card-tradicion-${posicion}`
+    ].join(' ');
+
+    return {
+        clasesCard,
+        html: ''
+    };
+}
+
 // --------------------------------------------------------------
 // 6. NOTAS PERSONALES Y FAVORITOS
 // --------------------------------------------------------------
@@ -1354,6 +1413,8 @@ const CLAVE_LEIDOS_RESET_AT = 'lumina_leidos_reset_at_v1';
 const CLAVE_MODO_DESIERTO = 'lumina_modo_desierto_v1';
 const CLAVE_TEXTO_CORRIDO = 'lumina_texto_corrido_v1';
 const CLAVE_VERSICULO_INICIO = 'lumina_versiculo_inicio_v1';
+const CLAVE_CONFIG_VERSICULO_INICIO = 'lumina_config_versiculo_inicio_v1';
+const CLAVE_ROTACION_VERSICULO_INICIO = 'lumina_rotacion_versiculo_inicio_v1';
 const CLAVE_COLECCIONES_VERSICULOS = 'lumina_colecciones_versiculos_v1';
 const CLAVE_ULTIMA_COLECCION_VERSICULOS = 'lumina_ultima_coleccion_versiculos_v1';
 const CLAVE_LECTIO_DIVINA = 'lumina_lectio_divina_v1';
@@ -1366,10 +1427,25 @@ const LIMITE_BUSQUEDAS_RECIENTES = 12;
 let modoDesiertoActivo = false;
 let textoCorridoActivo = false;
 let versiculoInicioGuardado = null;
+let versiculoInicioActual = null;
 let versiculoInicioMostradoEnSesion = false;
 let versiculoInicioPendienteTrasBienvenida = false;
 let leidos = new Set();
 let ultimaColeccionVersiculosId = null;
+const MODO_VERSICULO_INICIO_NINGUNO = 'ninguno';
+const MODO_VERSICULO_INICIO_FIJO = 'fijo';
+const MODO_VERSICULO_INICIO_FAVORITOS = 'favoritos';
+const MODO_VERSICULO_INICIO_COLECCION = 'coleccion';
+const MODOS_VERSICULO_INICIO_VALIDOS = new Set([
+    MODO_VERSICULO_INICIO_NINGUNO,
+    MODO_VERSICULO_INICIO_FIJO,
+    MODO_VERSICULO_INICIO_FAVORITOS,
+    MODO_VERSICULO_INICIO_COLECCION
+]);
+let configuracionVersiculoInicio = {
+    modo: MODO_VERSICULO_INICIO_NINGUNO,
+    coleccionId: ''
+};
 // Lumina cuenta 76 libros en su canon interno: 73 del canon católico + 3 suplementarios.
 const TOTAL_BIBLIA_LUMINA = 76;
 let bibliaCompletaCelebrada = false;
@@ -1448,6 +1524,7 @@ const CATEGORIAS_RESPALDO_LUMINA = [
             CLAVE_MODO_DESIERTO,
             CLAVE_TEXTO_CORRIDO,
             CLAVE_VERSICULO_INICIO,
+            CLAVE_CONFIG_VERSICULO_INICIO,
             CLAVE_BIENVENIDA
         ]
     }
@@ -1925,8 +2002,143 @@ function guardarVersiculoInicioGuardado() {
     escribirPersistencia(CLAVE_VERSICULO_INICIO, JSON.stringify(versiculoInicioGuardado));
 }
 
+function normalizarConfiguracionVersiculoInicio(data) {
+    if (!data || typeof data !== 'object') {
+        return {
+            modo: versiculoInicioGuardado ? MODO_VERSICULO_INICIO_FIJO : MODO_VERSICULO_INICIO_NINGUNO,
+            coleccionId: ''
+        };
+    }
+
+    const modo = MODOS_VERSICULO_INICIO_VALIDOS.has(data.modo)
+        ? data.modo
+        : (versiculoInicioGuardado ? MODO_VERSICULO_INICIO_FIJO : MODO_VERSICULO_INICIO_NINGUNO);
+    const coleccionId = String(data.coleccionId || '').trim();
+
+    return {
+        modo,
+        coleccionId
+    };
+}
+
+function cargarConfiguracionVersiculoInicio() {
+    try {
+        configuracionVersiculoInicio = normalizarConfiguracionVersiculoInicio(
+            JSON.parse(leerPersistencia(CLAVE_CONFIG_VERSICULO_INICIO, 'null'))
+        );
+    } catch (_) {
+        configuracionVersiculoInicio = normalizarConfiguracionVersiculoInicio(null);
+    }
+}
+
+function guardarConfiguracionVersiculoInicio() {
+    escribirPersistencia(CLAVE_CONFIG_VERSICULO_INICIO, JSON.stringify(configuracionVersiculoInicio));
+}
+
+function obtenerClaveRotacionVersiculoInicio(item) {
+    if (!item) return '';
+    return obtenerClaveVersiculoColeccion(item.libro, item.capitulo, item.versiculo);
+}
+
+function leerEstadoRotacionVersiculoInicio() {
+    try {
+        const estado = JSON.parse(leerPersistencia(CLAVE_ROTACION_VERSICULO_INICIO, '{}'));
+        return estado && typeof estado === 'object' ? estado : {};
+    } catch (_) {
+        return {};
+    }
+}
+
+function elegirEntradaRotativaVersiculoInicio(entradas, fuenteId) {
+    if (!Array.isArray(entradas) || entradas.length === 0) return null;
+
+    const entradasOrdenadas = ordenarVersiculosColeccionSegunBiblia(entradas);
+    const estadoRotacion = leerEstadoRotacionVersiculoInicio();
+    const ultimaClave = estadoRotacion[fuenteId] || '';
+    const ultimoIndice = entradasOrdenadas.findIndex(item => obtenerClaveRotacionVersiculoInicio(item) === ultimaClave);
+    const siguienteIndice = ultimoIndice >= 0 ? (ultimoIndice + 1) % entradasOrdenadas.length : 0;
+    const elegida = entradasOrdenadas[siguienteIndice];
+
+    estadoRotacion[fuenteId] = obtenerClaveRotacionVersiculoInicio(elegida);
+    escribirPersistencia(CLAVE_ROTACION_VERSICULO_INICIO, JSON.stringify(estadoRotacion));
+
+    return elegida;
+}
+
+function crearEntradaVersiculoInicio(libro, capitulo, versiculo, texto = '') {
+    const textoFuente = bibleContent?.[libro]?.[capitulo]?.[versiculo] ?? texto;
+    const textoLimpio = String(textoFuente || '').trim();
+    const entrada = normalizarVersiculoInicio({ libro, capitulo, versiculo, texto: textoLimpio });
+    return entrada;
+}
+
+function obtenerVersiculosFavoritosParaInicio() {
+    const entradas = [];
+
+    for (const key of favoritos) {
+        if (!key.startsWith('versiculo:')) continue;
+
+        const ref = key.substring(10);
+        const [libro, capituloStr, versiculoStr] = ref.split('_');
+        const entrada = crearEntradaVersiculoInicio(libro, Number(capituloStr), Number(versiculoStr));
+
+        if (entrada) entradas.push(entrada);
+    }
+
+    return ordenarVersiculosColeccionSegunBiblia(entradas);
+}
+
+function obtenerVersiculosColeccionParaInicio(coleccionId) {
+    const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
+    if (!coleccion) return [];
+
+    return obtenerVersiculosColeccionOrdenados(coleccion)
+        .map(item => crearEntradaVersiculoInicio(item.libro, item.capitulo, item.versiculo, item.texto))
+        .filter(Boolean);
+}
+
+function obtenerCandidatosVersiculoInicio() {
+    const modo = configuracionVersiculoInicio.modo;
+
+    if (modo === MODO_VERSICULO_INICIO_NINGUNO) return [];
+    if (modo === MODO_VERSICULO_INICIO_FIJO) return versiculoInicioGuardado ? [versiculoInicioGuardado] : [];
+    if (modo === MODO_VERSICULO_INICIO_FAVORITOS) return obtenerVersiculosFavoritosParaInicio();
+    if (modo === MODO_VERSICULO_INICIO_COLECCION) {
+        return obtenerVersiculosColeccionParaInicio(configuracionVersiculoInicio.coleccionId);
+    }
+
+    return [];
+}
+
+function prepararVersiculoInicioActual() {
+    const modo = configuracionVersiculoInicio.modo;
+    const candidatos = obtenerCandidatosVersiculoInicio();
+
+    if (candidatos.length === 0) {
+        versiculoInicioActual = null;
+        return null;
+    }
+
+    if (modo === MODO_VERSICULO_INICIO_FAVORITOS) {
+        versiculoInicioActual = elegirEntradaRotativaVersiculoInicio(candidatos, 'favoritos');
+        return versiculoInicioActual;
+    }
+
+    if (modo === MODO_VERSICULO_INICIO_COLECCION) {
+        versiculoInicioActual = elegirEntradaRotativaVersiculoInicio(candidatos, `coleccion:${configuracionVersiculoInicio.coleccionId}`);
+        return versiculoInicioActual;
+    }
+
+    versiculoInicioActual = candidatos[0];
+    return versiculoInicioActual;
+}
+
+function obtenerVersiculoInicioActivo() {
+    return versiculoInicioActual || prepararVersiculoInicioActual();
+}
+
 function esVersiculoInicio(libro, capitulo, versiculo) {
-    if (!versiculoInicioGuardado) return false;
+    if (configuracionVersiculoInicio.modo !== MODO_VERSICULO_INICIO_FIJO || !versiculoInicioGuardado) return false;
 
     return versiculoInicioGuardado.libro === libro
         && Number(versiculoInicioGuardado.capitulo) === Number(capitulo)
@@ -2204,22 +2416,24 @@ function avisarLecturaVozAltaNoDisponible() {
 function renderizarModalVersiculoInicio() {
     const referencia = document.getElementById('versiculo-inicio-referencia');
     const texto = document.getElementById('versiculo-inicio-texto');
-    if (!referencia || !texto || !versiculoInicioGuardado) return;
+    const versiculoInicio = obtenerVersiculoInicioActivo();
+    if (!referencia || !texto || !versiculoInicio) return;
 
     referencia.textContent = formatearReferenciaCompartida(
-        versiculoInicioGuardado.libro,
-        versiculoInicioGuardado.capitulo,
-        versiculoInicioGuardado.versiculo
+        versiculoInicio.libro,
+        versiculoInicio.capitulo,
+        versiculoInicio.versiculo
     );
-    texto.textContent = versiculoInicioGuardado.texto;
+    texto.textContent = versiculoInicio.texto;
 }
 
 function abrirModalVersiculoInicio() {
-    if (!versiculoInicioGuardado || versiculoInicioMostradoEnSesion) return;
+    if (versiculoInicioMostradoEnSesion) return;
 
     const modal = document.getElementById('modal-versiculo-inicio');
     if (!modal) return;
 
+    if (!prepararVersiculoInicioActual()) return;
     renderizarModalVersiculoInicio();
     modal.classList.remove('hidden');
     modal.classList.add('flex');
@@ -2235,7 +2449,7 @@ function cerrarModalVersiculoInicio() {
 }
 
 function intentarMostrarVersiculoInicio() {
-    if (!versiculoInicioGuardado || versiculoInicioMostradoEnSesion) return;
+    if (versiculoInicioMostradoEnSesion || obtenerCandidatosVersiculoInicio().length === 0) return;
 
     const modalBienvenida = document.getElementById('modal-bienvenida');
     const bienvenidaVisible = modalBienvenida && !modalBienvenida.classList.contains('hidden');
@@ -2254,8 +2468,15 @@ function elegirVersiculoComoInicio(libro, capitulo, versiculo, texto) {
     if (!textoLimpio) return;
 
     versiculoInicioGuardado = normalizarVersiculoInicio({ libro, capitulo, versiculo, texto: textoLimpio });
+    configuracionVersiculoInicio = {
+        modo: MODO_VERSICULO_INICIO_FIJO,
+        coleccionId: configuracionVersiculoInicio.coleccionId || ''
+    };
+    versiculoInicioActual = versiculoInicioGuardado;
     guardarVersiculoInicioGuardado();
+    guardarConfiguracionVersiculoInicio();
     refrescarBotonesVersiculoInicio();
+    actualizarControlesVersiculoInicio();
     renderizarModalVersiculoInicio();
     lanzarToast('Te estará esperando cuando regreses');
 }
@@ -2270,48 +2491,214 @@ function toggleVersiculoInicio(libro, capitulo, versiculo, texto) {
 }
 
 function desactivarVersiculoInicio() {
-    if (!versiculoInicioGuardado) return;
+    const modoAnterior = configuracionVersiculoInicio.modo;
+    if (modoAnterior === MODO_VERSICULO_INICIO_NINGUNO && !versiculoInicioGuardado) return;
 
-    versiculoInicioGuardado = null;
-    guardarVersiculoInicioGuardado();
+    if (modoAnterior === MODO_VERSICULO_INICIO_FIJO) {
+        versiculoInicioGuardado = null;
+        guardarVersiculoInicioGuardado();
+    }
+
+    configuracionVersiculoInicio = {
+        modo: MODO_VERSICULO_INICIO_NINGUNO,
+        coleccionId: configuracionVersiculoInicio.coleccionId || ''
+    };
+    versiculoInicioActual = null;
+    guardarConfiguracionVersiculoInicio();
     refrescarBotonesVersiculoInicio();
+    actualizarControlesVersiculoInicio();
     cerrarModalVersiculoInicio();
     lanzarToast('Versículo de bienvenida desactivado');
 }
 
 function abrirVersiculoInicioGuardado() {
-    if (!versiculoInicioGuardado) return;
+    const versiculoInicio = obtenerVersiculoInicioActivo();
+    if (!versiculoInicio) return;
 
     cerrarModalVersiculoInicio();
     cerrarPanelLumina();
     cerrarPanelActivoLateral();
 
-    libroActual = versiculoInicioGuardado.libro;
+    libroActual = versiculoInicio.libro;
     const selectorCapitulos = document.getElementById('selector-rapido-capitulos');
     const selectorLectura = document.getElementById('selector-rapido-lectura');
-    if (selectorCapitulos) selectorCapitulos.value = versiculoInicioGuardado.libro;
-    if (selectorLectura) selectorLectura.value = versiculoInicioGuardado.libro;
+    if (selectorCapitulos) selectorCapitulos.value = versiculoInicio.libro;
+    if (selectorLectura) selectorLectura.value = versiculoInicio.libro;
 
-    abrirLectura(versiculoInicioGuardado.capitulo);
+    abrirLectura(versiculoInicio.capitulo);
 
     requestAnimationFrame(() => {
         resaltarVersiculo(
-            versiculoInicioGuardado.libro,
-            versiculoInicioGuardado.capitulo,
-            versiculoInicioGuardado.versiculo
+            versiculoInicio.libro,
+            versiculoInicio.capitulo,
+            versiculoInicio.versiculo
         );
     });
 }
 
 function escucharVersiculoInicioGuardado() {
-    if (!versiculoInicioGuardado) return;
+    const versiculoInicio = obtenerVersiculoInicioActivo();
+    if (!versiculoInicio) return;
 
     escucharVersiculo(
-        versiculoInicioGuardado.libro,
-        versiculoInicioGuardado.capitulo,
-        versiculoInicioGuardado.versiculo,
-        versiculoInicioGuardado.texto
+        versiculoInicio.libro,
+        versiculoInicio.capitulo,
+        versiculoInicio.versiculo,
+        versiculoInicio.texto
     );
+}
+
+function obtenerResumenConfiguracionVersiculoInicio() {
+    const modo = configuracionVersiculoInicio.modo;
+
+    if (modo === MODO_VERSICULO_INICIO_NINGUNO) {
+        return 'No se mostrará una Palabra de entrada al abrir Lumina.';
+    }
+
+    if (modo === MODO_VERSICULO_INICIO_FIJO) {
+        if (!versiculoInicioGuardado) {
+            return 'Elegí cualquier versículo desde su menú para dejarlo fijo como bienvenida.';
+        }
+
+        return `Versículo fijo: ${formatearReferenciaCompartida(
+            versiculoInicioGuardado.libro,
+            versiculoInicioGuardado.capitulo,
+            versiculoInicioGuardado.versiculo
+        )}.`;
+    }
+
+    if (modo === MODO_VERSICULO_INICIO_FAVORITOS) {
+        const cantidad = obtenerVersiculosFavoritosParaInicio().length;
+        if (cantidad === 0) return 'No hay versículos favoritos todavía. Cuando marques alguno, podrá rotar acá.';
+        return `Rotará entre ${cantidad} versículo${cantidad === 1 ? '' : 's'} favorito${cantidad === 1 ? '' : 's'}.`;
+    }
+
+    if (modo === MODO_VERSICULO_INICIO_COLECCION) {
+        const coleccion = obtenerColeccionVersiculosPorId(configuracionVersiculoInicio.coleccionId);
+        if (!coleccion) return 'Elegí una colección para que Lumina tome de ahí la Palabra de entrada.';
+
+        const cantidad = obtenerVersiculosColeccionParaInicio(coleccion.id).length;
+        if (cantidad === 0) return `La colección "${coleccion.nombre}" está vacía.`;
+        return `Rotará entre ${cantidad} versículo${cantidad === 1 ? '' : 's'} de "${coleccion.nombre}".`;
+    }
+
+    return '';
+}
+
+function poblarSelectorColeccionVersiculoInicio() {
+    const selector = document.getElementById('selector-versiculo-inicio-coleccion');
+    if (!selector) return;
+
+    const colecciones = obtenerColeccionesVersiculosOrdenadas();
+    const valorActual = configuracionVersiculoInicio.coleccionId;
+    selector.innerHTML = '';
+
+    if (colecciones.length === 0) {
+        const opcion = document.createElement('option');
+        opcion.value = '';
+        opcion.textContent = 'Sin colecciones disponibles';
+        selector.appendChild(opcion);
+        selector.value = '';
+        selector.disabled = true;
+        return;
+    }
+
+    const opcionBase = document.createElement('option');
+    opcionBase.value = '';
+    opcionBase.textContent = 'Elegir colección';
+    selector.appendChild(opcionBase);
+
+    colecciones.forEach(coleccion => {
+        const opcion = document.createElement('option');
+        opcion.value = coleccion.id;
+        opcion.textContent = `${coleccion.nombre} (${coleccion.versiculos.length})`;
+        selector.appendChild(opcion);
+    });
+
+    selector.disabled = configuracionVersiculoInicio.modo !== MODO_VERSICULO_INICIO_COLECCION;
+    selector.value = colecciones.some(coleccion => coleccion.id === valorActual) ? valorActual : '';
+}
+
+function actualizarControlesVersiculoInicio() {
+    const selectorModo = document.getElementById('selector-versiculo-inicio-modo');
+    const selectorColeccion = document.getElementById('selector-versiculo-inicio-coleccion');
+    const filaColeccion = document.getElementById('versiculo-inicio-coleccion-row');
+    const estado = document.getElementById('versiculo-inicio-config-estado');
+    const botonProbar = document.getElementById('btn-probar-versiculo-inicio');
+    const modo = configuracionVersiculoInicio.modo;
+
+    if (selectorModo && selectorModo.value !== modo) {
+        selectorModo.value = modo;
+    }
+
+    poblarSelectorColeccionVersiculoInicio();
+
+    if (filaColeccion) {
+        filaColeccion.hidden = modo !== MODO_VERSICULO_INICIO_COLECCION;
+    }
+
+    if (selectorColeccion) {
+        selectorColeccion.disabled = modo !== MODO_VERSICULO_INICIO_COLECCION || selectorColeccion.options.length <= 1;
+    }
+
+    if (estado) {
+        estado.textContent = obtenerResumenConfiguracionVersiculoInicio();
+    }
+
+    if (botonProbar) {
+        botonProbar.disabled = obtenerCandidatosVersiculoInicio().length === 0;
+    }
+}
+
+function cambiarModoVersiculoInicio(modo) {
+    const modoNormalizado = MODOS_VERSICULO_INICIO_VALIDOS.has(modo) ? modo : MODO_VERSICULO_INICIO_NINGUNO;
+    const colecciones = obtenerColeccionesVersiculosOrdenadas();
+
+    configuracionVersiculoInicio.modo = modoNormalizado;
+
+    if (modoNormalizado === MODO_VERSICULO_INICIO_COLECCION && !obtenerColeccionVersiculosPorId(configuracionVersiculoInicio.coleccionId)) {
+        configuracionVersiculoInicio.coleccionId = colecciones[0]?.id || '';
+    }
+
+    versiculoInicioActual = null;
+    guardarConfiguracionVersiculoInicio();
+    refrescarBotonesVersiculoInicio();
+    actualizarControlesVersiculoInicio();
+}
+
+function cambiarColeccionVersiculoInicio(coleccionId) {
+    configuracionVersiculoInicio = {
+        modo: MODO_VERSICULO_INICIO_COLECCION,
+        coleccionId: String(coleccionId || '').trim()
+    };
+    versiculoInicioActual = null;
+    guardarConfiguracionVersiculoInicio();
+    refrescarBotonesVersiculoInicio();
+    actualizarControlesVersiculoInicio();
+}
+
+function probarVersiculoInicio() {
+    if (obtenerCandidatosVersiculoInicio().length === 0) {
+        lanzarToast('No hay versículos disponibles para esta bienvenida');
+        actualizarControlesVersiculoInicio();
+        return;
+    }
+
+    versiculoInicioMostradoEnSesion = false;
+    versiculoInicioActual = null;
+    abrirModalVersiculoInicio();
+}
+
+function inicializarControlesVersiculoInicio() {
+    const selectorModo = document.getElementById('selector-versiculo-inicio-modo');
+    const selectorColeccion = document.getElementById('selector-versiculo-inicio-coleccion');
+    const botonProbar = document.getElementById('btn-probar-versiculo-inicio');
+
+    selectorModo?.addEventListener('change', event => cambiarModoVersiculoInicio(event.target.value));
+    selectorColeccion?.addEventListener('change', event => cambiarColeccionVersiculoInicio(event.target.value));
+    botonProbar?.addEventListener('click', () => probarVersiculoInicio());
+
+    actualizarControlesVersiculoInicio();
 }
 // Variable temporal para guardar qué nota estamos por borrar
 let notaAPuntoDeBorrar = null;
@@ -2485,6 +2872,7 @@ function cargarFavoritos() {
 }
 function guardarFavoritos() {
     escribirPersistencia(CLAVE_FAVORITOS, JSON.stringify(Array.from(favoritos)));
+    actualizarControlesVersiculoInicio();
 }
 
 function cargarColeccionesVersiculos() {
@@ -2509,6 +2897,8 @@ function guardarColeccionesVersiculos() {
     } else {
         eliminarPersistencia(CLAVE_ULTIMA_COLECCION_VERSICULOS);
     }
+
+    actualizarControlesVersiculoInicio();
 }
 
 function normalizarBusquedaReciente(item) {
@@ -3716,19 +4106,19 @@ function renderizarDetalleColeccion(coleccion, contenedor) {
 
     acciones.appendChild(
         crearBotonAccionColeccion(
-            'fa-share-alt',
-            'Compartir texto',
+            'fa-align-left',
+            'Copiar texto',
             'Copiá la colección en formato simple.',
-            () => compartirColeccionComoTexto(coleccion.id)
+            () => copiarColeccionComoTexto(coleccion.id)
         )
     );
 
     acciones.appendChild(
         crearBotonAccionColeccion(
-            'fa-link',
-            'Compartir enlace',
-            'Creá un enlace importable en Lumina.',
-            () => compartirColeccionComoEnlace(coleccion.id)
+            'fa-share-alt',
+            'Compartir',
+            'Elegí entre QR o enlace importable.',
+            () => abrirModalCompartirColeccion(coleccion.id)
         )
     );
 
@@ -3895,8 +4285,8 @@ function renderizarPanelColeccionesGuardados() {
     const botonCompartirBiblioteca = document.createElement('button');
     botonCompartirBiblioteca.type = 'button';
     botonCompartirBiblioteca.className = 'panel-colecciones-cta';
-    botonCompartirBiblioteca.innerHTML = '<i class="fas fa-link" aria-hidden="true"></i><span>Biblioteca</span>';
-    botonCompartirBiblioteca.addEventListener('click', compartirBibliotecaColeccionesComoEnlace);
+    botonCompartirBiblioteca.innerHTML = '<i class="fas fa-share-alt" aria-hidden="true"></i><span>Compartir</span>';
+    botonCompartirBiblioteca.addEventListener('click', abrirModalCompartirBibliotecaColecciones);
 
     const accionesHero = document.createElement('div');
     accionesHero.className = 'panel-colecciones-hero-actions';
@@ -4306,6 +4696,28 @@ function actualizarAyudaPasajeLectio() {
         : `${formatearReferenciaLectio(libro, capitulo, desde, hasta)} · ${total} versículo${total === 1 ? '' : 's'} para la lectura orante.`;
 }
 
+function mostrarPreguntasLectio() {
+    document.getElementById('lectio-escritura-card')?.classList.remove('hidden');
+}
+
+function ocultarPreguntasLectio() {
+    document.getElementById('lectio-escritura-card')?.classList.add('hidden');
+}
+
+function ocultarPasajeLectio() {
+    const tarjeta = document.getElementById('lectio-pasaje-card');
+    const badge = document.getElementById('lectio-pasaje-badge');
+    if (!tarjeta) return;
+
+    delete tarjeta.dataset.libro;
+    delete tarjeta.dataset.capitulo;
+    delete tarjeta.dataset.desde;
+    delete tarjeta.dataset.hasta;
+    tarjeta.classList.add('hidden');
+    badge?.classList.add('hidden');
+    if (badge) badge.hidden = true;
+}
+
 function renderizarPasajeLectioSeleccionado() {
     const tarjeta = document.getElementById('lectio-pasaje-card');
     const referencia = document.getElementById('lectio-pasaje-referencia');
@@ -4322,13 +4734,8 @@ function renderizarPasajeLectioSeleccionado() {
     const pasaje = obtenerPasajeLectio(libro, capitulo, desde, hasta);
 
     if (!libro || pasaje.length === 0) {
-        delete tarjeta.dataset.libro;
-        delete tarjeta.dataset.capitulo;
-        delete tarjeta.dataset.desde;
-        delete tarjeta.dataset.hasta;
-        tarjeta.classList.add('hidden');
-        badge.classList.add('hidden');
-        badge.hidden = true;
+        ocultarPasajeLectio();
+        ocultarPreguntasLectio();
         return false;
     }
 
@@ -4349,6 +4756,7 @@ function renderizarPasajeLectioSeleccionado() {
         actualizarContenidoBotonAudioVersiculo(botonAudio, false);
     }
     tarjeta.classList.remove('hidden');
+    mostrarPreguntasLectio();
     actualizarAyudaPasajeLectio();
     return true;
 }
@@ -4557,7 +4965,8 @@ function usarContextoActualEnLectio() {
 function inicializarLectioDivina() {
     const contexto = obtenerContextoInicialLectio();
     aplicarSeleccionLectio(contexto.libro, contexto.capitulo, contexto.desde, contexto.hasta);
-    renderizarPasajeLectioSeleccionado();
+    ocultarPasajeLectio();
+    ocultarPreguntasLectio();
     actualizarUIRegistroActivoLectio();
     renderizarListaLectioGuardadas();
 }
@@ -4579,7 +4988,6 @@ function abrirLectioDivina() {
 
     renderizarListaLectioGuardadas();
     actualizarUIRegistroActivoLectio();
-    renderizarPasajeLectioSeleccionado();
     mostrarVista('vista-lectio');
     cerrarPanelLumina();
 }
@@ -4607,6 +5015,154 @@ let indiceBusqueda = [];
 let terminoBusquedaActual = '';
 const FILTRO_BUSQUEDA_TODOS = '__todos__';
 const FILTRO_BUSQUEDA_EVANGELIO = '__evangelio__';
+const FILTRO_BUSQUEDA_ANTIGUO_TESTAMENTO = '__antiguo_testamento__';
+const FILTRO_BUSQUEDA_NUEVO_TESTAMENTO = '__nuevo_testamento__';
+const FILTRO_BUSQUEDA_PENTATEUCO = '__pentateuco__';
+const FILTRO_BUSQUEDA_HISTORICOS = '__historicos__';
+const FILTRO_BUSQUEDA_SAPIENCIALES = '__sapienciales_poeticos__';
+const FILTRO_BUSQUEDA_PROFETICOS = '__profeticos__';
+const FILTRO_BUSQUEDA_CARTAS_PAULINAS = '__cartas_paulinas__';
+const FILTRO_BUSQUEDA_CARTAS_CATOLICAS = '__cartas_catolicas__';
+const FILTROS_BUSQUEDA_ATAJOS_LIBROS = [
+    {
+        valor: FILTRO_BUSQUEDA_ANTIGUO_TESTAMENTO,
+        etiqueta: 'Antiguo Testamento',
+        nivel: 0,
+        libros: canonBiblico["Antiguo Testamento"].map(libro => libro.nombre)
+    },
+    {
+        valor: FILTRO_BUSQUEDA_PENTATEUCO,
+        etiqueta: 'Pentateuco',
+        nivel: 1,
+        libros: [
+            "Génesis",
+            "Éxodo",
+            "Levítico",
+            "Números",
+            "Deuteronomio"
+        ]
+    },
+    {
+        valor: FILTRO_BUSQUEDA_HISTORICOS,
+        etiqueta: 'Históricos',
+        nivel: 1,
+        libros: [
+            "Josué",
+            "Jueces",
+            "Rut",
+            "Primer Libro de Samuel",
+            "Segundo Libro de Samuel",
+            "Primer Libro de los Reyes",
+            "Segundo Libro de los Reyes",
+            "Primer Libro de las Crónicas",
+            "Segundo Libro de las Crónicas",
+            "Esdras",
+            "Nehemías",
+            "Tobías",
+            "Judit",
+            "Ester",
+            "Ester (Suplementos Griegos)",
+            "Primer Libro de los Macabeos",
+            "Segundo Libro de los Macabeos"
+        ]
+    },
+    {
+        valor: FILTRO_BUSQUEDA_SAPIENCIALES,
+        etiqueta: 'Sapienciales y poéticos',
+        nivel: 1,
+        libros: [
+            "Job",
+            "Salmos",
+            "Proverbios",
+            "Eclesiastés",
+            "Cantar de los Cantares",
+            "Sabiduría",
+            "Eclesiástico"
+        ]
+    },
+    {
+        valor: FILTRO_BUSQUEDA_PROFETICOS,
+        etiqueta: 'Proféticos',
+        nivel: 1,
+        libros: [
+            "Isaías",
+            "Jeremías",
+            "Lamentaciones",
+            "Baruc",
+            "Carta de Jeremías",
+            "Ezequiel",
+            "Daniel",
+            "Daniel (Suplementos Griegos)",
+            "Oseas",
+            "Joel",
+            "Amos",
+            "Abdías",
+            "Jonás",
+            "Miqueas",
+            "Nahúm",
+            "Habacuc",
+            "Sofonías",
+            "Ageo",
+            "Zacarías",
+            "Malaquías"
+        ]
+    },
+    {
+        valor: FILTRO_BUSQUEDA_NUEVO_TESTAMENTO,
+        etiqueta: 'Nuevo Testamento',
+        nivel: 0,
+        libros: canonBiblico["Nuevo Testamento"].map(libro => libro.nombre)
+    },
+    {
+        valor: FILTRO_BUSQUEDA_EVANGELIO,
+        etiqueta: 'Evangelio',
+        nivel: 1,
+        libros: EVANGELIOS_CELEBRACION
+    },
+    {
+        valor: FILTRO_BUSQUEDA_CARTAS_PAULINAS,
+        etiqueta: 'Cartas Paulinas',
+        nivel: 1,
+        libros: [
+            "Carta a los Romanos",
+            "Primera Carta a los Corintios",
+            "Segunda Carta a los Corintios",
+            "Carta a los Gálatas",
+            "Carta a los Efesios",
+            "Carta a los Filipenses",
+            "Carta a los Colosenses",
+            "Primera Carta a los Tesalonicenses",
+            "Segunda Carta a los Tesalonicenses",
+            "Primera Carta a Timoteo",
+            "Segunda Carta a Timoteo",
+            "Carta a Tito",
+            "Carta a Filemón",
+            "Carta a los Hebreos"
+        ]
+    },
+    {
+        valor: FILTRO_BUSQUEDA_CARTAS_CATOLICAS,
+        etiqueta: 'Cartas Católicas',
+        nivel: 1,
+        libros: [
+            "Carta de Santiago",
+            "Primera Carta de San Pedro",
+            "Segunda Carta de San Pedro",
+            "Primera Carta de San Juan",
+            "Segunda Carta de San Juan",
+            "Tercera Carta de San Juan",
+            "Carta de San Judas"
+        ]
+    }
+];
+const MAPA_FILTROS_BUSQUEDA_ATAJOS = new Map(FILTROS_BUSQUEDA_ATAJOS_LIBROS.map(atajo => [
+    atajo.valor,
+    {
+        etiqueta: atajo.etiqueta,
+        libros: new Set(atajo.libros.filter(libro => ORDEN_LIBROS_BIBLICOS.has(libro)))
+    }
+]));
+const SANGRIA_FILTRO_BUSQUEDA_ATAJO = '\u00A0\u00A0\u00A0';
 let filtroLibroBusquedaActual = FILTRO_BUSQUEDA_TODOS;
 let filtroLibroFavoritosActual = FILTRO_BUSQUEDA_TODOS;
 
@@ -4618,7 +5174,7 @@ function normalizarFiltroLibroBusqueda(filtro) {
     const valor = String(filtro || '').trim();
 
     if (!valor || valor === FILTRO_BUSQUEDA_TODOS) return FILTRO_BUSQUEDA_TODOS;
-    if (valor === FILTRO_BUSQUEDA_EVANGELIO) return FILTRO_BUSQUEDA_EVANGELIO;
+    if (MAPA_FILTROS_BUSQUEDA_ATAJOS.has(valor)) return valor;
 
     return ORDEN_LIBROS_BIBLICOS.has(valor) ? valor : FILTRO_BUSQUEDA_TODOS;
 }
@@ -4626,7 +5182,9 @@ function normalizarFiltroLibroBusqueda(filtro) {
 function obtenerEtiquetaFiltroLibroBusqueda(filtro = filtroLibroBusquedaActual) {
     const valorNormalizado = normalizarFiltroLibroBusqueda(filtro);
     if (valorNormalizado === FILTRO_BUSQUEDA_TODOS) return 'Toda la Biblia';
-    if (valorNormalizado === FILTRO_BUSQUEDA_EVANGELIO) return 'Evangelio';
+    if (MAPA_FILTROS_BUSQUEDA_ATAJOS.has(valorNormalizado)) {
+        return MAPA_FILTROS_BUSQUEDA_ATAJOS.get(valorNormalizado).etiqueta;
+    }
     return valorNormalizado;
 }
 
@@ -4644,10 +5202,12 @@ function poblarSelectorFiltroLibroLumina(selector, valorInicial = FILTRO_BUSQUED
     opcionTodos.textContent = 'Toda la Biblia';
     atajos.appendChild(opcionTodos);
 
-    const opcionEvangelio = document.createElement('option');
-    opcionEvangelio.value = FILTRO_BUSQUEDA_EVANGELIO;
-    opcionEvangelio.textContent = 'Evangelio';
-    atajos.appendChild(opcionEvangelio);
+    FILTROS_BUSQUEDA_ATAJOS_LIBROS.forEach(atajo => {
+        const opcion = document.createElement('option');
+        opcion.value = atajo.valor;
+        opcion.textContent = `${SANGRIA_FILTRO_BUSQUEDA_ATAJO.repeat(atajo.nivel || 0)}${atajo.etiqueta}`;
+        atajos.appendChild(opcion);
+    });
 
     selector.appendChild(atajos);
 
@@ -4698,7 +5258,9 @@ function sincronizarSelectorFiltroLibroFavoritos() {
 function coincideLibroConFiltroBusqueda(libro, filtro = filtroLibroBusquedaActual) {
     const valorNormalizado = normalizarFiltroLibroBusqueda(filtro);
     if (valorNormalizado === FILTRO_BUSQUEDA_TODOS) return true;
-    if (valorNormalizado === FILTRO_BUSQUEDA_EVANGELIO) return EVANGELIOS_CELEBRACION.includes(libro);
+    if (MAPA_FILTROS_BUSQUEDA_ATAJOS.has(valorNormalizado)) {
+        return MAPA_FILTROS_BUSQUEDA_ATAJOS.get(valorNormalizado).libros.has(libro);
+    }
     return libro === valorNormalizado;
 }
 
@@ -4928,17 +5490,74 @@ function renderizarEstadoBusquedaVacio(termino = '', filtro = filtroLibroBusqued
     `;
 }
 
-function crearRegexBusqueda(termino) {
-    const terminoLimpio = normalizarTexto(normalizarTerminoBusqueda(termino));
-    if (!terminoLimpio) return null;
+function obtenerConceptosBusqueda(termino) {
+    const terminoNormalizado = normalizarTerminoBusqueda(termino);
+    if (!terminoNormalizado) return [];
 
-    const termRegex = terminoLimpio.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return new RegExp(`\\b${termRegex}\\b`, 'i');
+    const conceptos = terminoNormalizado
+        .split(/\s*-\s*/)
+        .map(parte => normalizarTerminoBusqueda(parte))
+        .filter(Boolean);
+
+    return conceptos.length > 1 ? conceptos : [terminoNormalizado];
 }
 
-function coincideTextoBusqueda(texto, regex) {
-    if (!regex) return false;
-    return regex.test(normalizarTexto(String(texto || '')));
+function normalizarConceptosBusqueda(termino) {
+    return obtenerConceptosBusqueda(termino)
+        .map(concepto => normalizarTexto(concepto).trim())
+        .filter(Boolean);
+}
+
+function escaparConceptoRegexBusqueda(concepto) {
+    return concepto
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        .replace(/\s+/g, '\\s+');
+}
+
+function crearRegexBusqueda(termino) {
+    const conceptos = normalizarConceptosBusqueda(termino);
+    if (conceptos.length === 0) return null;
+
+    return {
+        conceptos,
+        requiereTodos: conceptos.length > 1,
+        regexes: conceptos.map(concepto => new RegExp(`\\b${escaparConceptoRegexBusqueda(concepto)}\\b`, 'i'))
+    };
+}
+
+function coincideTextoBusqueda(texto, consulta) {
+    if (!consulta) return false;
+
+    const textoNormalizado = normalizarTexto(String(texto || ''));
+
+    if (consulta instanceof RegExp) {
+        return consulta.test(textoNormalizado);
+    }
+
+    if (!Array.isArray(consulta.regexes) || consulta.regexes.length === 0) return false;
+
+    return consulta.requiereTodos
+        ? consulta.regexes.every(regex => regex.test(textoNormalizado))
+        : consulta.regexes[0].test(textoNormalizado);
+}
+
+function obtenerPrimeraCoincidenciaBusqueda(textoNormalizado, termino) {
+    const consulta = crearRegexBusqueda(termino);
+    if (!consulta) return { indice: -1, longitud: 0 };
+
+    return consulta.regexes.reduce((mejor, regex) => {
+        const match = regex.exec(textoNormalizado);
+        if (!match) return mejor;
+
+        if (mejor.indice === -1 || match.index < mejor.indice) {
+            return {
+                indice: match.index,
+                longitud: match[0].length
+            };
+        }
+
+        return mejor;
+    }, { indice: -1, longitud: 0 });
 }
 
 function obtenerFragmentoBusqueda(texto, termino, maximo = 180) {
@@ -4946,17 +5565,16 @@ function obtenerFragmentoBusqueda(texto, termino, maximo = 180) {
     if (!textoLimpio) return '';
     if (textoLimpio.length <= maximo) return textoLimpio;
 
-    const terminoLimpio = normalizarTexto(normalizarTerminoBusqueda(termino));
     const textoNormalizado = normalizarTexto(textoLimpio);
-    const indiceCoincidencia = terminoLimpio ? textoNormalizado.indexOf(terminoLimpio) : -1;
+    const { indice: indiceCoincidencia, longitud: longitudCoincidencia } = obtenerPrimeraCoincidenciaBusqueda(textoNormalizado, termino);
 
     if (indiceCoincidencia === -1) {
         return truncarTextoFavorito(textoLimpio, maximo);
     }
 
-    const margen = Math.max(40, Math.floor((maximo - terminoLimpio.length) / 2));
+    const margen = Math.max(40, Math.floor((maximo - longitudCoincidencia) / 2));
     const inicio = Math.max(0, indiceCoincidencia - margen);
-    const fin = Math.min(textoLimpio.length, indiceCoincidencia + terminoLimpio.length + margen);
+    const fin = Math.min(textoLimpio.length, indiceCoincidencia + longitudCoincidencia + margen);
     let fragmento = textoLimpio.slice(inicio, fin).trim();
 
     if (inicio > 0) fragmento = `…${fragmento}`;
@@ -5390,6 +6008,7 @@ function limpiarBusqueda(cerrarPanelResultados = false) {
 // --------------------------------------------------------------
 let contextoModalCompartirVersiculo = null;
 let accionTarjetaVersiculoEnCurso = false;
+let contextoModalCompartirImportableLumina = null;
 
 async function compartirTexto(texto, titulo) {
     if (navigator.share) {
@@ -6097,6 +6716,35 @@ function compartirColeccionComoTexto(coleccionId) {
     compartirTexto(contenido, `Colección: ${coleccion.nombre}`);
 }
 
+async function copiarColeccionComoTexto(coleccionId) {
+    const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
+    if (!coleccion) {
+        lanzarToast('No encontramos esa colección');
+        return;
+    }
+
+    const versiculosOrdenados = obtenerVersiculosColeccionOrdenados(coleccion);
+
+    if (versiculosOrdenados.length === 0) {
+        lanzarToast('La colección está vacía');
+        return;
+    }
+
+    const encabezado = `Colección: ${coleccion.nombre}`;
+    const cuerpo = versiculosOrdenados
+        .map(item => `${formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo)}\n${String(item.texto || '').trim()}`)
+        .join('\n\n');
+    const contenido = `${encabezado}\n\n${cuerpo}\n\n- Compartido desde Lumina`;
+
+    try {
+        await navigator.clipboard.writeText(contenido);
+        lanzarToast('Colección copiada como texto');
+    } catch (error) {
+        console.warn('No se pudo copiar la colección como texto. Usamos compartir nativo.', error);
+        await compartirTexto(contenido, `Colección: ${coleccion.nombre}`);
+    }
+}
+
 function obtenerUrlCompartirLuminaActual(idCompartido) {
     const url = new URL(window.location.href);
     url.hash = '';
@@ -6122,6 +6770,149 @@ async function compartirEnlaceImportableLumina(url, titulo, texto) {
     } catch (error) {
         console.error('No se pudo copiar el enlace compartido:', error);
         await mostrarAlertaLumina('No pudimos copiar el enlace', url);
+    }
+}
+
+function renderizarModalCompartirImportableLumina() {
+    const contexto = contextoModalCompartirImportableLumina;
+    const modal = document.getElementById('modal-compartir-importable');
+    if (!modal || !contexto) return;
+
+    const etiqueta = document.getElementById('compartir-importable-etiqueta');
+    const titulo = document.getElementById('compartir-importable-titulo');
+    const subtitulo = document.getElementById('compartir-importable-subtitulo');
+    const panelQr = document.getElementById('compartir-importable-qr-panel');
+    const contenedorQr = document.getElementById('compartir-importable-qr');
+    const urlTexto = document.getElementById('compartir-importable-url');
+    const botones = [
+        document.getElementById('btn-compartir-importable-qr'),
+        document.getElementById('btn-compartir-importable-enlace'),
+        document.getElementById('btn-copiar-compartir-importable'),
+        document.getElementById('btn-compartir-importable-enlace-qr')
+    ].filter(Boolean);
+
+    if (etiqueta) etiqueta.textContent = contexto.etiqueta || 'Compartir';
+    if (titulo) titulo.textContent = contexto.titulo || 'Compartir';
+    if (subtitulo) subtitulo.textContent = contexto.subtitulo || '';
+
+    botones.forEach(boton => {
+        boton.disabled = contexto.preparando === true;
+    });
+
+    if (!contexto.enlace && panelQr) {
+        panelQr.classList.add('hidden');
+    }
+
+    if (!contexto.enlace) {
+        if (contenedorQr) contenedorQr.innerHTML = '';
+        if (urlTexto) urlTexto.textContent = '';
+    }
+}
+
+function abrirModalCompartirImportableLumina(contexto) {
+    const modal = document.getElementById('modal-compartir-importable');
+    if (!modal || !contexto?.prepararEnlace) return;
+
+    contextoModalCompartirImportableLumina = {
+        ...contexto,
+        preparando: false,
+        enlace: null
+    };
+
+    renderizarModalCompartirImportableLumina();
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function cerrarModalCompartirImportableLumina() {
+    const modal = document.getElementById('modal-compartir-importable');
+    if (!modal) return;
+
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    contextoModalCompartirImportableLumina = null;
+
+    const panelQr = document.getElementById('compartir-importable-qr-panel');
+    const contenedorQr = document.getElementById('compartir-importable-qr');
+    const urlTexto = document.getElementById('compartir-importable-url');
+    if (panelQr) panelQr.classList.add('hidden');
+    if (contenedorQr) contenedorQr.innerHTML = '';
+    if (urlTexto) urlTexto.textContent = '';
+}
+
+async function obtenerEnlaceContextoCompartirImportableLumina() {
+    const contexto = contextoModalCompartirImportableLumina;
+    if (!contexto) return null;
+    if (contexto.enlace) return contexto.enlace;
+    if (contexto.preparando) return null;
+
+    contexto.preparando = true;
+    renderizarModalCompartirImportableLumina();
+
+    try {
+        const enlace = await contexto.prepararEnlace();
+        if (!enlace?.url) return null;
+
+        contexto.enlace = enlace;
+        return enlace;
+    } finally {
+        contexto.preparando = false;
+        renderizarModalCompartirImportableLumina();
+    }
+}
+
+function renderizarQrCompartirImportableLumina(enlace) {
+    const panelQr = document.getElementById('compartir-importable-qr-panel');
+    const contenedorQr = document.getElementById('compartir-importable-qr');
+    const urlTexto = document.getElementById('compartir-importable-url');
+    if (!panelQr || !contenedorQr || !enlace?.url) return;
+
+    contenedorQr.innerHTML = '';
+
+    if (typeof QRCode === 'undefined') {
+        lanzarToast('No se pudo cargar el generador de QR');
+        if (urlTexto) urlTexto.textContent = enlace.url;
+        panelQr.classList.remove('hidden');
+        return;
+    }
+
+    new QRCode(contenedorQr, {
+        text: enlace.url,
+        width: 220,
+        height: 220,
+        colorDark: '#1f2937',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+    });
+
+    if (urlTexto) urlTexto.textContent = enlace.url;
+    panelQr.classList.remove('hidden');
+}
+
+async function mostrarQrCompartirImportableLumina() {
+    const enlace = await obtenerEnlaceContextoCompartirImportableLumina();
+    if (!enlace) return;
+    renderizarQrCompartirImportableLumina(enlace);
+}
+
+async function compartirEnlaceDesdeModalImportableLumina(cerrarAlFinal = true) {
+    const enlace = await obtenerEnlaceContextoCompartirImportableLumina();
+    if (!enlace) return;
+
+    await compartirEnlaceImportableLumina(enlace.url, enlace.titulo, enlace.texto);
+    if (cerrarAlFinal) cerrarModalCompartirImportableLumina();
+}
+
+async function copiarEnlaceDesdeModalImportableLumina() {
+    const enlace = await obtenerEnlaceContextoCompartirImportableLumina();
+    if (!enlace) return;
+
+    try {
+        await navigator.clipboard.writeText(enlace.url);
+        lanzarToast('Enlace copiado al portapapeles');
+    } catch (error) {
+        console.error('No se pudo copiar el enlace compartido:', error);
+        await mostrarAlertaLumina('No pudimos copiar el enlace', enlace.url);
     }
 }
 
@@ -6237,7 +7028,46 @@ async function crearEnlaceCompartidoLumina(paquete) {
     return obtenerUrlCompartirLuminaActual(resultado.id);
 }
 
+async function prepararEnlaceColeccionCompartidaLumina(coleccionId) {
+    const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
+    if (!coleccion) {
+        lanzarToast('No encontramos esa colección');
+        return null;
+    }
+
+    if (coleccion.versiculos.length === 0) {
+        lanzarToast('La colección está vacía');
+        return null;
+    }
+
+    const nota = await pedirNotaAcompanamientoCompartidoLumina('coleccion');
+    if (nota === null) return null;
+
+    lanzarToast('Creando enlace compartido...');
+    const paquete = crearPaqueteColeccionCompartidaLumina(coleccion, nota);
+    const url = await crearEnlaceCompartidoLumina(paquete);
+    if (!url) return null;
+
+    return {
+        url,
+        titulo: `Colección: ${coleccion.nombre}`,
+        texto: nota || `Te comparto la colección "${coleccion.nombre}" desde Lumina.`
+    };
+}
+
 async function compartirColeccionComoEnlace(coleccionId) {
+    try {
+        const enlace = await prepararEnlaceColeccionCompartidaLumina(coleccionId);
+        if (!enlace) return;
+
+        await compartirEnlaceImportableLumina(enlace.url, enlace.titulo, enlace.texto);
+    } catch (error) {
+        console.error('No se pudo crear el enlace de la colección:', error);
+        lanzarToast(obtenerMensajeErrorCompartidoLumina(error));
+    }
+}
+
+function abrirModalCompartirColeccion(coleccionId) {
     const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
     if (!coleccion) {
         lanzarToast('No encontramos esa colección');
@@ -6249,27 +7079,55 @@ async function compartirColeccionComoEnlace(coleccionId) {
         return;
     }
 
-    const nota = await pedirNotaAcompanamientoCompartidoLumina('coleccion');
-    if (nota === null) return;
+    abrirModalCompartirImportableLumina({
+        etiqueta: 'Colección',
+        titulo: 'Compartir colección',
+        subtitulo: `Elegí cómo compartir "${coleccion.nombre}".`,
+        prepararEnlace: () => prepararEnlaceColeccionCompartidaLumina(coleccionId)
+    });
+}
 
+async function prepararEnlaceBibliotecaColeccionesCompartidaLumina() {
+    const colecciones = obtenerColeccionesVersiculosOrdenadas();
+
+    if (colecciones.length === 0) {
+        lanzarToast('Todavía no tenés colecciones para compartir');
+        return null;
+    }
+
+    const nota = await pedirNotaAcompanamientoCompartidoLumina('biblioteca');
+    if (nota === null) return null;
+
+    lanzarToast('Creando enlace de biblioteca...');
+    const paquete = crearPaqueteBibliotecaColeccionesCompartidaLumina(colecciones, nota);
+    if (!paquete) {
+        lanzarToast('No se pudo preparar la biblioteca');
+        return null;
+    }
+
+    const url = await crearEnlaceCompartidoLumina(paquete);
+    if (!url) return null;
+
+    return {
+        url,
+        titulo: paquete.titulo,
+        texto: nota || `Te comparto mi biblioteca de ${colecciones.length} colecciones desde Lumina.`
+    };
+}
+
+async function compartirBibliotecaColeccionesComoEnlace() {
     try {
-        lanzarToast('Creando enlace compartido...');
-        const paquete = crearPaqueteColeccionCompartidaLumina(coleccion, nota);
-        const url = await crearEnlaceCompartidoLumina(paquete);
-        if (!url) return;
+        const enlace = await prepararEnlaceBibliotecaColeccionesCompartidaLumina();
+        if (!enlace) return;
 
-        await compartirEnlaceImportableLumina(
-            url,
-            `Colección: ${coleccion.nombre}`,
-            nota || `Te comparto la colección "${coleccion.nombre}" desde Lumina.`
-        );
+        await compartirEnlaceImportableLumina(enlace.url, enlace.titulo, enlace.texto);
     } catch (error) {
-        console.error('No se pudo crear el enlace de la colección:', error);
+        console.error('No se pudo crear el enlace de la biblioteca:', error);
         lanzarToast(obtenerMensajeErrorCompartidoLumina(error));
     }
 }
 
-async function compartirBibliotecaColeccionesComoEnlace() {
+function abrirModalCompartirBibliotecaColecciones() {
     const colecciones = obtenerColeccionesVersiculosOrdenadas();
 
     if (colecciones.length === 0) {
@@ -6277,60 +7135,71 @@ async function compartirBibliotecaColeccionesComoEnlace() {
         return;
     }
 
-    const nota = await pedirNotaAcompanamientoCompartidoLumina('biblioteca');
-    if (nota === null) return;
+    abrirModalCompartirImportableLumina({
+        etiqueta: 'Biblioteca',
+        titulo: 'Compartir colecciones',
+        subtitulo: `Elegí cómo compartir tu biblioteca de ${colecciones.length} colección${colecciones.length === 1 ? '' : 'es'}.`,
+        prepararEnlace: prepararEnlaceBibliotecaColeccionesCompartidaLumina
+    });
+}
 
+async function prepararEnlaceLectioCompartidaLumina() {
+    if (!renderizarPasajeLectioSeleccionado()) {
+        lanzarToast('Elegí primero un pasaje válido para la Lectio');
+        return null;
+    }
+
+    const nota = await pedirNotaAcompanamientoCompartidoLumina('lectio');
+    if (nota === null) return null;
+
+    lanzarToast('Creando enlace compartido...');
+    const paquete = crearPaqueteLectioCompartidaLumina(nota);
+    if (!paquete) {
+        lanzarToast('No se pudo preparar la Lectio para compartir');
+        return null;
+    }
+
+    const url = await crearEnlaceCompartidoLumina(paquete);
+    if (!url) return null;
+
+    return {
+        url,
+        titulo: `Lectio: ${paquete.titulo}`,
+        texto: nota || `Te comparto una Lectio Divina de ${paquete.titulo} desde Lumina.`
+    };
+}
+
+async function compartirLectioActualComoEnlace() {
     try {
-        lanzarToast('Creando enlace de biblioteca...');
-        const paquete = crearPaqueteBibliotecaColeccionesCompartidaLumina(colecciones, nota);
-        if (!paquete) {
-            lanzarToast('No se pudo preparar la biblioteca');
-            return;
-        }
+        const enlace = await prepararEnlaceLectioCompartidaLumina();
+        if (!enlace) return;
 
-        const url = await crearEnlaceCompartidoLumina(paquete);
-        if (!url) return;
-
-        await compartirEnlaceImportableLumina(
-            url,
-            paquete.titulo,
-            nota || `Te comparto mi biblioteca de ${colecciones.length} colecciones desde Lumina.`
-        );
+        await compartirEnlaceImportableLumina(enlace.url, enlace.titulo, enlace.texto);
     } catch (error) {
-        console.error('No se pudo crear el enlace de la biblioteca:', error);
+        console.error('No se pudo crear el enlace de la Lectio:', error);
         lanzarToast(obtenerMensajeErrorCompartidoLumina(error));
     }
 }
 
-async function compartirLectioActualComoEnlace() {
+function abrirModalCompartirLectioActual() {
     if (!renderizarPasajeLectioSeleccionado()) {
         lanzarToast('Elegí primero un pasaje válido para la Lectio');
         return;
     }
 
-    const nota = await pedirNotaAcompanamientoCompartidoLumina('lectio');
-    if (nota === null) return;
-
-    try {
-        lanzarToast('Creando enlace compartido...');
-        const paquete = crearPaqueteLectioCompartidaLumina(nota);
-        if (!paquete) {
-            lanzarToast('No se pudo preparar la Lectio para compartir');
-            return;
-        }
-
-        const url = await crearEnlaceCompartidoLumina(paquete);
-        if (!url) return;
-
-        await compartirEnlaceImportableLumina(
-            url,
-            `Lectio: ${paquete.titulo}`,
-            nota || `Te comparto una Lectio Divina de ${paquete.titulo} desde Lumina.`
-        );
-    } catch (error) {
-        console.error('No se pudo crear el enlace de la Lectio:', error);
-        lanzarToast(obtenerMensajeErrorCompartidoLumina(error));
+    const datos = obtenerDatosLectioActualParaCompartir();
+    if (!datos) {
+        lanzarToast('No se pudo preparar la Lectio para compartir');
+        return;
     }
+
+    const referencia = formatearReferenciaLectio(datos.libro, datos.capitulo, datos.desde, datos.hasta);
+    abrirModalCompartirImportableLumina({
+        etiqueta: 'Lectio Divina',
+        titulo: 'Compartir Lectio',
+        subtitulo: `Elegí cómo compartir ${referencia}.`,
+        prepararEnlace: prepararEnlaceLectioCompartidaLumina
+    });
 }
 
 function obtenerNombreColeccionImportadaLumina(nombreOriginal, nombresReservados = new Set()) {
@@ -10014,6 +10883,11 @@ function obtenerTokensBusquedaResaltables(termino) {
     const terminoNormalizado = normalizarTexto(normalizarTerminoBusqueda(termino)).trim();
     if (!terminoNormalizado) return [];
 
+    const conceptos = normalizarConceptosBusqueda(termino);
+    if (conceptos.length > 1) {
+        return conceptos.sort((a, b) => b.length - a.length);
+    }
+
     const palabras = extraerPalabras(terminoNormalizado);
 
     if (palabras.length > 1) {
@@ -10550,6 +11424,7 @@ function abrirLectura(capitulo) {
     const versiculosObj = bibleContent[libroActual]?.[capitulo] || {};
     const numerosVersiculos = Object.keys(versiculosObj).map(Number).sort((a, b) => a - b);
     const usaAcotacionesEspeciales = libroUsaAcotacionesEspeciales(libroActual);
+    const gruposTradicionCompartida = obtenerGruposTradicionCompartidaCapitulo(libroActual, capitulo);
     if (numerosVersiculos.length > 0) {
         numerosVersiculos.forEach(v => {
             const textoOriginal = versiculosObj[v];
@@ -10558,6 +11433,7 @@ function abrirLectura(capitulo) {
             const leido = esVersiculoLeido(libroActual, capitulo, v);
             const esInicio = esVersiculoInicio(libroActual, capitulo, v);
             const accionesVersiculo = construirAccionesVersiculoHtml(libroActual, capitulo, v, textoOriginal, favorito, leido, esInicio);
+            const marcadorTradicion = construirMarcadorTradicionCompartidaHtml(gruposTradicionCompartida, v);
             let verseHtml = "";
 
             if (usaAcotacionesEspeciales && v < 1) {
@@ -10577,7 +11453,8 @@ function abrirLectura(capitulo) {
                 `;
             } else {
                 verseHtml = `
-                    <div id="verse_${libroActual}_${capitulo}_${v}" class="verse-card bg-white dark:bg-gray-800 border-l-4 border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm hover:shadow-md transition-all mb-4">
+                    <div id="verse_${libroActual}_${capitulo}_${v}" class="verse-card ${marcadorTradicion.clasesCard} bg-white dark:bg-gray-800 border-l-4 border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm hover:shadow-md transition-all mb-4">
+                        ${marcadorTradicion.html}
                         <div class="flex items-start gap-3">
                             <span class="verse-card-numero font-sans font-bold text-oro bg-amber-50 dark:bg-gray-700 w-8 h-8 flex items-center justify-center rounded-full text-sm shadow-inner flex-shrink-0">${v}</span>
                             <div class="flex-1 cursor-pointer" onclick="abrirPanel('${libroActual}', ${capitulo}, ${v}, \`${escapeHtml(textoOriginal)}\`)">
@@ -10966,6 +11843,10 @@ function mostrarSeccionPanelLumina(seccion) {
 
     if (placeholder) {
         placeholder.classList.add('hidden');
+    }
+
+    if (seccion === 'modos' || seccion === 'ajustes') {
+        actualizarControlesVersiculoInicio();
     }
 }
 
@@ -11855,6 +12736,8 @@ function recargarEstadoDesdePersistenciaLumina() {
     cargarNotasPersonales();
     cargarLeidos();
     cargarVersiculoInicioGuardado();
+    cargarConfiguracionVersiculoInicio();
+    versiculoInicioActual = null;
 
     const darkMode = leerPersistencia(CLAVE_DARKMODE) === 'true';
     aplicarDarkMode(darkMode, { guardar: false });
@@ -11871,6 +12754,7 @@ function recargarEstadoDesdePersistenciaLumina() {
     actualizarProgresoLibroVista();
     actualizarProgresoTestamentosVista();
     actualizarProgresoBibliaVista();
+    actualizarControlesVersiculoInicio();
 }
 
 async function reiniciarProgresoBiblia() {
@@ -12294,6 +13178,7 @@ window.onload = async () => {
     cargarNotasPersonales();
     cargarLeidos();
     cargarVersiculoInicioGuardado();
+    cargarConfiguracionVersiculoInicio();
     inicializarIndice();
     poblarSelectoresRapidos();
     mostrarVista('vista-libros');
@@ -12359,7 +13244,7 @@ window.onload = async () => {
     document.getElementById('btn-escuchar-pasaje-lectio')?.addEventListener('click', (event) => escucharPasajeLectio(event.currentTarget));
     document.getElementById('btn-guardar-lectio')?.addEventListener('click', () => guardarLectioActual());
     document.getElementById('btn-compartir-lectio-pdf')?.addEventListener('click', () => exportarLectioComoPDF());
-    document.getElementById('btn-compartir-lectio-link')?.addEventListener('click', () => compartirLectioActualComoEnlace());
+    document.getElementById('btn-compartir-lectio-link')?.addEventListener('click', () => abrirModalCompartirLectioActual());
     document.getElementById('btn-nueva-lectio')?.addEventListener('click', () => limpiarHojaLectio(true));
     document.getElementById('btn-lectio-usar-contexto')?.addEventListener('click', () => usarContextoActualEnLectio());
     document.addEventListener('click', () => cerrarMenusAccionesVersiculo());
@@ -12377,6 +13262,10 @@ window.onload = async () => {
     const btnLimpiarBusquedaMovil = document.getElementById('btn-limpiar-busqueda-movil');
     const btnLimpiarPanelBusqueda = document.getElementById('btn-limpiar-panel-busqueda');
     const btnLimpiarFiltroFavoritos = document.getElementById('btn-limpiar-filtro-favoritos');
+    const btnCompartirImportableQr = document.getElementById('btn-compartir-importable-qr');
+    const btnCompartirImportableEnlace = document.getElementById('btn-compartir-importable-enlace');
+    const btnCopiarCompartirImportable = document.getElementById('btn-copiar-compartir-importable');
+    const btnCompartirImportableEnlaceQr = document.getElementById('btn-compartir-importable-enlace-qr');
 
     poblarSelectorFiltroLibroBusqueda();
     poblarSelectorFiltroLibroFavoritos();
@@ -12452,6 +13341,11 @@ window.onload = async () => {
         });
     }
 
+    btnCompartirImportableQr?.addEventListener('click', () => mostrarQrCompartirImportableLumina());
+    btnCompartirImportableEnlace?.addEventListener('click', () => compartirEnlaceDesdeModalImportableLumina(true));
+    btnCopiarCompartirImportable?.addEventListener('click', () => copiarEnlaceDesdeModalImportableLumina());
+    btnCompartirImportableEnlaceQr?.addEventListener('click', () => compartirEnlaceDesdeModalImportableLumina(false));
+
     const contenedorBusqueda = document.getElementById('contenido-busqueda');
     if (contenedorBusqueda) {
         actualizarVistaBusquedaSinResultados('', filtroLibroBusquedaActual);
@@ -12461,6 +13355,7 @@ window.onload = async () => {
         contadorBusqueda.textContent = obtenerTextoContadorBusqueda('', 0, filtroLibroBusquedaActual);
     }
     actualizarEstadoControlesBusqueda();
+    inicializarControlesVersiculoInicio();
 
     const observer = setInterval(() => {
         if (datosBibliaCargados && indiceBusqueda.length === 0) {
@@ -12481,6 +13376,7 @@ window.onload = async () => {
             cerrarModalColecciones();
             cerrarModalRespaldoLumina();
             cerrarModalCompartirVersiculo();
+            cerrarModalCompartirImportableLumina();
             cerrarMenusAccionesVersiculo();
             cerrarPanelLumina();
             cerrarPanelActivoLateral();
@@ -13223,6 +14119,11 @@ async function ejecutarResetLumina() {
         modoDesiertoActivo = false;
         textoCorridoActivo = false;
         versiculoInicioGuardado = null;
+        versiculoInicioActual = null;
+        configuracionVersiculoInicio = {
+            modo: MODO_VERSICULO_INICIO_NINGUNO,
+            coleccionId: ''
+        };
         marcarNuevaVersionLuminaDisponible(false);
 
         if ('caches' in window) {

@@ -84,7 +84,7 @@
                             <i class="fas fa-cog text-lg"></i>
                         </button>
                         <div id="settings-menu" class="settings-dropdown hidden">
-                            <div class="settings-group">
+                            <div class="settinSgs-group">
                                 <div class="settings-item-label settings-item-label-static">
                                     <span class="settings-item-icon" aria-hidden="true">
                                         <i class="fas fa-circle-half-stroke text-sm"></i>
@@ -328,7 +328,7 @@
                             <div id="lectio-pasaje-texto" class="lectio-pasaje-texto"></div>
                         </section>
 
-                        <section class="lectio-escritura-card">
+                        <section id="lectio-escritura-card" class="lectio-escritura-card hidden">
                             <div id="lectio-registro-activo" class="lectio-registro-activo hidden"></div>
 
                             <div class="lectio-bloque">
@@ -357,7 +357,7 @@
                                     <i class="fas fa-file-pdf mr-2" aria-hidden="true"></i> Compartir PDF
                                 </button>
                                 <button type="button" id="btn-compartir-lectio-link" class="lectio-secondary-button">
-                                    <i class="fas fa-link mr-2" aria-hidden="true"></i> Compartir enlace
+                                    <i class="fas fa-share-alt mr-2" aria-hidden="true"></i> Compartir
                                 </button>
                                 <button type="button" id="btn-nueva-lectio" class="lectio-secondary-button">
                                     Nueva hoja
@@ -442,6 +442,40 @@
                             A veces la Palabra pide estudio; otras, silencio, lentitud y respuesta del corazón.
                         </blockquote>
                         <p>Acá reunimos los modos de lectura más contemplativos y la experiencia de oración.</p>
+
+                        <div class="panel-lumina-bienvenida-card">
+                            <div class="panel-lumina-bienvenida-top">
+                                <span class="panel-lumina-cloud-icon" aria-hidden="true">
+                                    <i class="fas fa-door-open"></i>
+                                </span>
+                                <div>
+                                    <strong>Palabra de bienvenida</strong>
+                                    <p id="versiculo-inicio-config-estado">No se mostrará una Palabra de entrada al
+                                        abrir Lumina.</p>
+                                </div>
+                            </div>
+                            <div class="panel-lumina-bienvenida-controls">
+                                <label class="panel-lumina-control-field" for="selector-versiculo-inicio-modo">
+                                    <span>Origen</span>
+                                    <select id="selector-versiculo-inicio-modo">
+                                        <option value="ninguno">Sin bienvenida</option>
+                                        <option value="fijo">Versículo fijo</option>
+                                        <option value="favoritos">Mis versículos favoritos</option>
+                                        <option value="coleccion">Una colección</option>
+                                    </select>
+                                </label>
+                                <label id="versiculo-inicio-coleccion-row" class="panel-lumina-control-field"
+                                    for="selector-versiculo-inicio-coleccion" hidden>
+                                    <span>Colección</span>
+                                    <select id="selector-versiculo-inicio-coleccion"></select>
+                                </label>
+                                <button type="button" id="btn-probar-versiculo-inicio"
+                                    class="panel-lumina-cloud-button panel-lumina-cloud-button-secondary">
+                                    <i class="fas fa-eye" aria-hidden="true"></i>
+                                    Ver ahora
+                                </button>
+                            </div>
+                        </div>
 
                         <div class="panel-lumina-herramientas">
                             <button type="button" id="btn-modo-desierto"
@@ -780,7 +814,7 @@
                         <label class="panel-busqueda-filter-field" for="busqueda-filtro-libro">
                             <i class="fas fa-book-open" aria-hidden="true"></i>
                             <select id="busqueda-filtro-libro" class="panel-busqueda-filter-select"
-                                aria-label="Filtrar resultados por libro">
+                                aria-label="Filtrar resultados por libro o sección">
                             </select>
                             <span class="panel-busqueda-filter-caret" aria-hidden="true">
                                 <i class="fas fa-chevron-down"></i>
@@ -884,7 +918,7 @@
                             for="favoritos-filtro-libro">
                             <i class="fas fa-book-open" aria-hidden="true"></i>
                             <select id="favoritos-filtro-libro" class="panel-busqueda-filter-select"
-                                aria-label="Filtrar favoritos por libro">
+                                aria-label="Filtrar favoritos por libro o sección">
                             </select>
                             <span class="panel-busqueda-filter-caret" aria-hidden="true">
                                 <i class="fas fa-chevron-down"></i>
@@ -1092,7 +1126,7 @@
             <div
                 class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,214,102,0.24),transparent_52%),radial-gradient(circle_at_bottom,rgba(184,134,11,0.10),transparent_62%)]">
             </div>
-            <div class="relative px-6 py-7 md:px-8 md:py-8">
+            <div class="modal-versiculo-inicio-contenido relative px-6 py-7 md:px-8 md:py-8">
                 <div class="flex items-start justify-between gap-4 mb-6">
                     <div>
                         <p class="text-xs uppercase tracking-[0.35em] text-oro font-semibold mb-3">Palabra de entrada
@@ -1117,17 +1151,17 @@
                         class="versiculo-inicio-cita text-lg md:text-2xl leading-relaxed text-gray-800 dark:text-gray-100 font-serif italic">
                     </blockquote>
                 </div>
-                <div class="mt-8 flex flex-col sm:flex-row gap-3 sm:justify-end">
+                <div class="modal-versiculo-inicio-acciones mt-8 flex flex-col sm:flex-row gap-3 sm:justify-end">
                     <button type="button" onclick="abrirVersiculoInicioGuardado()"
-                        class="px-5 py-3 rounded-full border border-oro/30 bg-oro/10 text-oro font-sans font-bold transition hover:bg-oro/20">
+                        class="modal-versiculo-inicio-boton px-5 py-3 rounded-full border border-oro/30 bg-oro/10 text-oro font-sans font-bold transition hover:bg-oro/20">
                         Abrir lectura
                     </button>
                     <button type="button" onclick="escucharVersiculoInicioGuardado()"
-                        class="px-5 py-3 rounded-full border border-gray-300 dark:border-gray-600 bg-white/70 dark:bg-gray-800/70 text-gray-700 dark:text-gray-200 font-sans font-bold transition hover:bg-white dark:hover:bg-gray-700">
+                        class="modal-versiculo-inicio-boton px-5 py-3 rounded-full border border-gray-300 dark:border-gray-600 bg-white/70 dark:bg-gray-800/70 text-gray-700 dark:text-gray-200 font-sans font-bold transition hover:bg-white dark:hover:bg-gray-700">
                         Escuchar
                     </button>
                     <button type="button" onclick="desactivarVersiculoInicio()"
-                        class="px-5 py-3 rounded-full border border-rose-300/50 dark:border-rose-500/40 bg-rose-50/80 dark:bg-rose-900/20 text-rose-700 dark:text-rose-200 font-sans font-bold transition hover:bg-rose-100 dark:hover:bg-rose-900/30">
+                        class="modal-versiculo-inicio-boton px-5 py-3 rounded-full border border-rose-300/50 dark:border-rose-500/40 bg-rose-50/80 dark:bg-rose-900/20 text-rose-700 dark:text-rose-200 font-sans font-bold transition hover:bg-rose-100 dark:hover:bg-rose-900/30">
                         Desactivar
                     </button>
                 </div>
@@ -1191,6 +1225,77 @@
                         <button type="button" id="btn-crear-coleccion-modal"
                             class="px-5 py-3 rounded-2xl border border-oro/30 bg-oro text-white font-sans font-bold transition hover:bg-amber-700">
                             Crear
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="modal-compartir-importable"
+        class="modal-compartir-importable-overlay fixed inset-0 z-[122] hidden items-center justify-center bg-black/60 backdrop-blur-md px-4 py-8"
+        onclick="cerrarModalCompartirImportableLumina()">
+        <div class="modal-compartir-importable-card relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-oro/30 shadow-2xl bg-[#fcfaf7] dark:bg-[#1a1d23]"
+            onclick="event.stopPropagation()">
+            <div
+                class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,214,102,0.20),transparent_52%),radial-gradient(circle_at_bottom,rgba(184,134,11,0.12),transparent_62%)]">
+            </div>
+            <div class="relative px-6 py-7 md:px-8 md:py-8">
+                <div class="flex items-start justify-between gap-4 mb-6">
+                    <div>
+                        <p id="compartir-importable-etiqueta"
+                            class="text-xs uppercase tracking-[0.35em] text-oro font-semibold mb-3">Compartir</p>
+                        <h3 id="compartir-importable-titulo"
+                            class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">Compartir</h3>
+                        <p id="compartir-importable-subtitulo"
+                            class="mt-3 text-sm text-gray-600 dark:text-gray-400"></p>
+                    </div>
+                    <button type="button" onclick="cerrarModalCompartirImportableLumina()"
+                        class="text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        aria-label="Cerrar opciones de compartir">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="modal-compartir-importable-options">
+                    <button type="button" id="btn-compartir-importable-qr"
+                        class="modal-compartir-importable-option">
+                        <span class="modal-compartir-importable-option-icon" aria-hidden="true">
+                            <i class="fas fa-qrcode"></i>
+                        </span>
+                        <span>
+                            <strong>Mostrar QR</strong>
+                            <small>Generá un QR propio de Lumina para abrir o importar.</small>
+                        </span>
+                    </button>
+                    <button type="button" id="btn-compartir-importable-enlace"
+                        class="modal-compartir-importable-option">
+                        <span class="modal-compartir-importable-option-icon" aria-hidden="true">
+                            <i class="fas fa-share-nodes"></i>
+                        </span>
+                        <span>
+                            <strong>Compartir enlace</strong>
+                            <small>Usá el panel de compartir del dispositivo o copiá el enlace.</small>
+                        </span>
+                    </button>
+                </div>
+
+                <div id="compartir-importable-qr-panel" class="modal-compartir-importable-qr hidden">
+                    <div id="compartir-importable-qr" class="modal-compartir-importable-qr-box"></div>
+                    <p id="compartir-importable-url" class="modal-compartir-importable-url"></p>
+                    <div class="modal-compartir-importable-qr-actions">
+                        <button type="button" id="btn-copiar-compartir-importable"
+                            class="modal-compartir-importable-small-button">
+                            <i class="fas fa-copy" aria-hidden="true"></i>
+                            Copiar enlace
+                        </button>
+                        <button type="button" id="btn-compartir-importable-enlace-qr"
+                            class="modal-compartir-importable-small-button modal-compartir-importable-small-button-primary">
+                            <i class="fas fa-share-nodes" aria-hidden="true"></i>
+                            Compartir enlace
                         </button>
                     </div>
                 </div>
