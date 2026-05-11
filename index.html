@@ -383,6 +383,200 @@
             </div>
         </main>
 
+        <main id="vista-tutorial"
+            class="vista flex-1 overflow-y-auto p-6 md:p-12 hidden absolute inset-0 z-10 transition-colors duration-300">
+            <div class="tutorial-shell max-w-6xl mx-auto">
+                <div class="tutorial-top-bar">
+                    <button type="button" class="tutorial-back-button" onclick="volverDesdeTutorial()">
+                        <i class="fas fa-arrow-left text-xs" aria-hidden="true"></i>
+                        Volver
+                    </button>
+                    <button type="button" class="tutorial-quiet-button"
+                        onclick="abrirPanelLumina(); mostrarSeccionPanelLumina('tutorial')">
+                        <i class="fas fa-feather-alt" aria-hidden="true"></i>
+                        Guía en la pluma
+                    </button>
+                </div>
+
+                <section class="tutorial-hero" aria-labelledby="tutorial-titulo">
+                    <div class="tutorial-hero-copy">
+                        <p class="tutorial-kicker">Primer recorrido</p>
+                        <h2 id="tutorial-titulo" class="tutorial-title">Guía práctica de Lumina</h2>
+                        <p class="tutorial-lead">Una visita breve por lo esencial: leer, abrir comentarios, guardar
+                            hallazgos, buscar, rezar con Lectio y cuidar tus datos.</p>
+                        <div class="tutorial-hero-actions">
+                            <button type="button" class="tutorial-primary-button"
+                                onclick="abrirTutorialLecturaBasica()">
+                                <i class="fas fa-book-open" aria-hidden="true"></i>
+                                Empezar leyendo
+                            </button>
+                            <button type="button" class="tutorial-secondary-button"
+                                onclick="abrirTutorialBusquedaLumina()">
+                                <i class="fas fa-search" aria-hidden="true"></i>
+                                Probar búsqueda
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="tutorial-map" aria-label="Mapa rápido de Lumina">
+                        <div class="tutorial-map-row">
+                            <span class="tutorial-map-icon"><i class="fas fa-book-open" aria-hidden="true"></i></span>
+                            <span>Elegí libro y capítulo</span>
+                        </div>
+                        <div class="tutorial-map-row">
+                            <span class="tutorial-map-icon"><i class="fas fa-comment-dots" aria-hidden="true"></i></span>
+                            <span>Tocá un versículo</span>
+                        </div>
+                        <div class="tutorial-map-row">
+                            <span class="tutorial-map-icon"><i class="fas fa-star" aria-hidden="true"></i></span>
+                            <span>Guardá favoritos y notas</span>
+                        </div>
+                        <div class="tutorial-map-row">
+                            <span class="tutorial-map-icon"><i class="fas fa-feather-alt" aria-hidden="true"></i></span>
+                            <span>Rezá el pasaje con Lectio</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="tutorial-section" aria-labelledby="tutorial-camino-titulo">
+                    <div class="tutorial-section-head">
+                        <p class="tutorial-kicker">Camino recomendado</p>
+                        <h3 id="tutorial-camino-titulo">De la lectura al cuaderno personal</h3>
+                    </div>
+                    <div class="tutorial-steps-grid">
+                        <article class="tutorial-step-card">
+                            <span class="tutorial-step-number">1</span>
+                            <h4>Leé un capítulo</h4>
+                            <p>La portada te lleva por los libros. Dentro de cada capítulo podés avanzar, retroceder y
+                                marcar lectura.</p>
+                            <button type="button" onclick="abrirTutorialLecturaBasica()">
+                                <i class="fas fa-book-open" aria-hidden="true"></i>
+                                Abrir ejemplo
+                            </button>
+                        </article>
+
+                        <article class="tutorial-step-card">
+                            <span class="tutorial-step-number">2</span>
+                            <h4>Entrá en un versículo</h4>
+                            <p>Al tocar el texto aparecen los comentarios de la Tradición y tus notas personales para
+                                ese pasaje.</p>
+                            <button type="button" onclick="abrirTutorialComentariosLumina()">
+                                <i class="fas fa-comment-dots" aria-hidden="true"></i>
+                                Ver comentarios
+                            </button>
+                        </article>
+
+                        <article class="tutorial-step-card">
+                            <span class="tutorial-step-number">3</span>
+                            <h4>Guardá lo importante</h4>
+                            <p>Usá la estrella para favoritos, el signo más para colecciones y el menú de tres puntos
+                                para escuchar, compartir o marcar.</p>
+                            <button type="button" onclick="abrirTutorialGuardadosLumina()">
+                                <i class="fas fa-floppy-disk" aria-hidden="true"></i>
+                                Abrir guardados
+                            </button>
+                        </article>
+
+                        <article class="tutorial-step-card">
+                            <span class="tutorial-step-number">4</span>
+                            <h4>Buscá un hilo</h4>
+                            <p>Buscá palabras en versículos, comentarios y notas; después filtrá por libro o retomá una
+                                búsqueda reciente.</p>
+                            <button type="button" onclick="abrirTutorialBusquedaLumina()">
+                                <i class="fas fa-search" aria-hidden="true"></i>
+                                Buscar misericordia
+                            </button>
+                        </article>
+
+                        <article class="tutorial-step-card">
+                            <span class="tutorial-step-number">5</span>
+                            <h4>Activá concordancias</h4>
+                            <p>Con el interruptor superior, algunas palabras se vuelven puentes hacia otros pasajes
+                                donde resuena el mismo concepto.</p>
+                            <button type="button" onclick="abrirTutorialConcordanciasLumina()">
+                                <i class="fas fa-link" aria-hidden="true"></i>
+                                Ver puentes
+                            </button>
+                        </article>
+
+                        <article class="tutorial-step-card">
+                            <span class="tutorial-step-number">6</span>
+                            <h4>Rezá con Lectio</h4>
+                            <p>Elegí un pasaje, leelo despacio y guardá tu respuesta en leer, meditar y orar.</p>
+                            <button type="button" onclick="abrirLectioDivina()">
+                                <i class="fas fa-feather-alt" aria-hidden="true"></i>
+                                Abrir Lectio
+                            </button>
+                        </article>
+
+                        <article class="tutorial-step-card">
+                            <span class="tutorial-step-number">7</span>
+                            <h4>Ajustá el modo</h4>
+                            <p>Desde la pluma podés usar modo desierto, texto corrido y Palabra de bienvenida para leer
+                                con más foco.</p>
+                            <button type="button" onclick="abrirTutorialModosLumina()">
+                                <i class="fas fa-sliders" aria-hidden="true"></i>
+                                Ver modos
+                            </button>
+                        </article>
+
+                        <article class="tutorial-step-card">
+                            <span class="tutorial-step-number">8</span>
+                            <h4>Cuidá tu camino</h4>
+                            <p>Exportá datos, restaurá respaldos, sincronizá con Google o limpiá caché cuando necesites
+                                actualizar.</p>
+                            <button type="button" onclick="abrirTutorialAjustesLumina()">
+                                <i class="fas fa-cloud" aria-hidden="true"></i>
+                                Ver resguardo
+                            </button>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="tutorial-gestures" aria-labelledby="tutorial-gestos-titulo">
+                    <div>
+                        <p class="tutorial-kicker">Dónde tocar</p>
+                        <h3 id="tutorial-gestos-titulo">Los controles que más se usan</h3>
+                    </div>
+                    <div class="tutorial-gesture-list">
+                        <div class="tutorial-gesture-item">
+                            <span><i class="fas fa-comment-dots" aria-hidden="true"></i></span>
+                            <strong>Texto del versículo</strong>
+                            <p>Abre comentarios de la Tradición y notas personales.</p>
+                        </div>
+                        <div class="tutorial-gesture-item">
+                            <span><i class="fas fa-star" aria-hidden="true"></i></span>
+                            <strong>Estrella</strong>
+                            <p>Guarda o quita un favorito sin salir de la lectura.</p>
+                        </div>
+                        <div class="tutorial-gesture-item">
+                            <span><i class="fas fa-plus" aria-hidden="true"></i></span>
+                            <strong>Más</strong>
+                            <p>Agrega el versículo a una colección temática.</p>
+                        </div>
+                        <div class="tutorial-gesture-item">
+                            <span><i class="fas fa-ellipsis-h" aria-hidden="true"></i></span>
+                            <strong>Acciones</strong>
+                            <p>Escuchar, compartir, marcar como leído o usar como bienvenida.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="tutorial-callout">
+                    <div>
+                        <p class="tutorial-kicker">Para acompañar a alguien nuevo</p>
+                        <h3>Un recorrido de cinco minutos</h3>
+                        <p>Abrí un capítulo, tocá un versículo, mostrá la estrella y el signo más, probá una búsqueda y
+                            cerrá con Lectio Divina. Con eso la persona ya entiende el corazón de Lumina.</p>
+                    </div>
+                    <button type="button" class="tutorial-primary-button" onclick="abrirTutorialComentariosLumina()">
+                        <i class="fas fa-route" aria-hidden="true"></i>
+                        Iniciar recorrido
+                    </button>
+                </section>
+            </div>
+        </main>
+
         <!-- PANELES LATERALES (sin cambios) -->
         <div id="overlay-panel-lumina" class="hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]"
             onclick="cerrarPanelLumina()"></div>
@@ -401,6 +595,11 @@
             </div>
             <div class="flex-1 overflow-y-auto p-6 md:p-8 pt-6">
                 <div class="panel-lumina-nav mb-6">
+                    <button type="button" class="panel-lumina-link" data-lumina-seccion="tutorial"
+                        onclick="mostrarSeccionPanelLumina('tutorial')">
+                        <span aria-hidden="true">🧭</span>
+                        <span>Guía práctica</span>
+                    </button>
                     <button type="button" class="panel-lumina-link" data-lumina-seccion="modos"
                         onclick="mostrarSeccionPanelLumina('modos')">
                         <span aria-hidden="true">🕊️</span>
@@ -436,6 +635,52 @@
                     Elegí una sección para leer, orar, explorar o cuidar tus datos dentro de Lumina.
                 </div>
                 <div class="acerca-de-container panel-lumina-contenido">
+                    <div id="lumina-seccion-tutorial" class="hidden" data-lumina-contenido>
+                        <blockquote>
+                            Si alguien llega por primera vez, no necesita entender todo: necesita saber dónde tocar
+                            primero.
+                        </blockquote>
+                        <p>Esta guía abre una vista práctica con el recorrido básico de Lumina: leer un capítulo, tocar
+                            un versículo, guardar hallazgos, buscar, activar concordancias, rezar con Lectio y cuidar
+                            los datos.</p>
+
+                        <div class="panel-lumina-herramientas">
+                            <button type="button"
+                                class="panel-lumina-cta panel-lumina-cta-stack panel-lumina-cta-tutorial"
+                                onclick="abrirTutorialLumina()">
+                                <span class="panel-lumina-cta-icon" aria-hidden="true">
+                                    <i class="fas fa-route"></i>
+                                </span>
+                                <span class="panel-lumina-cta-copy">
+                                    <strong>Abrir guía práctica</strong>
+                                    <span>Una vista completa para recorrer Lumina paso a paso, con botones que llevan a
+                                        cada herramienta.</span>
+                                </span>
+                            </button>
+
+                            <button type="button" class="panel-lumina-cta panel-lumina-cta-stack"
+                                onclick="abrirTutorialComentariosLumina()">
+                                <span class="panel-lumina-cta-icon" aria-hidden="true">
+                                    <i class="fas fa-comment-dots"></i>
+                                </span>
+                                <span class="panel-lumina-cta-copy">
+                                    <strong>Mostrar un ejemplo</strong>
+                                    <span>Abrí un capítulo y un panel de comentarios para ver la dinámica central.</span>
+                                </span>
+                            </button>
+                        </div>
+
+                        <div class="panel-lumina-bloque">
+                            <h3>Recorrido mínimo</h3>
+                            <ul class="panel-lumina-glosario">
+                                <li><strong>Leé:</strong> elegí libro y capítulo desde la portada.</li>
+                                <li><strong>Explorá:</strong> tocá un versículo para abrir Tradición y notas.</li>
+                                <li><strong>Guardá:</strong> usá estrella, colecciones y Lectio para volver después.</li>
+                                <li><strong>Compartí:</strong> convertí un versículo o una colección en algo enviable.</li>
+                            </ul>
+                        </div>
+                    </div>
+
                     <div id="lumina-seccion-modos" class="hidden" data-lumina-contenido>
                         <blockquote>
                             A veces la Palabra pide estudio; otras, silencio, lentitud y respuesta del corazón.

@@ -1400,6 +1400,7 @@ let contextoModalColecciones = null;
 let lectioDivinaRegistros = [];
 let lectioRegistroActivoId = null;
 let vistaRetornoLectio = 'vista-libros';
+let vistaRetornoTutorial = 'vista-libros';
 let busquedasRecientes = [];
 let estadoSeccionesBusqueda = {
     versiculos: false,
@@ -11668,6 +11669,120 @@ function irAlInicio() {
 
     mostrarBuscadorMovil(false);
     actualizarEstadoControlesBusqueda();
+}
+
+function abrirTutorialLumina() {
+    const vistaActiva = document.querySelector('.vista:not(.hidden)');
+    if (vistaActiva && vistaActiva.id !== 'vista-tutorial') {
+        vistaRetornoTutorial = vistaActiva.id;
+    }
+
+    mostrarVista('vista-tutorial');
+    cerrarPanelLumina();
+    ocultarPanelBusquedaCompleto();
+    actualizarOverlayPanelesDerecha();
+
+    const vistaTutorial = document.getElementById('vista-tutorial');
+    if (vistaTutorial) {
+        requestAnimationFrame(() => vistaTutorial.scrollTo({ top: 0, left: 0, behavior: 'auto' }));
+    }
+}
+
+function volverDesdeTutorial() {
+    const destino = vistaRetornoTutorial && vistaRetornoTutorial !== 'vista-tutorial'
+        ? vistaRetornoTutorial
+        : 'vista-libros';
+
+    if (destino === 'vista-libros') {
+        irAlInicio();
+        return;
+    }
+
+    const vistaDestino = document.getElementById(destino);
+    if (vistaDestino) {
+        mostrarVista(destino);
+        return;
+    }
+
+    irAlInicio();
+}
+
+function abrirCapituloTutorialLumina(libro = 'Evangelio según San Juan', capitulo = 1) {
+    if (!datosBibliaCargados) {
+        lanzarToast('Esperá un instante mientras termina de cargar la Biblia');
+        return false;
+    }
+
+    cerrarPanelLumina();
+    libroActual = libro;
+    abrirLectura(capitulo);
+    llevarLecturaAlInicio();
+    return true;
+}
+
+function abrirTutorialLecturaBasica() {
+    if (!abrirCapituloTutorialLumina()) return;
+    lanzarToast('Abrimos un capítulo de ejemplo. Tocá un versículo para entrar en comentarios y notas.');
+}
+
+function abrirTutorialComentariosLumina() {
+    const libro = 'Evangelio según San Juan';
+    const capitulo = 1;
+    const versiculo = 1;
+
+    if (!abrirCapituloTutorialLumina(libro, capitulo)) return;
+
+    requestAnimationFrame(() => {
+        const texto = bibleContent[libro]?.[capitulo]?.[versiculo] || '';
+        resaltarVersiculo(libro, capitulo, versiculo);
+        abrirPanel(libro, capitulo, versiculo, texto);
+        lanzarToast('Este panel reúne Tradición y notas personales para el versículo.');
+    });
+}
+
+function abrirTutorialGuardadosLumina() {
+    cerrarPanelLumina();
+    abrirPanelGuardados();
+    lanzarToast('Acá vuelven tus favoritos, notas, colecciones y Lectio guardadas.');
+}
+
+function abrirTutorialBusquedaLumina() {
+    if (!datosBibliaCargados) {
+        lanzarToast('Esperá un instante mientras termina de cargar la Biblia');
+        return;
+    }
+
+    cerrarPanelLumina();
+    mostrarVista('vista-libros');
+    filtroLibroBusquedaActual = FILTRO_BUSQUEDA_TODOS;
+    sincronizarSelectorFiltroLibroBusqueda();
+    sincronizarInputsBusqueda('misericordia');
+    mostrarResultadosBusqueda('misericordia');
+    lanzarToast('Probamos una búsqueda para ver versículos, comentarios y notas.');
+}
+
+function abrirTutorialConcordanciasLumina() {
+    if (!abrirCapituloTutorialLumina()) return;
+
+    const toggle = document.getElementById('toggle-concordancia');
+    if (toggle) {
+        toggle.checked = true;
+    }
+
+    concordanciaActiva = true;
+    escribirPersistencia(CLAVE_CONCORDANCIA, 'true');
+    refrescarConcordanciaVistaActual();
+    lanzarToast('Concordancias activadas. Tocá una palabra resaltada para seguir el hilo.');
+}
+
+function abrirTutorialModosLumina() {
+    abrirPanelLumina();
+    mostrarSeccionPanelLumina('modos');
+}
+
+function abrirTutorialAjustesLumina() {
+    abrirPanelLumina();
+    mostrarSeccionPanelLumina('ajustes');
 }
 
 function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null) {
