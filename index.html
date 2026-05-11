@@ -327,7 +327,7 @@
                             <div id="lectio-pasaje-texto" class="lectio-pasaje-texto"></div>
                         </section>
 
-                        <section class="lectio-escritura-card">
+                        <section id="lectio-escritura-card" class="lectio-escritura-card hidden">
                             <div id="lectio-registro-activo" class="lectio-registro-activo hidden"></div>
 
                             <div class="lectio-bloque">
@@ -1231,7 +1231,7 @@
         </div>
     </div>
     <div id="modal-compartir-importable"
-        class="modal-compartir-importable-overlay fixed inset-0 z-[122] hidden items-center justify-center bg-black/60 backdrop-blur-md px-4 py-8"
+        class="modal-compartir-importable-overlay fixed inset-0 z-[30000] hidden items-center justify-center bg-black/60 backdrop-blur-md px-4 py-8"
         onclick="cerrarModalCompartirImportableLumina()">
         <div class="modal-compartir-importable-card relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-oro/30 shadow-2xl bg-[#fcfaf7] dark:bg-[#1a1d23]"
             onclick="event.stopPropagation()">

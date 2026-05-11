@@ -6781,6 +6781,7 @@ function renderizarModalCompartirImportableLumina() {
     const etiqueta = document.getElementById('compartir-importable-etiqueta');
     const titulo = document.getElementById('compartir-importable-titulo');
     const subtitulo = document.getElementById('compartir-importable-subtitulo');
+    const opciones = modal.querySelector('.modal-compartir-importable-options');
     const panelQr = document.getElementById('compartir-importable-qr-panel');
     const contenedorQr = document.getElementById('compartir-importable-qr');
     const urlTexto = document.getElementById('compartir-importable-url');
@@ -6804,11 +6805,11 @@ function renderizarModalCompartirImportableLumina() {
     }
 
     if (!contexto.enlace) {
+        if (opciones) opciones.classList.remove('hidden');
         if (contenedorQr) contenedorQr.innerHTML = '';
         if (urlTexto) urlTexto.textContent = '';
     }
 }
-
 function abrirModalCompartirImportableLumina(contexto) {
     const modal = document.getElementById('modal-compartir-importable');
     if (!modal || !contexto?.prepararEnlace) return;
@@ -6820,24 +6821,42 @@ function abrirModalCompartirImportableLumina(contexto) {
     };
 
     renderizarModalCompartirImportableLumina();
+    mostrarModalCompartirImportableLumina();
+}
+
+function mostrarModalCompartirImportableLumina() {
+    const modal = document.getElementById('modal-compartir-importable');
+    if (!modal) return;
+
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 }
 
-function cerrarModalCompartirImportableLumina() {
+function cerrarModalCompartirImportableLumina(opciones = {}) {
     const modal = document.getElementById('modal-compartir-importable');
-    if (!modal) return;
+    const conservarContexto = opciones?.conservarContexto === true;
 
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-    contextoModalCompartirImportableLumina = null;
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        if (modal.contains(document.activeElement)) {
+            document.activeElement.blur();
+        }
+    }
+
+    if (!conservarContexto) {
+        contextoModalCompartirImportableLumina = null;
+    }
 
     const panelQr = document.getElementById('compartir-importable-qr-panel');
     const contenedorQr = document.getElementById('compartir-importable-qr');
     const urlTexto = document.getElementById('compartir-importable-url');
-    if (panelQr) panelQr.classList.add('hidden');
-    if (contenedorQr) contenedorQr.innerHTML = '';
-    if (urlTexto) urlTexto.textContent = '';
+
+    if (!conservarContexto || !contextoModalCompartirImportableLumina?.enlace) {
+        if (panelQr) panelQr.classList.add('hidden');
+        if (contenedorQr) contenedorQr.innerHTML = '';
+        if (urlTexto) urlTexto.textContent = '';
+    }
 }
 
 async function obtenerEnlaceContextoCompartirImportableLumina() {
@@ -6862,11 +6881,14 @@ async function obtenerEnlaceContextoCompartirImportableLumina() {
 }
 
 function renderizarQrCompartirImportableLumina(enlace) {
+    const modal = document.getElementById('modal-compartir-importable');
+    const opciones = modal?.querySelector('.modal-compartir-importable-options');
     const panelQr = document.getElementById('compartir-importable-qr-panel');
     const contenedorQr = document.getElementById('compartir-importable-qr');
     const urlTexto = document.getElementById('compartir-importable-url');
     if (!panelQr || !contenedorQr || !enlace?.url) return;
 
+    if (opciones) opciones.classList.add('hidden');
     contenedorQr.innerHTML = '';
 
     if (typeof QRCode === 'undefined') {
@@ -6890,17 +6912,43 @@ function renderizarQrCompartirImportableLumina(enlace) {
 }
 
 async function mostrarQrCompartirImportableLumina() {
-    const enlace = await obtenerEnlaceContextoCompartirImportableLumina();
-    if (!enlace) return;
-    renderizarQrCompartirImportableLumina(enlace);
+    cerrarModalCompartirImportableLumina({ conservarContexto: true });
+
+    try {
+        const enlace = await obtenerEnlaceContextoCompartirImportableLumina();
+        if (!enlace) {
+            cerrarModalCompartirImportableLumina();
+            return;
+        }
+
+        mostrarModalCompartirImportableLumina();
+        renderizarQrCompartirImportableLumina(enlace);
+    } catch (error) {
+        console.error('No se pudo generar el QR compartido:', error);
+        cerrarModalCompartirImportableLumina();
+        lanzarToast(obtenerMensajeErrorCompartidoLumina(error));
+    }
 }
 
 async function compartirEnlaceDesdeModalImportableLumina(cerrarAlFinal = true) {
-    const enlace = await obtenerEnlaceContextoCompartirImportableLumina();
-    if (!enlace) return;
+    if (cerrarAlFinal) {
+        cerrarModalCompartirImportableLumina({ conservarContexto: true });
+    }
 
-    await compartirEnlaceImportableLumina(enlace.url, enlace.titulo, enlace.texto);
-    if (cerrarAlFinal) cerrarModalCompartirImportableLumina();
+    try {
+        const enlace = await obtenerEnlaceContextoCompartirImportableLumina();
+        if (!enlace) {
+            if (cerrarAlFinal) cerrarModalCompartirImportableLumina();
+            return;
+        }
+
+        await compartirEnlaceImportableLumina(enlace.url, enlace.titulo, enlace.texto);
+        if (cerrarAlFinal) cerrarModalCompartirImportableLumina();
+    } catch (error) {
+        console.error('No se pudo compartir el enlace importable:', error);
+        if (cerrarAlFinal) cerrarModalCompartirImportableLumina();
+        lanzarToast(obtenerMensajeErrorCompartidoLumina(error));
+    }
 }
 
 async function copiarEnlaceDesdeModalImportableLumina() {

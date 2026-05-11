@@ -1638,16 +1638,33 @@ body:not(.dark) #lista-favoritos .favorito-entrada-texto {
     animation: fadeIn 0.2s ease-out;
 }
 
+.modal-compartir-importable-overlay {
+    z-index: 30000;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(1rem, 3vw, 2rem);
+    overflow-y: auto;
+}
+
 .modal-compartir-importable-overlay.flex {
+    z-index: 30000 !important;
     display: flex;
     animation: fadeIn 0.2s ease-out;
 }
 
 .modal-compartir-importable-card {
     position: relative;
-    z-index: 1;
+    z-index: 30001;
+    width: min(100%, 38rem);
+    max-width: calc(100vw - clamp(2rem, 6vw, 4rem));
+    max-height: calc(100dvh - clamp(2rem, 6vw, 4rem));
+    overflow-y: auto;
     pointer-events: auto;
     box-shadow: 0 28px 80px rgba(35, 27, 19, 0.24);
+}
+
+.modal-compartir-importable-card > .relative {
+    padding: clamp(1.45rem, 4vw, 2rem);
 }
 
 .modal-compartir-importable-options {
@@ -1660,7 +1677,7 @@ body:not(.dark) #lista-favoritos .favorito-entrada-texto {
     align-items: flex-start;
     gap: 0.9rem;
     width: 100%;
-    padding: 1rem;
+    padding: 1.05rem 1.15rem;
     border-radius: 1.15rem;
     border: 1px solid rgba(184, 134, 11, 0.22);
     background: rgba(255, 255, 255, 0.74);
@@ -1693,11 +1710,16 @@ body:not(.dark) #lista-favoritos .favorito-entrada-texto {
     color: #9a6a00;
 }
 
+.modal-compartir-importable-option > span:last-child {
+    min-width: 0;
+}
+
 .modal-compartir-importable-option strong {
     display: block;
     color: #7a5300;
     font-size: 0.98rem;
     line-height: 1.35;
+    overflow-wrap: anywhere;
 }
 
 .modal-compartir-importable-option small {
@@ -1706,6 +1728,7 @@ body:not(.dark) #lista-favoritos .favorito-entrada-texto {
     color: #6b5a44;
     font-size: 0.84rem;
     line-height: 1.45;
+    overflow-wrap: anywhere;
 }
 
 .modal-compartir-importable-qr {
@@ -1815,7 +1838,7 @@ body.dialogo-lumina-abierto {
 .modal-dialogo-lumina {
     position: fixed;
     inset: 0;
-    z-index: 20020;
+    z-index: 30050;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2004,6 +2027,40 @@ body.dark .dialogo-lumina-textarea:focus {
 }
 
 @media (max-width: 640px) {
+    .modal-compartir-importable-overlay {
+        padding: calc(env(safe-area-inset-top, 0px) + 0.9rem) 0.9rem calc(env(safe-area-inset-bottom, 0px) + 0.9rem);
+    }
+
+    .modal-compartir-importable-card {
+        width: 100%;
+        max-width: 100%;
+        max-height: calc(100dvh - 1.8rem);
+        border-radius: 1.35rem !important;
+    }
+
+    .modal-compartir-importable-card > .relative {
+        padding: 1.25rem 1rem 1.15rem;
+    }
+
+    .modal-compartir-importable-option {
+        gap: 0.75rem;
+        padding: 0.95rem;
+        border-radius: 1rem;
+    }
+
+    .modal-compartir-importable-option-icon {
+        width: 2.15rem;
+        height: 2.15rem;
+    }
+
+    .modal-compartir-importable-option strong {
+        font-size: 0.95rem;
+    }
+
+    .modal-compartir-importable-option small {
+        font-size: 0.81rem;
+    }
+
     .dialogo-lumina-card {
         padding: 1.45rem;
         border-radius: 1.45rem;
