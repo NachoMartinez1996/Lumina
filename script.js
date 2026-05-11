@@ -12130,9 +12130,12 @@ function actualizarUINubeLumina() {
         if (conectado) {
             const nombre = obtenerNombreUsuarioNubeLumina();
             const email = usuarioFirebaseLumina.email || '';
-            userBox.textContent = email && email !== nombre ? `${nombre} · ${email}` : nombre;
+            const emailHtml = email && email !== nombre
+                ? `<span class="panel-lumina-cloud-user-email">${escapeHtml(email)}</span>`
+                : '';
+            userBox.innerHTML = `<span class="panel-lumina-cloud-user-name">${escapeHtml(nombre)}</span>${emailHtml}`;
         } else {
-            userBox.textContent = '';
+            userBox.innerHTML = '';
         }
     }
 

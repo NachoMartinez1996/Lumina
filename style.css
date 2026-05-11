@@ -5322,12 +5322,37 @@ body.dark .panel-lumina-contenido blockquote {
 }
 
 .panel-lumina-cloud-user {
+    display: grid;
+    gap: 0.15rem;
     margin-top: 0.85rem !important;
     padding: 0.7rem 0.8rem;
     border-radius: 0.85rem;
     background: rgba(255, 255, 255, 0.66);
     border: 1px solid rgba(184, 134, 11, 0.12);
-    word-break: break-word;
+    text-align: left !important;
+    text-align-last: left !important;
+    text-justify: auto;
+    -webkit-hyphens: none;
+    hyphens: none;
+    word-break: normal;
+    overflow-wrap: anywhere;
+}
+
+.panel-lumina-cloud-user-name,
+.panel-lumina-cloud-user-email {
+    display: block;
+    min-width: 0;
+}
+
+.panel-lumina-cloud-user-name {
+    color: inherit;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.panel-lumina-cloud-user-email {
+    opacity: 0.92;
+    line-height: 1.35;
 }
 
 .panel-lumina-cloud-actions {
