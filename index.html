@@ -1354,8 +1354,13 @@
                     esto en la sección <strong>"Sobre Lumina"</strong>.</p>
             </div>
 
-            <!-- Botón de cierre alineado a la derecha -->
-            <div class="px-6 md:px-10 pb-6 md:pb-8 flex justify-end">
+            <!-- Botones de inicio -->
+            <div class="px-6 md:px-10 pb-6 md:pb-8 flex flex-col sm:flex-row gap-3 justify-end">
+                <button type="button" onclick="abrirTutorialDesdeBienvenida()"
+                    class="border border-oro text-oro px-5 py-2 rounded-full font-semibold hover:bg-oro/10 transition inline-flex items-center justify-center gap-2">
+                    <i class="fas fa-map-signs" aria-hidden="true"></i>
+                    Ver guía práctica
+                </button>
                 <button type="button" onclick="cerrarModalBienvenida()"
                     class="bg-oro text-white px-5 py-2 rounded-full font-semibold hover:bg-amber-700 transition">Empezar
                     a explorar</button>
