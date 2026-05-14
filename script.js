@@ -8650,11 +8650,11 @@ function renderizarPaginasLectioCanvasPdf(lectio) {
     };
 
     const dibujarEntradaVersiculo = (item) => {
-        const { ctx } = pagina;
         const textoX = config.marginX + 92;
         const textoWidth = contentWidth - 92;
-        ctx.font = '400 34px Georgia, serif';
-        const lineas = dividirTextoTarjetaEnLineas(ctx, String(item.texto || ''), textoWidth);
+        const ctxMedicion = pagina.ctx;
+        ctxMedicion.font = '400 34px Georgia, serif';
+        const lineas = dividirTextoTarjetaEnLineas(ctxMedicion, String(item.texto || ''), textoWidth);
         const lineHeight = 48;
         const textoHeight = Math.max(56, lineas.length * lineHeight);
         const bloqueHeight = textoHeight + 28;
@@ -8664,6 +8664,7 @@ function renderizarPaginasLectioCanvasPdf(lectio) {
             dibujarEncabezadoPasaje('Cita bíblica elegida', 'Continuación del pasaje');
         }
 
+        const { ctx } = pagina;
         const yInicial = pagina.y;
 
         ctx.save();
@@ -9067,15 +9068,15 @@ function renderizarPaginasColeccionCanvasPdf(coleccion) {
     };
 
     const dibujarEntradaColeccion = (item, index) => {
-        const { ctx } = pagina;
         const referencia = formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo);
         const textoX = config.marginX + 92;
         const textoWidth = contentWidth - 92;
+        const ctxMedicion = pagina.ctx;
 
-        ctx.font = '800 23px system-ui, sans-serif';
-        const lineasReferencia = dividirTextoTarjetaEnLineas(ctx, referencia, textoWidth);
-        ctx.font = '400 34px Georgia, serif';
-        const lineasTexto = dividirTextoTarjetaEnLineas(ctx, String(item.texto || ''), textoWidth);
+        ctxMedicion.font = '800 23px system-ui, sans-serif';
+        const lineasReferencia = dividirTextoTarjetaEnLineas(ctxMedicion, referencia, textoWidth);
+        ctxMedicion.font = '400 34px Georgia, serif';
+        const lineasTexto = dividirTextoTarjetaEnLineas(ctxMedicion, String(item.texto || ''), textoWidth);
 
         const refHeight = Math.max(30, lineasReferencia.length * 30);
         const textoHeight = Math.max(56, lineasTexto.length * 48);
@@ -9086,6 +9087,7 @@ function renderizarPaginasColeccionCanvasPdf(coleccion) {
             dibujarEncabezadoListado('Versículos elegidos', 'Continuación de la colección');
         }
 
+        const { ctx } = pagina;
         const yInicial = pagina.y;
 
         ctx.save();
