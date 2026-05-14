@@ -4209,6 +4209,12 @@ function crearSeccionBusqueda(clave, titulo, icono, items, crearItem, mensajeVac
     return crearSeccionPanel('busqueda', estadoSeccionesBusqueda, clave, titulo, icono, items, crearItem, mensajeVacio);
 }
 
+function agregarSeccionPanelSiTieneItems(contenedor, crearSeccion, items) {
+    if (!contenedor || !Array.isArray(items) || items.length === 0) return false;
+    contenedor.appendChild(crearSeccion());
+    return true;
+}
+
 function actualizarTabsPanelGuardados() {
     const tabFavoritos = document.getElementById('tab-guardados-favoritos');
     const tabColecciones = document.getElementById('tab-guardados-colecciones');
@@ -4324,37 +4330,43 @@ function renderizarPanelFavoritosGuardados() {
         return;
     }
 
-    listaDiv.appendChild(
-        crearSeccionFavoritos(
+    agregarSeccionPanelSiTieneItems(
+        listaDiv,
+        () => crearSeccionFavoritos(
             'versiculos',
             'Versículos',
             'fa-bible',
             favoritosVisibles.versiculos,
             crearBotonFavoritoVersiculo,
             obtenerMensajeVacioSeccionFavoritos('versiculos', filtroLibroFavoritosActual)
-        )
+        ),
+        favoritosVisibles.versiculos
     );
 
-    listaDiv.appendChild(
-        crearSeccionFavoritos(
+    agregarSeccionPanelSiTieneItems(
+        listaDiv,
+        () => crearSeccionFavoritos(
             'comentarios',
             'Comentarios',
             'fa-comment-dots',
             favoritosVisibles.comentarios,
             crearBotonFavoritoComentario,
             obtenerMensajeVacioSeccionFavoritos('comentarios', filtroLibroFavoritosActual)
-        )
+        ),
+        favoritosVisibles.comentarios
     );
 
-    listaDiv.appendChild(
-        crearSeccionFavoritos(
+    agregarSeccionPanelSiTieneItems(
+        listaDiv,
+        () => crearSeccionFavoritos(
             'notas',
             'Notas',
             'fa-pen',
             favoritosVisibles.notas,
             crearBotonFavoritoNota,
             obtenerMensajeVacioSeccionFavoritos('notas', filtroLibroFavoritosActual)
-        )
+        ),
+        favoritosVisibles.notas
     );
 }
 
@@ -6144,36 +6156,55 @@ function renderizarResultadosBusqueda(contenedor, resultados, termino = '', filt
 
     contenedor.classList.add('busqueda-con-resultados');
     contenedor.innerHTML = '';
-    contenedor.appendChild(
-        crearSeccionBusqueda(
+    let haySeccionesVisibles = false;
+
+    haySeccionesVisibles = agregarSeccionPanelSiTieneItems(
+        contenedor,
+        () => crearSeccionBusqueda(
             'versiculos',
             'Versículos',
             'fa-bible',
             resultados.versiculos,
             item => crearTarjetaResultadoBusquedaVersiculo(item, terminoNormalizado),
             mensajeVersiculos
-        )
-    );
-    contenedor.appendChild(
-        crearSeccionBusqueda(
+        ),
+        resultados.versiculos
+    ) || haySeccionesVisibles;
+
+    haySeccionesVisibles = agregarSeccionPanelSiTieneItems(
+        contenedor,
+        () => crearSeccionBusqueda(
             'comentarios',
             'Comentarios',
             'fa-comment-dots',
             resultados.comentarios,
             item => crearTarjetaResultadoBusquedaComentario(item, terminoNormalizado),
             mensajeComentarios
-        )
-    );
-    contenedor.appendChild(
-        crearSeccionBusqueda(
+        ),
+        resultados.comentarios
+    ) || haySeccionesVisibles;
+
+    haySeccionesVisibles = agregarSeccionPanelSiTieneItems(
+        contenedor,
+        () => crearSeccionBusqueda(
             'notas',
             'Notas',
             'fa-pen',
             resultados.notas,
             item => crearTarjetaResultadoBusquedaNota(item, terminoNormalizado),
             mensajeNotas
-        )
-    );
+        ),
+        resultados.notas
+    ) || haySeccionesVisibles;
+
+    if (!haySeccionesVisibles) {
+        contenedor.classList.remove('busqueda-con-resultados');
+        contenedor.innerHTML = renderizarEstadoBusquedaVacio(terminoNormalizado, filtro);
+        const bloqueBusquedasRecientes = crearBloqueBusquedasRecientes();
+        if (bloqueBusquedasRecientes) {
+            contenedor.appendChild(bloqueBusquedasRecientes);
+        }
+    }
 }
 
 function construirIndiceBusqueda() {
@@ -9673,6 +9704,41 @@ function detenerReproduccionesLuminaActivas() {
     detenerAudiosCelebracion();
 }
 
+function hayAudioCelebracionActivo() {
+    return ['audio-celebracion-biblia', 'audio-celebracion-libro'].some(id => {
+        const audio = document.getElementById(id);
+        return Boolean(audio && !audio.paused && !audio.ended);
+    });
+}
+
+function hayLecturaEnVozAltaActiva() {
+    const estadoInternoActivo = Boolean(
+        vozActiva ||
+        btnAudioActivo ||
+        leyendoCapituloCompleto ||
+        leyendoLibroCompleto ||
+        reproduccionActiva ||
+        timeoutLecturaActiva
+    );
+
+    if (!navegadorSoportaLectura()) {
+        return estadoInternoActivo;
+    }
+
+    return Boolean(
+        estadoInternoActivo ||
+        window.speechSynthesis.speaking ||
+        window.speechSynthesis.pending ||
+        window.speechSynthesis.paused
+    );
+}
+
+function detenerLecturaDesdeAjustes() {
+    const habiaReproduccionActiva = hayLecturaEnVozAltaActiva() || hayAudioCelebracionActivo();
+    detenerReproduccionesLuminaActivas();
+    lanzarToast(habiaReproduccionActiva ? 'Lectura detenida' : 'No hay lectura en curso');
+}
+
 function limpiarEstadoLectura() {
     if (btnAudioActivo) {
         restaurarIconoParla(btnAudioActivo);
@@ -10509,6 +10575,7 @@ function initSettingsMenu() {
 
     cargarVocesEnSelector();
     registrarActualizacionVocesLectura();
+    document.getElementById('btn-detener-lectura-global')?.addEventListener('click', detenerLecturaDesdeAjustes);
 }
 
 function cargarVocesEnSelector() {

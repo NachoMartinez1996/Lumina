@@ -9383,6 +9383,35 @@ body.dark .share-verse-card-canvas {
     box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.2);
 }
 
+.settings-stop-reading-button {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 2.5rem;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid rgba(184, 134, 11, 0.18);
+    border-radius: 0.75rem;
+    background: rgba(184, 134, 11, 0.08);
+    color: #4b3a21;
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-align: left;
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.settings-stop-reading-button:hover {
+    border-color: rgba(184, 134, 11, 0.42);
+    background: rgba(184, 134, 11, 0.14);
+    color: #8a6208;
+}
+
+.settings-stop-reading-button:focus-visible {
+    outline: none;
+    border-color: #b8860b;
+    box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.18);
+}
+
 .dark .settings-select {
     background-color: #374151;
     color: #e5e7eb;
@@ -9397,6 +9426,18 @@ body.dark .share-verse-card-canvas {
 
 .dark .settings-select:focus {
     box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.15);
+}
+
+.dark .settings-stop-reading-button {
+    background: rgba(212, 175, 55, 0.12);
+    border-color: rgba(212, 175, 55, 0.18);
+    color: #f3f4f6;
+}
+
+.dark .settings-stop-reading-button:hover {
+    background: rgba(212, 175, 55, 0.18);
+    border-color: rgba(212, 175, 55, 0.42);
+    color: #f5e6b0;
 }
 
 .settings-dropdown.hidden {
