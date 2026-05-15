@@ -458,42 +458,185 @@ const EVANGELIOS_CELEBRACION = [
 // --------------------------------------------------------------
 let bibleContent = {};
 let datosBibliaCargados = false;
+const NOMBRE_BD_CONTENIDO_LUMINA = 'lumina_contenido';
+const VERSION_BD_CONTENIDO_LUMINA = 1;
+const STORE_BD_CONTENIDO_LUMINA = 'recursos_normalizados';
+const VERSION_CONTENIDO_NORMALIZADO_LUMINA = '2026-05-14.1';
+const CLAVE_CONTENIDO_BIBLIA_LUMINA = 'biblia-normalizada';
+const CLAVE_CONTENIDO_COMENTARIOS_LUMINA = 'comentarios-normalizados';
+let baseContenidoLumina = null;
+
+async function abrirBaseContenidoLumina() {
+    if (typeof indexedDB === 'undefined') {
+        throw new Error('IndexedDB no está disponible para la caché de contenido');
+    }
+
+    if (baseContenidoLumina) {
+        return baseContenidoLumina;
+    }
+
+    baseContenidoLumina = await new Promise((resolve, reject) => {
+        const solicitud = indexedDB.open(NOMBRE_BD_CONTENIDO_LUMINA, VERSION_BD_CONTENIDO_LUMINA);
+
+        solicitud.onupgradeneeded = () => {
+            const db = solicitud.result;
+            if (!db.objectStoreNames.contains(STORE_BD_CONTENIDO_LUMINA)) {
+                db.createObjectStore(STORE_BD_CONTENIDO_LUMINA, { keyPath: 'key' });
+            }
+        };
+
+        solicitud.onsuccess = () => resolve(solicitud.result);
+        solicitud.onerror = () => reject(solicitud.error || new Error('No se pudo abrir la caché de contenido'));
+    });
+
+    return baseContenidoLumina;
+}
+
+async function leerContenidoNormalizadoLumina(key) {
+    try {
+        const db = await abrirBaseContenidoLumina();
+
+        const registro = await new Promise((resolve, reject) => {
+            const transaccion = db.transaction(STORE_BD_CONTENIDO_LUMINA, 'readonly');
+            const store = transaccion.objectStore(STORE_BD_CONTENIDO_LUMINA);
+            const solicitud = store.get(key);
+
+            solicitud.onsuccess = () => resolve(solicitud.result || null);
+            solicitud.onerror = () => reject(solicitud.error || new Error('No se pudo leer la caché de contenido'));
+            transaccion.onerror = () => reject(transaccion.error || solicitud.error || new Error('Falló la lectura de contenido normalizado'));
+            transaccion.onabort = () => reject(transaccion.error || new Error('Se canceló la lectura de contenido normalizado'));
+        });
+
+        if (!registro) return null;
+
+        if (registro.version !== VERSION_CONTENIDO_NORMALIZADO_LUMINA) {
+            eliminarContenidoNormalizadoLumina(key);
+            return null;
+        }
+
+        return registro.value || null;
+    } catch (error) {
+        console.warn('Lumina no pudo leer la caché de contenido normalizado:', error);
+        return null;
+    }
+}
+
+async function guardarContenidoNormalizadoLumina(key, value) {
+    try {
+        const db = await abrirBaseContenidoLumina();
+
+        await new Promise((resolve, reject) => {
+            const transaccion = db.transaction(STORE_BD_CONTENIDO_LUMINA, 'readwrite');
+            const store = transaccion.objectStore(STORE_BD_CONTENIDO_LUMINA);
+
+            store.put({
+                key,
+                value,
+                version: VERSION_CONTENIDO_NORMALIZADO_LUMINA,
+                updatedAt: new Date().toISOString()
+            });
+
+            transaccion.oncomplete = () => resolve(true);
+            transaccion.onerror = () => reject(transaccion.error || new Error('No se pudo guardar la caché de contenido'));
+            transaccion.onabort = () => reject(transaccion.error || new Error('Se canceló la escritura de contenido normalizado'));
+        });
+    } catch (error) {
+        console.warn('Lumina no pudo guardar la caché de contenido normalizado:', error);
+    }
+}
+
+async function eliminarContenidoNormalizadoLumina(key) {
+    try {
+        const db = await abrirBaseContenidoLumina();
+
+        await new Promise((resolve, reject) => {
+            const transaccion = db.transaction(STORE_BD_CONTENIDO_LUMINA, 'readwrite');
+            const store = transaccion.objectStore(STORE_BD_CONTENIDO_LUMINA);
+            store.delete(key);
+
+            transaccion.oncomplete = () => resolve(true);
+            transaccion.onerror = () => reject(transaccion.error || new Error('No se pudo eliminar contenido normalizado'));
+            transaccion.onabort = () => reject(transaccion.error || new Error('Se canceló la eliminación de contenido normalizado'));
+        });
+    } catch (error) {
+        console.warn('Lumina no pudo eliminar contenido normalizado vencido:', error);
+    }
+}
+
+async function eliminarCacheContenidoLumina() {
+    baseContenidoLumina?.close();
+    baseContenidoLumina = null;
+
+    if (typeof indexedDB === 'undefined') return;
+
+    await new Promise(resolve => {
+        const solicitud = indexedDB.deleteDatabase(NOMBRE_BD_CONTENIDO_LUMINA);
+        solicitud.onsuccess = () => resolve(true);
+        solicitud.onerror = () => resolve(false);
+        solicitud.onblocked = () => resolve(false);
+    });
+}
+
+function normalizarBibliaDesdeJson(data) {
+    const contenido = {};
+
+    data.forEach(item => {
+        // PLANCHADO DE TILDES: Eliminamos acentos y pasamos a mayúsculas para igualar al diccionario
+        let libroCrudo = item.Libro.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+
+        // Mapeamos el nombre limpio al nombre canónico
+        let libroNorm = mapaNombres[libroCrudo] || item.Libro;
+        let capitulo = parseInt(item.Capitulo);
+        let versiculo = parseFloat(item.Versiculo);
+        let texto = item.Texto;
+
+        if (!contenido[libroNorm]) contenido[libroNorm] = {};
+        if (!contenido[libroNorm][capitulo]) contenido[libroNorm][capitulo] = {};
+        contenido[libroNorm][capitulo][versiculo] = texto;
+    });
+
+    return contenido;
+}
+
+function esBibliaNormalizadaValida(contenido) {
+    return !!contenido && typeof contenido === 'object' && Object.keys(contenido).length > 0;
+}
+
+function aplicarBibliaNormalizada(contenido) {
+    bibleContent = contenido;
+    datosBibliaCargados = true;
+    inicializarIndice();
+    construirIndiceConcordancia();
+    construirIndiceBusqueda();
+
+    if (libroActual) {
+        if (capituloActual) abrirLectura(capituloActual);
+        else abrirCapitulos(libroActual, obtenerCantidadCapitulos(libroActual));
+    }
+}
 
 async function cargarBibliaJSON() {
     try {
         bibleContent = {};
         datosBibliaCargados = false;
+        const contenidoCacheado = await leerContenidoNormalizadoLumina(CLAVE_CONTENIDO_BIBLIA_LUMINA);
+        if (esBibliaNormalizadaValida(contenidoCacheado)) {
+            aplicarBibliaNormalizada(contenidoCacheado);
+            return true;
+        }
+
         const response = await fetch("Biblia_Catolica_Completa.json");
         if (!response.ok) throw new Error("Error HTTP " + response.status);
         const data = await response.json();
+        const contenidoNormalizado = normalizarBibliaDesdeJson(data);
 
-        data.forEach(item => {
-            // PLANCHADO DE TILDES: Eliminamos acentos y pasamos a mayúsculas para igualar al diccionario
-            let libroCrudo = item.Libro.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
-
-            // Mapeamos el nombre limpio al nombre canónico
-            let libroNorm = mapaNombres[libroCrudo] || item.Libro;
-            let capitulo = parseInt(item.Capitulo);
-            let versiculo = parseFloat(item.Versiculo);
-            let texto = item.Texto;
-
-            if (!bibleContent[libroNorm]) bibleContent[libroNorm] = {};
-            if (!bibleContent[libroNorm][capitulo]) bibleContent[libroNorm][capitulo] = {};
-            bibleContent[libroNorm][capitulo][versiculo] = texto;
-        });
-
-        datosBibliaCargados = true;
-        inicializarIndice();
-        construirIndiceConcordancia();
-        construirIndiceBusqueda();
-
-        if (libroActual) {
-            if (capituloActual) abrirLectura(capituloActual);
-            else abrirCapitulos(libroActual, obtenerCantidadCapitulos(libroActual));
-        }
+        aplicarBibliaNormalizada(contenidoNormalizado);
+        guardarContenidoNormalizadoLumina(CLAVE_CONTENIDO_BIBLIA_LUMINA, contenidoNormalizado);
+        return true;
     } catch (err) {
         console.error("Error cargando Biblia JSON:", err);
-        iniciarBibliaMock();
+        if (typeof iniciarBibliaMock === 'function') iniciarBibliaMock();
+        return false;
     }
 }
 
@@ -1034,6 +1177,44 @@ let comentariosDB = { __ranges: [] };
 let datosComentariosCargados = false;
 let secuenciaComentariosDB = 0;
 
+function reiniciarComentariosTradicion() {
+    comentariosDB = { __ranges: [] };
+    secuenciaComentariosDB = 0;
+    datosComentariosCargados = false;
+}
+
+function esComentariosNormalizadosValidos(value) {
+    return !!value
+        && typeof value === 'object'
+        && !!value.comentariosDB
+        && typeof value.comentariosDB === 'object'
+        && Array.isArray(value.comentariosDB.__ranges);
+}
+
+function obtenerSiguienteOrdenComentarios(comentarios) {
+    let maxOrden = -1;
+
+    Object.entries(comentarios || {}).forEach(([clave, items]) => {
+        if (clave === '__ranges' || !Array.isArray(items)) return;
+
+        items.forEach(item => {
+            if (Number.isFinite(item?.orden)) {
+                maxOrden = Math.max(maxOrden, item.orden);
+            }
+        });
+    });
+
+    return maxOrden + 1;
+}
+
+function aplicarComentariosNormalizados(value) {
+    comentariosDB = value.comentariosDB;
+    secuenciaComentariosDB = Number.isInteger(value.secuenciaComentariosDB)
+        ? value.secuenciaComentariosDB
+        : obtenerSiguienteOrdenComentarios(comentariosDB);
+    datosComentariosCargados = Object.keys(comentariosDB).some(clave => clave !== '__ranges');
+}
+
 function limpiarTextoComentarioTradicion(texto) {
     return String(texto || '')
         .replace(/\r\n?/g, '\n')
@@ -1295,8 +1476,13 @@ async function cargarComentariosAgustinSalmosJSON() {
 }
 
 async function cargarComentariosJSON() {
-    comentariosDB = { __ranges: [] };
-    secuenciaComentariosDB = 0;
+    reiniciarComentariosTradicion();
+
+    const contenidoCacheado = await leerContenidoNormalizadoLumina(CLAVE_CONTENIDO_COMENTARIOS_LUMINA);
+    if (esComentariosNormalizadosValidos(contenidoCacheado)) {
+        aplicarComentariosNormalizados(contenidoCacheado);
+        return;
+    }
 
     const resultados = await Promise.all([
         cargarComentariosCatenaJSON(),
@@ -1304,6 +1490,13 @@ async function cargarComentariosJSON() {
     ]);
 
     datosComentariosCargados = resultados.some(Boolean);
+
+    if (resultados.every(Boolean) && datosComentariosCargados) {
+        guardarContenidoNormalizadoLumina(CLAVE_CONTENIDO_COMENTARIOS_LUMINA, {
+            comentariosDB,
+            secuenciaComentariosDB
+        });
+    }
 }
 
 function obtenerComentarios(libro, capitulo, versiculo) {
@@ -11317,59 +11510,6 @@ function actualizarBotonesLeidoLibros() {
     }
 }
 
-function toggleLeidoVersiculo(libro, capitulo, versiculo) {
-    if (!esVersiculoLeible(versiculo)) {
-        lanzarToast('Esta entrada no cuenta como versículo leído');
-        return;
-    }
-
-    const libroCompletoAntes = estaLibroLeido(libro);
-    const clave = claveLeidoVersiculo(libro, capitulo, versiculo);
-    const marcado = !leidos.has(clave);
-    if (marcado) leidos.add(clave);
-    else leidos.delete(clave);
-    guardarLeidos();
-    actualizarBotonLeido(`read_${libro}_${capitulo}_${versiculo}`, marcado, 'Marcar como no leído', 'Marcar como leído');
-    lanzarToast(marcado ? 'Versículo marcado como leído' : 'Versículo marcado como no leído');
-}
-
-function toggleLeidoCapitulo(libro, capitulo) {
-    const marcado = !estaCapituloLeido(libro, capitulo);
-    marcarCapituloLeido(libro, capitulo, marcado);
-    guardarLeidos();
-    actualizarBotonesLeidoLibros();
-    actualizarBotonesLeidoVistaLectura();
-    actualizarProgresoLibroVista();
-    actualizarProgresoTestamentosVista();
-    actualizarProgresoBibliaVista();
-    if (estaVistaVisible('vista-capitulos') && libroActual === libro) {
-        abrirCapitulos(libro, obtenerCantidadCapitulos(libro));
-    }
-    lanzarToast(marcado ? 'Capítulo marcado como leído' : 'Capítulo marcado como no leído');
-}
-
-function toggleLeidoLibro(libro) {
-    const marcado = !estaLibroLeido(libro);
-    marcarLibroLeido(libro, marcado);
-    guardarLeidos();
-    actualizarBotonesLeidoLibros();
-    actualizarBotonesLeidoVistaLectura();
-    actualizarProgresoLibroVista();
-    actualizarProgresoTestamentosVista();
-    actualizarProgresoBibliaVista();
-    if (estaVistaVisible('vista-capitulos') && libroActual === libro) {
-        abrirCapitulos(libro, obtenerCantidadCapitulos(libro));
-    } else {
-        inicializarIndice();
-    }
-    lanzarToast(marcado ? 'Libro marcado como leído' : 'Libro marcado como no leído');
-
-    // Mostrar celebración al completar un libro
-    if (marcado) {
-        abrirCelebracionLibroCompleto(libro);
-    }
-}
-
 function toggleLeidoTestamento(testamento) {
     const marcado = !estaTestamentoLeido(testamento);
     marcarTestamentoLeido(testamento, marcado);
@@ -11940,6 +12080,8 @@ function abrirLectura(capitulo) {
     const usaAcotacionesEspeciales = libroUsaAcotacionesEspeciales(libroActual);
     const gruposTradicionCompartida = obtenerGruposTradicionCompartidaCapitulo(libroActual, capitulo);
     if (numerosVersiculos.length > 0) {
+        const versiculosHtml = [];
+
         numerosVersiculos.forEach(v => {
             const textoOriginal = versiculosObj[v];
             const textoHTML = resaltarPalabras(textoOriginal);
@@ -11979,9 +12121,10 @@ function abrirLectura(capitulo) {
                     </div>
                 `;
             }
-            contenedor.innerHTML += verseHtml;
+            versiculosHtml.push(verseHtml);
         });
 
+        contenedor.insertAdjacentHTML('beforeend', versiculosHtml.join(''));
         contenedor.appendChild(barraCapitulo);
 
         const esApocalipsis22 = libroActual === 'Apocalipsis' && capitulo === 22;
@@ -12009,36 +12152,6 @@ function abrirLectura(capitulo) {
     }
     actualizarBotonesReproduccionListas();
     actualizarBotonesLeidoVistaLectura();
-}
-
-function toggleLeidoVersiculo(libro, capitulo, versiculo) {
-    const clave = claveLeidoVersiculo(libro, capitulo, versiculo);
-    const marcado = !leidos.has(clave);
-    if (marcado) leidos.add(clave);
-    else leidos.delete(clave);
-    guardarLeidos();
-    actualizarBotonesLeidoVistaLectura();
-    actualizarProgresoCapituloVista();
-    actualizarProgresoLibroVista();
-    actualizarProgresoTestamentosVista();
-    actualizarProgresoBibliaVista();
-    lanzarToast(marcado ? 'Versículo marcado como leído' : 'Versículo marcado como no leído');
-}
-
-function toggleLeidoCapitulo(libro, capitulo) {
-    const marcado = !estaCapituloLeido(libro, capitulo);
-    marcarCapituloLeido(libro, capitulo, marcado);
-    guardarLeidos();
-    actualizarBotonesLeidoVistaLectura();
-    actualizarProgresoCapituloVista();
-    actualizarProgresoLibroVista();
-    actualizarProgresoTestamentosVista();
-    actualizarProgresoBibliaVista();
-    actualizarBotonesReproduccionListas();
-    if (estaVistaVisible('vista-capitulos') && libroActual === libro) {
-        abrirCapitulos(libro, obtenerCantidadCapitulos(libro));
-    }
-    lanzarToast(marcado ? 'Capítulo marcado como leído' : 'Capítulo marcado como no leído');
 }
 
 function llevarLecturaAlInicio() {
@@ -13611,6 +13724,12 @@ const RECURSOS_OFFLINE_ESENCIALES = [
     './script.js',
     './firebase-config.js',
     './lumina.css',
+    './assets/vendor/fontawesome/css/all.min.css',
+    './assets/vendor/fontawesome/webfonts/fa-brands-400.woff2',
+    './assets/vendor/fontawesome/webfonts/fa-regular-400.woff2',
+    './assets/vendor/fontawesome/webfonts/fa-solid-900.woff2',
+    './assets/vendor/fontawesome/webfonts/fa-v4compatibility.woff2',
+    './assets/vendor/qrcodejs/qrcode.min.js',
     './Biblia_Catolica_Completa.json',
     './Catena_Aurea_Completa.json',
     './agustin_salmos.json'
@@ -14670,6 +14789,8 @@ function abrirSelectorImportacionLumina() {
 
 async function limpiarCacheLumina() {
     try {
+        await eliminarCacheContenidoLumina();
+
         if (!('serviceWorker' in navigator)) {
             window.location.reload();
             return;
@@ -14770,6 +14891,7 @@ async function ejecutarResetLumina() {
 
     try {
         await vaciarPersistenciaLuminaCompleta();
+        await eliminarCacheContenidoLumina();
 
         notasPersonales = {};
         favoritos = new Set();

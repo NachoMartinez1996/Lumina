@@ -1,4 +1,4 @@
-const VERSION_CACHE = '4.296.002';
+const VERSION_CACHE = '4.296.005';
 const CACHE_SHELL = `lumina-shell-${VERSION_CACHE}`;
 const CACHE_RUNTIME = `lumina-runtime-${VERSION_CACHE}`;
 const APP_SHELL = './index.html';
@@ -6,9 +6,20 @@ const APP_SHELL = './index.html';
 const archivosShell = [
   './',
   './index.html',
+  './lumina.css',
   './style.css',
   './script.js',
   './firebase-config.js',
+  './assets/vendor/fontawesome/css/all.min.css',
+  './assets/vendor/fontawesome/webfonts/fa-brands-400.ttf',
+  './assets/vendor/fontawesome/webfonts/fa-brands-400.woff2',
+  './assets/vendor/fontawesome/webfonts/fa-regular-400.ttf',
+  './assets/vendor/fontawesome/webfonts/fa-regular-400.woff2',
+  './assets/vendor/fontawesome/webfonts/fa-solid-900.ttf',
+  './assets/vendor/fontawesome/webfonts/fa-solid-900.woff2',
+  './assets/vendor/fontawesome/webfonts/fa-v4compatibility.ttf',
+  './assets/vendor/fontawesome/webfonts/fa-v4compatibility.woff2',
+  './assets/vendor/qrcodejs/qrcode.min.js',
   './Favicon/favicon.ico',
   './Favicon/favicon-32x32.png',
   './Favicon/favicon-16x16.png',
@@ -29,6 +40,7 @@ function esRecursoActualizable(request) {
     path.endsWith('/index.html') ||
     path.endsWith('/script.js') ||
     path.endsWith('/firebase-config.js') ||
+    path.endsWith('/lumina.css') ||
     path.endsWith('/style.css') ||
     path.endsWith('/manifest.json') ||
     path.endsWith('/biblia_catolica_completa.json') ||
@@ -48,6 +60,7 @@ function obtenerCacheDestino(request) {
     path.endsWith('/index.html') ||
     path.endsWith('/script.js') ||
     path.endsWith('/firebase-config.js') ||
+    path.endsWith('/lumina.css') ||
     path.endsWith('/style.css') ||
     path.endsWith('/manifest.json')
   ) {
