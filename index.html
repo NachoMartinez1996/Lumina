@@ -686,7 +686,7 @@
                             <ul class="panel-lumina-glosario">
                                 <li><strong>Leé:</strong> elegí libro y capítulo desde la portada.</li>
                                 <li><strong>Explorá:</strong> tocá un versículo para abrir Tradición y notas.</li>
-                                <li><strong>Guardá:</strong> usá estrella, colecciones y Lectio para volver después.</li>
+                                <li><strong>Guardá:</strong> usá estrella, pasajes, colecciones y Lectio para volver después.</li>
                                 <li><strong>Compartí:</strong> convertí un versículo o una colección en algo enviable.</li>
                             </ul>
                         </div>
@@ -832,7 +832,7 @@
                         <h3>Tu camino, cuidado</h3>
                         <p>La experiencia principal vive en tu dispositivo mediante almacenamiento local, con modo sin
                             conexión cuando el contenido esencial ya fue preparado. Si iniciás sesión con Google,
-                            <em>Lumina</em> puede sincronizar favoritos, notas, colecciones, Lectio, búsquedas,
+                            <em>Lumina</em> puede sincronizar favoritos, notas, pasajes, colecciones, Lectio, búsquedas,
                             preferencias y progreso de lectura entre tus dispositivos usando Firebase.
                         </p>
                         <p>La nube es una ayuda, no una imposición. Podés exportar tus datos, restaurarlos por
@@ -940,7 +940,7 @@
                             eso, el funcionamiento principal sigue viviendo en tu dispositivo mediante una base local
                             robusta (<i>IndexedDB</i>).</p>
                         <p>Si iniciás sesión con Google, Lumina puede guardar una copia cifrada en tránsito dentro de tu
-                            espacio de Firebase para sincronizar notas, favoritos, progreso, colecciones, Lectio y
+                            espacio de Firebase para sincronizar notas, favoritos, progreso, pasajes, colecciones, Lectio y
                             preferencias entre tus dispositivos.</p>
 
                         <div class="panel-lumina-cloud-card" id="lumina-cloud-card">
@@ -1161,6 +1161,10 @@
                     <i class="fas fa-star" aria-hidden="true"></i>
                     <span>Favoritos</span>
                 </button>
+                <button type="button" id="tab-guardados-pasajes" class="panel-guardados-tab" aria-selected="false">
+                    <i class="fas fa-bookmark" aria-hidden="true"></i>
+                    <span>Pasajes</span>
+                </button>
                 <button type="button" id="tab-guardados-colecciones" class="panel-guardados-tab" aria-selected="false">
                     <i class="fas fa-layer-group" aria-hidden="true"></i>
                     <span>Colecciones</span>
@@ -1187,6 +1191,9 @@
                 </div>
                 <div id="contenido-colecciones-guardados" class="hidden p-4 md:p-5 pt-0 pb-4">
                     <div id="lista-colecciones" class="space-y-3"></div>
+                </div>
+                <div id="contenido-pasajes-guardados" class="hidden p-4 md:p-5 pt-0 pb-4">
+                    <div id="lista-pasajes" class="space-y-3"></div>
                 </div>
             </div>
         </aside>
@@ -1295,7 +1302,7 @@
             class="bg-[#fcfaf7] dark:bg-[#1a1d23] p-6 rounded-xl border-2 border-oro max-w-sm w-full mx-4 shadow-2xl transform transition-all">
             <h3 class="text-xl font-bold text-oro mb-2">¿Restablecer Lumina?</h3>
             <p class="text-gray-600 dark:text-gray-400 text-sm mb-6">Esta acción no se puede deshacer. Se borrarán tus
-                notas, favoritos, progreso, preferencias y el contenido local de Lumina en este dispositivo.</p>
+                notas, favoritos, pasajes, progreso, preferencias y el contenido local de Lumina en este dispositivo.</p>
             <div class="flex gap-3 justify-end">
                 <button type="button" onclick="cerrarModalConfirmacionResetLumina()"
                     class="px-4 py-2 text-gray-500 hover:text-gray-700 dark:hover:text-white transition-colors font-semibold">
@@ -1354,7 +1361,7 @@
                     <li><strong>Leé y escuchá:</strong> Recorré la Biblia, los comentarios de la Tradición y la
                         <em>Catena Aurea</em>, con concordancias y lectura en voz alta.
                     </li>
-                    <li><strong>Guardá tu camino:</strong> Conservá favoritos, notas, colecciones, Lectios, búsquedas
+                    <li><strong>Guardá tu camino:</strong> Conservá favoritos, notas, pasajes, colecciones, Lectios, búsquedas
                         recientes y progreso de lectura.</li>
                     <li><strong>Compartí lo recibido:</strong> Enviá textos, tarjetas, PDFs o enlaces para que otros
                         importen colecciones y Lectios.</li>
@@ -1393,6 +1400,12 @@
                         </p>
                         <h3 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">Tu versículo de
                             bienvenida</h3>
+                        <p id="versiculo-inicio-saludo"
+                            class="modal-versiculo-inicio-saludo text-lg md:text-xl font-sans font-bold text-oro mt-3">
+                        </p>
+                        <p id="versiculo-inicio-saludo-detalle"
+                            class="modal-versiculo-inicio-saludo-detalle mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400">
+                        </p>
                     </div>
                     <button type="button" onclick="cerrarModalVersiculoInicio()"
                         class="text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
