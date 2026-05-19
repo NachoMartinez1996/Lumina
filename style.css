@@ -3264,6 +3264,94 @@ body:not(.dark) #lista-favoritos .fa-comment {
     color: #b8860b !important;
 }
 
+.referencias-relacionadas-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.referencias-relacionadas-vacio {
+    margin: 0;
+    color: #7b6a58 !important;
+    font-size: 0.9rem;
+    font-weight: 600 !important;
+    line-height: 1.55;
+}
+
+.referencia-relacionada-card {
+    width: 100%;
+    display: grid;
+    gap: 0.32rem;
+    padding: 0.8rem 0.85rem;
+    border: 1px solid rgba(184, 134, 11, 0.18);
+    border-radius: 0.9rem;
+    background: rgba(252, 250, 247, 0.8);
+    color: #231b13;
+    text-align: left;
+    transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.referencia-relacionada-card:hover {
+    border-color: rgba(184, 134, 11, 0.34);
+    background: rgba(248, 240, 226, 0.96);
+    transform: translateY(-1px);
+}
+
+.referencia-relacionada-card:focus-visible {
+    outline: 2px solid rgba(184, 134, 11, 0.45);
+    outline-offset: 2px;
+}
+
+.referencia-relacionada-motivo {
+    color: #7f5f0f;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.referencia-relacionada-ref {
+    color: #b8860b;
+    font-size: 0.9rem;
+    font-weight: 900;
+    line-height: 1.25;
+}
+
+.referencia-relacionada-texto {
+    display: -webkit-box;
+    overflow: hidden;
+    color: #4c3a28;
+    font-size: 0.86rem;
+    font-weight: 600;
+    line-height: 1.45;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.dark .referencia-relacionada-card {
+    border-color: rgba(245, 214, 138, 0.16);
+    background: rgba(31, 41, 55, 0.7);
+    color: #e5e7eb;
+}
+
+.dark .referencia-relacionada-card:hover {
+    border-color: rgba(245, 214, 138, 0.28);
+    background: rgba(55, 65, 81, 0.86);
+}
+
+.dark .referencia-relacionada-ref {
+    color: #f3cf77 !important;
+}
+
+.dark .referencias-relacionadas-vacio,
+.dark .referencia-relacionada-texto {
+    color: #cbd5e0 !important;
+}
+
+.dark .referencia-relacionada-motivo {
+    color: #f8e5ad;
+}
+
 body:not(.dark) #nota-personal::placeholder,
 body:not(.dark) .nota-personal-area::placeholder {
     color: #7b6a58 !important;

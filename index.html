@@ -1110,6 +1110,8 @@
                 <div class="flex border-b border-gray-200 dark:border-gray-700">
                     <button type="button" id="tab-tradicion"
                         class="py-2 px-4 font-medium text-sm text-oro border-b-2 border-oro">Tradición</button>
+                    <button type="button" id="tab-relacionadas"
+                        class="py-2 px-4 font-medium text-sm text-gray-500 dark:text-gray-400 hover:text-oro">Referencias</button>
                     <button type="button" id="tab-personales"
                         class="py-2 px-4 font-medium text-sm text-gray-500 dark:text-gray-400 hover:text-oro">Mis
                         notas</button>
@@ -1118,6 +1120,7 @@
             <div class="flex-1 overflow-y-auto">
                 <div class="p-6 md:p-8">
                     <div id="contenido-panel-tradicion" class="space-y-6"></div>
+                    <div id="contenido-panel-relacionadas" class="space-y-4 hidden"></div>
                     <div id="contenido-panel-personales" class="space-y-4 hidden">
                         <div class="notas-composer space-y-3">
                             <textarea id="nota-personal" rows="4"

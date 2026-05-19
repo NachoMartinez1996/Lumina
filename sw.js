@@ -1,6 +1,9 @@
-const VERSION_CACHE = '4.296.010';
+const VERSION_CACHE = '4.296.014';
+// Bump this only when Biblia/Catena/Agustin JSON files change.
+const VERSION_CACHE_DATA = '2026-05-14.1';
 const CACHE_SHELL = `lumina-shell-${VERSION_CACHE}`;
 const CACHE_RUNTIME = `lumina-runtime-${VERSION_CACHE}`;
+const CACHE_DATA = `lumina-data-${VERSION_CACHE_DATA}`;
 const APP_SHELL = './index.html';
 
 const archivosShell = [
@@ -29,10 +32,31 @@ const archivosShell = [
   './manifest.json'
 ];
 
-function esRecursoActualizable(request) {
-  const url = new URL(request.url);
-  const path = url.pathname.toLowerCase();
+const archivosDatos = [
+  './Biblia_Catolica_Completa.json',
+  './Catena_Aurea_Completa.json',
+  './agustin_salmos.json'
+];
 
+function obtenerPathRecurso(request) {
+  const url = new URL(request.url);
+  return url.pathname.toLowerCase();
+}
+
+function esRutaDatos(path) {
+  return (
+    path.endsWith('/biblia_catolica_completa.json') ||
+    path.endsWith('/catena_aurea_completa.json') ||
+    path.endsWith('/agustin_salmos.json')
+  );
+}
+
+function esRecursoDatos(request) {
+  return esRutaDatos(obtenerPathRecurso(request));
+}
+
+function esRecursoShellActualizable(request) {
+  const path = obtenerPathRecurso(request);
   return (
     request.destination === 'script' ||
     request.destination === 'style' ||
@@ -42,16 +66,16 @@ function esRecursoActualizable(request) {
     path.endsWith('/firebase-config.js') ||
     path.endsWith('/lumina.css') ||
     path.endsWith('/style.css') ||
-    path.endsWith('/manifest.json') ||
-    path.endsWith('/biblia_catolica_completa.json') ||
-    path.endsWith('/catena_aurea_completa.json') ||
-    path.endsWith('/agustin_salmos.json')
+    path.endsWith('/manifest.json')
   );
 }
 
 function obtenerCacheDestino(request) {
-  const url = new URL(request.url);
-  const path = url.pathname.toLowerCase();
+  const path = obtenerPathRecurso(request);
+
+  if (esRutaDatos(path)) {
+    return CACHE_DATA;
+  }
 
   if (
     request.destination === 'script' ||
@@ -92,6 +116,31 @@ async function obtenerShellOffline() {
     await caches.match(APP_SHELL, { ignoreSearch: true }) ||
     await caches.match('./', { ignoreSearch: true })
   );
+}
+
+async function migrarDatosCacheDesdeVersionesAnteriores(nombresCache) {
+  const cacheDatos = await caches.open(CACHE_DATA);
+
+  await Promise.all(archivosDatos.map(async recurso => {
+    const existente = await cacheDatos.match(recurso, { ignoreSearch: true });
+    if (existente) return;
+
+    const recursoAbsoluto = new URL(recurso, self.location.href).href;
+
+    for (const nombre of nombresCache) {
+      if (nombre === CACHE_DATA) continue;
+
+      const cache = await caches.open(nombre);
+      const respuesta =
+        await cache.match(recurso, { ignoreSearch: true }) ||
+        await cache.match(recursoAbsoluto, { ignoreSearch: true });
+
+      if (respuesta) {
+        await cacheDatos.put(recurso, respuesta.clone());
+        return;
+      }
+    }
+  }));
 }
 
 function crearRespuestaOfflineFallback() {
@@ -166,16 +215,18 @@ self.addEventListener('message', evento => {
 self.addEventListener('activate', evento => {
   evento.waitUntil(
     caches.keys()
-      .then(nombres => Promise.all(
-        nombres.map(nombre => {
+      .then(async nombres => {
+        await migrarDatosCacheDesdeVersionesAnteriores(nombres);
+
+        await Promise.all(nombres.map(nombre => {
           const esCacheLumina = nombre.startsWith('lumina-');
-          const esCacheActual = nombre === CACHE_SHELL || nombre === CACHE_RUNTIME;
+          const esCacheActual = nombre === CACHE_SHELL || nombre === CACHE_RUNTIME || nombre === CACHE_DATA;
           if (esCacheLumina && !esCacheActual) {
             return caches.delete(nombre);
           }
           return Promise.resolve(false);
-        })
-      ))
+        }));
+      })
       .then(() => self.clients.claim())
   );
 });
@@ -206,7 +257,18 @@ self.addEventListener('fetch', evento => {
   }
 
   evento.respondWith((async () => {
-    if (esRecursoActualizable(request)) {
+    if (esRecursoDatos(request)) {
+      const respuestaCache = await caches.match(request, { ignoreSearch: true });
+      if (respuestaCache) {
+        return respuestaCache;
+      }
+
+      const respuestaRed = await fetch(request);
+      await guardarRespuesta(CACHE_DATA, request, respuestaRed.clone());
+      return respuestaRed;
+    }
+
+    if (esRecursoShellActualizable(request)) {
       try {
         const respuestaRed = await fetch(request);
         await guardarRespuesta(obtenerCacheDestino(request), request, respuestaRed.clone());

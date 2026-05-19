@@ -743,6 +743,442 @@ function construirIndiceConcordancia() {
     }
 }
 
+const PALABRAS_VACIAS_AFINIDAD_BIBLICA = new Set([
+    'ante', 'aquel', 'aquella', 'aquellos', 'aquellas', 'cada', 'como', 'con', 'contra', 'cual', 'cuando',
+    'dado', 'dar', 'debe', 'del', 'desde', 'donde', 'dos', 'ella', 'ellas', 'ello', 'ellos', 'entre',
+    'era', 'eran', 'eres', 'esta', 'estaba', 'estaban', 'estado', 'estan', 'estar', 'estas', 'este',
+    'esto', 'estos', 'fue', 'fueron', 'habia', 'hace', 'hacer', 'hacia', 'han', 'hasta', 'hay',
+    'haya', 'hizo', 'hombre', 'los', 'mas', 'mis', 'muy', 'nada', 'nos', 'para', 'pero', 'por',
+    'porque', 'pues', 'que', 'quien', 'sean', 'segun', 'sera', 'seran', 'sido', 'sin', 'sobre',
+    'son', 'sus', 'tambien', 'tan', 'todo', 'todos', 'tras', 'una', 'unas', 'uno', 'unos', 'vosotros',
+    'vuestro', 'vuestra', 'vuestros', 'vuestras'
+]);
+
+const TEMAS_REFERENCIAS_BIBLICAS = [
+    {
+        id: 'luz',
+        etiqueta: 'símbolo bíblico',
+        terminos: ['luz', 'tinieblas', 'ilumina', 'iluminar', 'lámpara', 'lampara', 'brilla', 'resplandor'],
+        referencias: [
+            ['Génesis', 1, 3],
+            ['Salmos', 119, 105],
+            ['Isaías', 9, 1],
+            ['Evangelio según San Juan', 1, 4],
+            ['Evangelio según San Juan', 8, 12],
+            ['Apocalipsis', 21, 23]
+        ]
+    },
+    {
+        id: 'palabra',
+        etiqueta: 'hilo de la Palabra',
+        terminos: ['palabra', 'verbo', 'voz', 'escuchar', 'oir', 'oír', 'enseñanza', 'mandato'],
+        referencias: [
+            ['Deuteronomio', 8, 3],
+            ['Salmos', 119, 105],
+            ['Isaías', 55, 11],
+            ['Evangelio según San Juan', 1, 1],
+            ['Carta a los Hebreos', 4, 12],
+            ['Segunda Carta a Timoteo', 3, 16]
+        ]
+    },
+    {
+        id: 'pan',
+        etiqueta: 'figura eucarística',
+        terminos: ['pan', 'mana', 'maná', 'alimento', 'hambre', 'comer', 'eucaristia', 'eucaristía', 'cuerpo'],
+        referencias: [
+            ['Éxodo', 16, 4],
+            ['Deuteronomio', 8, 3],
+            ['Evangelio según San Juan', 6, 35],
+            ['Evangelio según San Juan', 6, 51],
+            ['Evangelio según San Lucas', 22, 19],
+            ['Primera Carta a los Corintios', 10, 16]
+        ]
+    },
+    {
+        id: 'agua',
+        etiqueta: 'símbolo bíblico',
+        terminos: ['agua', 'aguas', 'sed', 'beber', 'fuente', 'rio', 'río', 'bautismo', 'manantial'],
+        referencias: [
+            ['Éxodo', 17, 6],
+            ['Isaías', 55, 1],
+            ['Ezequiel', 47, 1],
+            ['Evangelio según San Juan', 4, 14],
+            ['Evangelio según San Juan', 7, 37],
+            ['Apocalipsis', 22, 1]
+        ]
+    },
+    {
+        id: 'pastor',
+        etiqueta: 'motivo bíblico',
+        terminos: ['pastor', 'oveja', 'ovejas', 'rebaño', 'rebano', 'apacentar', 'guiar'],
+        referencias: [
+            ['Salmos', 23, 1],
+            ['Isaías', 40, 11],
+            ['Ezequiel', 34, 11],
+            ['Evangelio según San Juan', 10, 11],
+            ['Evangelio según San Juan', 21, 17],
+            ['Primera Carta de San Pedro', 5, 4]
+        ]
+    },
+    {
+        id: 'alianza',
+        etiqueta: 'historia de la alianza',
+        terminos: ['alianza', 'pacto', 'promesa', 'sangre', 'testamento', 'juramento'],
+        referencias: [
+            ['Génesis', 9, 9],
+            ['Éxodo', 24, 8],
+            ['Jeremías', 31, 31],
+            ['Evangelio según San Lucas', 22, 20],
+            ['Carta a los Hebreos', 9, 15]
+        ]
+    },
+    {
+        id: 'cordero',
+        etiqueta: 'figura pascual',
+        terminos: ['cordero', 'pascua', 'sacrificio', 'victima', 'víctima', 'ofrenda', 'sangre'],
+        referencias: [
+            ['Éxodo', 12, 5],
+            ['Isaías', 53, 7],
+            ['Evangelio según San Juan', 1, 29],
+            ['Primera Carta a los Corintios', 5, 7],
+            ['Apocalipsis', 5, 6]
+        ]
+    },
+    {
+        id: 'templo',
+        etiqueta: 'motivo bíblico',
+        terminos: ['templo', 'morada', 'casa', 'santuario', 'habitar', 'tabernaculo', 'tabernáculo'],
+        referencias: [
+            ['Primer Libro de los Reyes', 8, 27],
+            ['Ezequiel', 47, 1],
+            ['Evangelio según San Juan', 2, 19],
+            ['Primera Carta a los Corintios', 3, 16],
+            ['Apocalipsis', 21, 22]
+        ]
+    },
+    {
+        id: 'desierto',
+        etiqueta: 'camino de prueba',
+        terminos: ['desierto', 'prueba', 'tentacion', 'tentación', 'hambre', 'camino', 'peregrino'],
+        referencias: [
+            ['Éxodo', 16, 4],
+            ['Deuteronomio', 8, 2],
+            ['Evangelio según San Mateo', 4, 1],
+            ['Evangelio según San Marcos', 1, 12],
+            ['Apocalipsis', 12, 6]
+        ]
+    },
+    {
+        id: 'reino',
+        etiqueta: 'tema del Reino',
+        terminos: ['reino', 'rey', 'reinar', 'trono', 'dominio', 'señorío', 'senorio'],
+        referencias: [
+            ['Daniel', 7, 14],
+            ['Evangelio según San Mateo', 5, 3],
+            ['Evangelio según San Mateo', 6, 33],
+            ['Evangelio según San Lucas', 17, 21],
+            ['Apocalipsis', 11, 15]
+        ]
+    },
+    {
+        id: 'espiritu',
+        etiqueta: 'hilo del Espíritu',
+        terminos: ['espiritu', 'espíritu', 'soplo', 'paraclito', 'paráclito', 'consuelo', 'don'],
+        referencias: [
+            ['Génesis', 1, 2],
+            ['Ezequiel', 36, 26],
+            ['Evangelio según San Juan', 14, 26],
+            ['Hechos de los Apóstoles', 2, 4],
+            ['Carta a los Romanos', 8, 14],
+            ['Primera Carta a los Corintios', 12, 4]
+        ]
+    },
+    {
+        id: 'misericordia',
+        etiqueta: 'mismo tema',
+        terminos: ['misericordia', 'perdon', 'perdón', 'compasion', 'compasión', 'piedad', 'pecador', 'pecado'],
+        referencias: [
+            ['Salmos', 51, 3],
+            ['Oseas', 6, 6],
+            ['Evangelio según San Lucas', 15, 20],
+            ['Carta a los Efesios', 2, 4],
+            ['Primera Carta de San Juan', 1, 9]
+        ]
+    },
+    {
+        id: 'sabiduria',
+        etiqueta: 'hilo sapiencial',
+        terminos: ['sabiduria', 'sabiduría', 'prudencia', 'consejo', 'inteligencia', 'conocimiento'],
+        referencias: [
+            ['Proverbios', 8, 22],
+            ['Sabiduría', 7, 26],
+            ['Eclesiástico', 24, 1],
+            ['Primera Carta a los Corintios', 1, 24],
+            ['Carta de Santiago', 1, 5]
+        ]
+    },
+    {
+        id: 'vid',
+        etiqueta: 'imagen de la viña',
+        terminos: ['vid', 'viña', 'vina', 'sarmiento', 'fruto', 'frutos', 'vendimia'],
+        referencias: [
+            ['Isaías', 5, 1],
+            ['Salmos', 80, 9],
+            ['Evangelio según San Mateo', 21, 33],
+            ['Evangelio según San Juan', 15, 1],
+            ['Evangelio según San Juan', 15, 5]
+        ]
+    },
+    {
+        id: 'camino',
+        etiqueta: 'motivo bíblico',
+        terminos: ['camino', 'sendero', 'verdad', 'vida', 'seguir', 'andar', 'puerta'],
+        referencias: [
+            ['Éxodo', 13, 21],
+            ['Salmos', 25, 4],
+            ['Isaías', 40, 3],
+            ['Evangelio según San Juan', 10, 9],
+            ['Evangelio según San Juan', 14, 6]
+        ]
+    },
+    {
+        id: 'semilla',
+        etiqueta: 'imagen de fecundidad',
+        terminos: ['semilla', 'sembrar', 'siembra', 'fruto', 'grano', 'tierra', 'cosecha'],
+        referencias: [
+            ['Génesis', 1, 11],
+            ['Isaías', 55, 10],
+            ['Evangelio según San Mateo', 13, 3],
+            ['Evangelio según San Mateo', 13, 23],
+            ['Evangelio según San Juan', 12, 24],
+            ['Carta a los Gálatas', 5, 22]
+        ]
+    },
+    {
+        id: 'resurreccion',
+        etiqueta: 'misterio pascual',
+        terminos: ['resurreccion', 'resurrección', 'resucitar', 'vida', 'muerte', 'sepulcro', 'levantar'],
+        referencias: [
+            ['Job', 19, 25],
+            ['Ezequiel', 37, 5],
+            ['Evangelio según San Juan', 11, 25],
+            ['Carta a los Romanos', 6, 4],
+            ['Primera Carta a los Corintios', 15, 20]
+        ]
+    },
+    {
+        id: 'corazon',
+        etiqueta: 'vida interior',
+        terminos: ['corazon', 'corazón', 'alma', 'interior', 'pureza', 'convertir', 'nuevo'],
+        referencias: [
+            ['Deuteronomio', 6, 5],
+            ['Salmos', 51, 12],
+            ['Ezequiel', 36, 26],
+            ['Evangelio según San Mateo', 5, 8],
+            ['Evangelio según San Lucas', 24, 32]
+        ]
+    },
+    {
+        id: 'pobres',
+        etiqueta: 'justicia y pobres',
+        terminos: ['pobre', 'pobres', 'justicia', 'hambre', 'oprimido', 'humilde', 'pequeño', 'pequeno'],
+        referencias: [
+            ['Isaías', 61, 1],
+            ['Miqueas', 6, 8],
+            ['Evangelio según San Mateo', 5, 3],
+            ['Evangelio según San Mateo', 5, 6],
+            ['Evangelio según San Lucas', 4, 18],
+            ['Carta de Santiago', 2, 5]
+        ]
+    }
+];
+
+function obtenerClaveReferenciaRelacionada(libro, capitulo, versiculo) {
+    return `${libro}_${Number(capitulo)}_${Number(versiculo)}`;
+}
+
+function obtenerTextoReferenciaBiblica(libro, capitulo, versiculo) {
+    return String(bibleContent?.[libro]?.[capitulo]?.[versiculo] || '').trim();
+}
+
+function referenciaBiblicaDisponible(libro, capitulo, versiculo) {
+    return ORDEN_LIBROS_BIBLICOS.has(libro)
+        && Number.isFinite(Number(capitulo))
+        && Number(capitulo) > 0
+        && esVersiculoLeible(Number(versiculo))
+        && !!obtenerTextoReferenciaBiblica(libro, capitulo, versiculo);
+}
+
+function obtenerTokensAfinidadBiblica(texto, limite = 14) {
+    const tokens = extraerPalabras(normalizarTexto(String(texto || '')))
+        .map(token => token.trim())
+        .filter(token => token.length >= 4 && !PALABRAS_VACIAS_AFINIDAD_BIBLICA.has(token));
+
+    const unicos = [...new Set(tokens)];
+    return unicos
+        .sort((a, b) => {
+            const prioridadA = palabrasImportantes.has(a) ? 1 : 0;
+            const prioridadB = palabrasImportantes.has(b) ? 1 : 0;
+            return prioridadB - prioridadA || b.length - a.length || a.localeCompare(b, 'es');
+        })
+        .slice(0, limite);
+}
+
+function temaContieneReferencia(tema, libro, capitulo, versiculo) {
+    const clave = obtenerClaveReferenciaRelacionada(libro, capitulo, versiculo);
+    return tema.referencias.some(ref => obtenerClaveReferenciaRelacionada(ref[0], ref[1], ref[2]) === clave);
+}
+
+function obtenerTemasRelacionadosVersiculo(libro, capitulo, versiculo, textoVersiculo) {
+    const textoNormalizado = normalizarTexto(String(textoVersiculo || ''));
+    const tokens = new Set(extraerPalabras(textoNormalizado));
+
+    return TEMAS_REFERENCIAS_BIBLICAS
+        .map(tema => {
+            const terminos = tema.terminos.map(termino => normalizarTexto(String(termino)));
+            const coincidencias = terminos.filter(termino => tokens.has(termino) || textoNormalizado.includes(termino));
+            const referenciaTema = temaContieneReferencia(tema, libro, capitulo, versiculo);
+            return {
+                ...tema,
+                coincidencias,
+                referenciaTema
+            };
+        })
+        .filter(tema => tema.coincidencias.length > 0 || tema.referenciaTema)
+        .sort((a, b) => b.coincidencias.length - a.coincidencias.length || a.id.localeCompare(b.id, 'es'));
+}
+
+function registrarReferenciaRelacionada(mapa, referencia, contexto) {
+    const [libro, capitulo, versiculo] = referencia;
+    const { libroOrigen, capituloOrigen, versiculoOrigen, puntaje = 0, motivo = 'referencia relacionada' } = contexto;
+    const clave = obtenerClaveReferenciaRelacionada(libro, capitulo, versiculo);
+    const claveOrigen = obtenerClaveReferenciaRelacionada(libroOrigen, capituloOrigen, versiculoOrigen);
+    if (clave === claveOrigen || !referenciaBiblicaDisponible(libro, capitulo, versiculo)) return;
+
+    const existente = mapa.get(clave);
+    const texto = obtenerTextoReferenciaBiblica(libro, capitulo, versiculo);
+    const testamentoOrigen = obtenerTestamentoDeLibro(libroOrigen);
+    const testamentoDestino = obtenerTestamentoDeLibro(libro);
+    const motivoFinal = testamentoOrigen && testamentoDestino && testamentoOrigen !== testamentoDestino
+        ? 'eco entre Testamentos'
+        : motivo;
+
+    if (existente) {
+        existente.puntaje += puntaje;
+        existente.motivos.add(motivoFinal);
+        return;
+    }
+
+    mapa.set(clave, {
+        libro,
+        capitulo: Number(capitulo),
+        versiculo: Number(versiculo),
+        texto,
+        puntaje,
+        motivos: new Set([motivoFinal])
+    });
+}
+
+function agregarReferenciasTematicasRelacionadas(mapa, libro, capitulo, versiculo, temas) {
+    temas.slice(0, 4).forEach((tema, indiceTema) => {
+        tema.referencias.forEach((referencia, indiceReferencia) => {
+            registrarReferenciaRelacionada(mapa, referencia, {
+                libroOrigen: libro,
+                capituloOrigen: capitulo,
+                versiculoOrigen: versiculo,
+                puntaje: 70 - (indiceTema * 6) - indiceReferencia,
+                motivo: tema.etiqueta
+            });
+        });
+    });
+}
+
+function agregarEcosTextualesRelacionados(mapa, libro, capitulo, versiculo, textoVersiculo) {
+    const tokens = obtenerTokensAfinidadBiblica(textoVersiculo)
+        .filter(token => palabrasImportantes.has(token));
+
+    tokens.slice(0, 5).forEach((token, indiceToken) => {
+        const referencias = indiceConcordancia[token] || [];
+        referencias.slice(0, 80).forEach((referencia, indiceReferencia) => {
+            registrarReferenciaRelacionada(mapa, [referencia.libro, referencia.capitulo, referencia.versiculo], {
+                libroOrigen: libro,
+                capituloOrigen: capitulo,
+                versiculoOrigen: versiculo,
+                puntaje: 32 - indiceToken - Math.min(12, Math.floor(indiceReferencia / 6)),
+                motivo: 'eco textual'
+            });
+        });
+    });
+}
+
+function obtenerReferenciasRelacionadas(libro, capitulo, versiculo, textoVersiculo, limite = 6) {
+    if (!datosBibliaCargados || !textoVersiculo || !esVersiculoLeible(Number(versiculo))) return [];
+
+    const mapa = new Map();
+    const temas = obtenerTemasRelacionadosVersiculo(libro, capitulo, versiculo, textoVersiculo);
+
+    agregarReferenciasTematicasRelacionadas(mapa, libro, capitulo, versiculo, temas);
+    agregarEcosTextualesRelacionados(mapa, libro, capitulo, versiculo, textoVersiculo);
+
+    return [...mapa.values()]
+        .sort((a, b) => {
+            const ordenA = ORDEN_LIBROS_BIBLICOS.get(a.libro) ?? Number.MAX_SAFE_INTEGER;
+            const ordenB = ORDEN_LIBROS_BIBLICOS.get(b.libro) ?? Number.MAX_SAFE_INTEGER;
+            return b.puntaje - a.puntaje
+                || ordenA - ordenB
+                || a.capitulo - b.capitulo
+                || a.versiculo - b.versiculo;
+        })
+        .slice(0, limite)
+        .map(item => ({
+            ...item,
+            motivo: [...item.motivos][0] || 'referencia relacionada'
+        }));
+}
+
+function renderizarReferenciasRelacionadasHtml(libro, capitulo, versiculo, textoVersiculo) {
+    const relacionadas = obtenerReferenciasRelacionadas(libro, capitulo, versiculo, textoVersiculo);
+    if (relacionadas.length === 0) {
+        return `
+            <p class="referencias-relacionadas-vacio">Todavía no encontramos ecos claros para este versículo.</p>
+        `;
+    }
+
+    return `
+        <div class="referencias-relacionadas-lista">
+            ${relacionadas.map(ref => {
+        const referencia = formatearReferenciaCompartida(ref.libro, ref.capitulo, ref.versiculo);
+        const libroAttr = escapeHtml(ref.libro).replace(/"/g, '&quot;');
+        return `
+                <button type="button"
+                    class="referencia-relacionada-card"
+                    data-referencia-relacionada="true"
+                    data-libro="${libroAttr}"
+                    data-capitulo="${ref.capitulo}"
+                    data-versiculo="${ref.versiculo}"
+                    aria-label="Abrir ${escapeHtml(referencia)}">
+                    <span class="referencia-relacionada-motivo">${escapeHtml(ref.motivo)}</span>
+                    <span class="referencia-relacionada-ref">${escapeHtml(referencia)}</span>
+                    <span class="referencia-relacionada-texto">${escapeHtml(ref.texto)}</span>
+                </button>
+            `;
+    }).join('')}
+        </div>
+    `;
+}
+
+function inicializarReferenciasRelacionadasPanel() {
+    document.querySelectorAll('[data-referencia-relacionada="true"]').forEach(boton => {
+        boton.addEventListener('click', () => {
+            const libro = boton.dataset.libro || '';
+            const capitulo = Number(boton.dataset.capitulo);
+            const versiculo = Number(boton.dataset.versiculo);
+            if (!libro || !Number.isFinite(capitulo) || !Number.isFinite(versiculo)) return;
+            irAVersiculo(libro, capitulo, versiculo);
+        });
+    });
+}
+
 // CORRECCIÓN: resaltar palabras usando tokenización por palabra, normalizando cada una
 function resaltarPalabras(texto) {
     if (!concordanciaActiva) return escapeHtml(texto);
@@ -12372,11 +12808,20 @@ function abrirPrefacio(libro, capitulo = 0, opciones = null) {
     });
 
     const tabTrad = document.getElementById('tab-tradicion');
+    const tabRel = document.getElementById('tab-relacionadas');
     const tabPers = document.getElementById('tab-personales');
     const divTrad = document.getElementById('contenido-panel-tradicion');
+    const divRel = document.getElementById('contenido-panel-relacionadas');
     const divPers = document.getElementById('contenido-panel-personales');
+    tabRel?.classList.add('hidden');
+    if (divRel) {
+        divRel.innerHTML = '';
+        divRel.classList.add('hidden');
+    }
     tabTrad.classList.add('border-b-2', 'border-oro', 'text-oro');
     tabTrad.classList.remove('text-gray-500', 'dark:text-gray-400');
+    tabRel?.classList.remove('border-b-2', 'border-oro', 'text-oro');
+    tabRel?.classList.add('text-gray-500', 'dark:text-gray-400');
     tabPers.classList.remove('border-b-2', 'border-oro', 'text-oro');
     tabPers.classList.add('text-gray-500', 'dark:text-gray-400');
     divTrad.classList.remove('hidden');
@@ -13063,6 +13508,8 @@ function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null)
         }).join('');
     }
     document.getElementById('contenido-panel-tradicion').innerHTML = tradicionHtml;
+    document.getElementById('contenido-panel-relacionadas').innerHTML = renderizarReferenciasRelacionadasHtml(libro, capitulo, versiculo, textoVersiculo);
+    inicializarReferenciasRelacionadasPanel();
 
     // Event listener para botones de audio de comentarios
     document.querySelectorAll('.btn-audio-comentario').forEach(btn => {
@@ -13099,29 +13546,44 @@ function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null)
     guardarBtn.onclick = nuevaNotaHandler;
 
     const tabTrad = document.getElementById('tab-tradicion');
+    const tabRel = document.getElementById('tab-relacionadas');
     const tabPers = document.getElementById('tab-personales');
     const divTrad = document.getElementById('contenido-panel-tradicion');
+    const divRel = document.getElementById('contenido-panel-relacionadas');
     const divPers = document.getElementById('contenido-panel-personales');
+    tabRel?.classList.remove('hidden');
+
+    const desactivarTabs = () => {
+        [tabTrad, tabRel, tabPers].forEach(tab => {
+            tab?.classList.remove('border-b-2', 'border-oro', 'text-oro');
+            tab?.classList.add('text-gray-500', 'dark:text-gray-400');
+        });
+        [divTrad, divRel, divPers].forEach(div => div?.classList.add('hidden'));
+    };
+
     const activarTradicion = () => {
+        desactivarTabs();
         tabTrad.classList.add('border-b-2', 'border-oro', 'text-oro');
         tabTrad.classList.remove('text-gray-500', 'dark:text-gray-400');
-        tabPers.classList.remove('border-b-2', 'border-oro', 'text-oro');
-        tabPers.classList.add('text-gray-500', 'dark:text-gray-400');
         divTrad.classList.remove('hidden');
-        divPers.classList.add('hidden');
         requestAnimationFrame(() => aplicarLlegadaBusquedaPanel(libro, capitulo, versiculo, 'tradicion'));
     };
+    const activarRelacionadas = () => {
+        desactivarTabs();
+        tabRel?.classList.add('border-b-2', 'border-oro', 'text-oro');
+        tabRel?.classList.remove('text-gray-500', 'dark:text-gray-400');
+        divRel?.classList.remove('hidden');
+    };
     const activarPersonales = () => {
+        desactivarTabs();
         tabPers.classList.add('border-b-2', 'border-oro', 'text-oro');
         tabPers.classList.remove('text-gray-500', 'dark:text-gray-400');
-        tabTrad.classList.remove('border-b-2', 'border-oro', 'text-oro');
-        tabTrad.classList.add('text-gray-500', 'dark:text-gray-400');
         divPers.classList.remove('hidden');
-        divTrad.classList.add('hidden');
         requestAnimationFrame(() => aplicarLlegadaBusquedaPanel(libro, capitulo, versiculo, 'personal'));
     };
 
     tabTrad.onclick = activarTradicion;
+    if (tabRel) tabRel.onclick = activarRelacionadas;
     tabPers.onclick = activarPersonales;
 
     activarTradicion();
@@ -14375,7 +14837,7 @@ window.addEventListener('lumina:firebase-ready', event => {
 let registroServiceWorkerLumina = null;
 let hayNuevaVersionLumina = false;
 let recargaPendientePorActualizacion = false;
-const RECURSOS_OFFLINE_ESENCIALES = [
+const RECURSOS_OFFLINE_APP = [
     './index.html',
     './style.css',
     './script.js',
@@ -14386,7 +14848,9 @@ const RECURSOS_OFFLINE_ESENCIALES = [
     './assets/vendor/fontawesome/webfonts/fa-regular-400.woff2',
     './assets/vendor/fontawesome/webfonts/fa-solid-900.woff2',
     './assets/vendor/fontawesome/webfonts/fa-v4compatibility.woff2',
-    './assets/vendor/qrcodejs/qrcode.min.js',
+    './assets/vendor/qrcodejs/qrcode.min.js'
+];
+const RECURSOS_OFFLINE_BIBLIOTECA = [
     './Biblia_Catolica_Completa.json',
     './Catena_Aurea_Completa.json',
     './agustin_salmos.json'
@@ -14450,10 +14914,10 @@ async function estaRecursoDisponibleEnCache(ruta) {
     return false;
 }
 
-async function offlineEsencialDisponible() {
+async function recursosOfflineDisponibles(recursos) {
     if (!('caches' in window)) return false;
 
-    for (const recurso of RECURSOS_OFFLINE_ESENCIALES) {
+    for (const recurso of recursos) {
         if (!(await estaRecursoDisponibleEnCache(recurso))) {
             return false;
         }
@@ -14462,7 +14926,27 @@ async function offlineEsencialDisponible() {
     return true;
 }
 
-function obtenerEstadoIndicadorConexion(listoParaOffline) {
+async function obtenerDisponibilidadOfflineLumina() {
+    const appLista = await recursosOfflineDisponibles(RECURSOS_OFFLINE_APP);
+    const bibliotecaLista = await recursosOfflineDisponibles(RECURSOS_OFFLINE_BIBLIOTECA);
+
+    return {
+        appLista,
+        bibliotecaLista,
+        listoParaOffline: appLista && bibliotecaLista
+    };
+}
+
+async function offlineEsencialDisponible() {
+    const estado = await obtenerDisponibilidadOfflineLumina();
+    return estado.listoParaOffline;
+}
+
+function obtenerEstadoIndicadorConexion(disponibilidad) {
+    const appLista = !!disponibilidad?.appLista;
+    const bibliotecaLista = !!disponibilidad?.bibliotecaLista;
+    const listoParaOffline = appLista && bibliotecaLista;
+
     if (navigator.onLine) {
         if (listoParaOffline) {
             return {
@@ -14473,11 +14957,20 @@ function obtenerEstadoIndicadorConexion(listoParaOffline) {
             };
         }
 
+        if (appLista && !bibliotecaLista) {
+            return {
+                texto: "App offline lista, guardando biblioteca...",
+                tooltip: "La app ya quedó guardada para abrirse sin internet. Lumina está terminando de conservar Biblia, Catena y Agustín.",
+                toast: "La app offline ya está lista. La biblioteca todavía se está guardando.",
+                estado: "online-data-syncing"
+            };
+        }
+
         return {
-            texto: "Preparando modo sin conexión...",
-            tooltip: "Lumina sigue guardando los archivos esenciales para poder abrirse sin internet en este dispositivo.",
-            toast: "En línea. Lumina todavía está preparando el modo sin conexión.",
-            estado: "online-syncing"
+            texto: "Preparando app sin conexión...",
+            tooltip: "Lumina sigue guardando los archivos de la app para poder abrirse sin internet en este dispositivo.",
+            toast: "En línea. Lumina todavía está preparando la app para abrirse sin conexión.",
+            estado: "online-app-syncing"
         };
     }
 
@@ -14490,11 +14983,20 @@ function obtenerEstadoIndicadorConexion(listoParaOffline) {
         };
     }
 
+    if (appLista && !bibliotecaLista) {
+        return {
+            texto: "Sin conexión: falta biblioteca guardada",
+            tooltip: "La app está guardada, pero faltan Biblia, Catena o Agustín para usar Lumina plenamente sin internet.",
+            toast: "Sin conexión. La app abre, pero todavía falta guardar la biblioteca completa.",
+            estado: "offline-data-missing"
+        };
+    }
+
     return {
-        texto: "Sin conexión: falta contenido guardado",
-        tooltip: "Sin conexión, pero este dispositivo todavía no guardó todos los archivos esenciales para abrir Lumina offline.",
-        toast: "Sin conexión. A este dispositivo todavía le faltan archivos esenciales para abrir Lumina offline.",
-        estado: "offline-missing"
+        texto: "Sin conexión: falta app guardada",
+        tooltip: "Sin conexión, pero este dispositivo todavía no guardó los archivos básicos para abrir Lumina offline.",
+        toast: "Sin conexión. A este dispositivo todavía le faltan archivos básicos para abrir Lumina offline.",
+        estado: "offline-app-missing"
     };
 }
 
@@ -14509,8 +15011,8 @@ async function actualizarIndicadorConexion() {
     const iconoEl = badge.querySelector(".header-offline-icon i");
     if (!textoEl) return;
 
-    const listoParaOffline = await offlineEsencialDisponible();
-    const detalle = obtenerEstadoIndicadorConexion(listoParaOffline);
+    const disponibilidad = await obtenerDisponibilidadOfflineLumina();
+    const detalle = obtenerEstadoIndicadorConexion(disponibilidad);
 
     textoEl.textContent = detalle.texto;
     badge.dataset.offlineState = detalle.estado;
@@ -15447,8 +15949,6 @@ function abrirSelectorImportacionLumina() {
 
 async function limpiarCacheLumina() {
     try {
-        await eliminarCacheContenidoLumina();
-
         if (!('serviceWorker' in navigator)) {
             window.location.reload();
             return;
@@ -15478,7 +15978,7 @@ async function limpiarCacheLumina() {
         const cachesLumina = await caches.keys();
         await Promise.all(
             cachesLumina
-                .filter(nombre => nombre.startsWith('lumina-'))
+                .filter(nombre => nombre.startsWith('lumina-') && !nombre.startsWith('lumina-data-'))
                 .map(nombre => caches.delete(nombre))
         );
 
