@@ -119,6 +119,58 @@
                             </div>
 
                             <div class="settings-group settings-group-lectura">
+                                <label for="selector-velocidad-lectura" class="settings-item-label">
+                                    <span class="settings-item-icon" aria-hidden="true">
+                                        <i class="fas fa-gauge-high text-sm"></i>
+                                    </span>
+                                    <span>Velocidad</span>
+                                </label>
+                                <select id="selector-velocidad-lectura" class="settings-select"
+                                    aria-label="Velocidad de lectura">
+                                    <option value="0.8">0.8x</option>
+                                    <option value="0.92">0.92x</option>
+                                    <option value="1">1x</option>
+                                    <option value="1.15">1.15x</option>
+                                    <option value="1.3">1.3x</option>
+                                </select>
+
+                                <label for="selector-temporizador-lectura" class="settings-item-label">
+                                    <span class="settings-item-icon" aria-hidden="true">
+                                        <i class="fas fa-moon text-sm"></i>
+                                    </span>
+                                    <span>Temporizador</span>
+                                </label>
+                                <select id="selector-temporizador-lectura" class="settings-select"
+                                    aria-label="Temporizador para detener la lectura">
+                                    <option value="0">Sin temporizador</option>
+                                    <option value="10">10 minutos</option>
+                                    <option value="20">20 minutos</option>
+                                    <option value="30">30 minutos</option>
+                                    <option value="45">45 minutos</option>
+                                </select>
+
+                                <p id="estado-cola-lectura" class="settings-audio-status">Cola vacía</p>
+                                <div class="settings-audio-actions">
+                                    <button type="button" id="btn-ver-cola-lectura"
+                                        class="settings-audio-button settings-audio-button-secondary"
+                                        aria-label="Ver cola de lectura" title="Ver cola">
+                                        <i class="fas fa-list-ul text-sm" aria-hidden="true"></i>
+                                        <span>Ver cola</span>
+                                    </button>
+                                    <button type="button" id="btn-continuar-lectura-global"
+                                        class="settings-audio-button"
+                                        aria-label="Continuar lectura en voz alta guardada" title="Continuar lectura">
+                                        <i class="fas fa-forward-step text-sm" aria-hidden="true"></i>
+                                        <span>Continuar</span>
+                                    </button>
+                                    <button type="button" id="btn-vaciar-cola-lectura"
+                                        class="settings-audio-button settings-audio-button-secondary"
+                                        aria-label="Vaciar cola de lectura" title="Vaciar cola">
+                                        <i class="fas fa-list-check text-sm" aria-hidden="true"></i>
+                                        <span>Vaciar cola</span>
+                                    </button>
+                                </div>
+
                                 <button type="button" id="btn-detener-lectura-global"
                                     class="settings-stop-reading-button"
                                     aria-label="Detener cualquier lectura en voz alta" title="Detener lectura">
@@ -413,8 +465,9 @@
                     <div class="tutorial-hero-copy">
                         <p class="tutorial-kicker">Primer recorrido</p>
                         <h2 id="tutorial-titulo" class="tutorial-title">Guía práctica de Lumina</h2>
-                        <p class="tutorial-lead">Una visita breve por lo esencial: leer, abrir comentarios, guardar
-                            hallazgos, buscar, rezar con Lectio y cuidar tus datos.</p>
+                        <p class="tutorial-lead">Un recorrido breve por lo esencial: leer un capítulo, entrar en un
+                            versículo, escuchar con calma, guardar hallazgos, buscar, rezar con Lectio, compartir y
+                            cuidar tus datos.</p>
                         <div class="tutorial-hero-actions">
                             <button type="button" class="tutorial-primary-button"
                                 onclick="abrirTutorialLecturaBasica()">
@@ -436,11 +489,11 @@
                         </div>
                         <div class="tutorial-map-row">
                             <span class="tutorial-map-icon"><i class="fas fa-comment-dots" aria-hidden="true"></i></span>
-                            <span>Tocá un versículo</span>
+                            <span>Abrí Tradición, Referencias y notas</span>
                         </div>
                         <div class="tutorial-map-row">
                             <span class="tutorial-map-icon"><i class="fas fa-star" aria-hidden="true"></i></span>
-                            <span>Guardá favoritos y notas</span>
+                            <span>Guardá y compartí hallazgos</span>
                         </div>
                         <div class="tutorial-map-row">
                             <span class="tutorial-map-icon"><i class="fas fa-feather-alt" aria-hidden="true"></i></span>
@@ -469,11 +522,11 @@
                         <article class="tutorial-step-card">
                             <span class="tutorial-step-number">2</span>
                             <h4>Entrá en un versículo</h4>
-                            <p>Al tocar el texto aparecen los comentarios de la Tradición y tus notas personales para
-                                ese pasaje.</p>
+                            <p>Al tocar el texto se abre el panel del versículo: Tradición, Referencias relacionadas y
+                                tus notas personales para ese pasaje.</p>
                             <button type="button" onclick="abrirTutorialComentariosLumina()">
                                 <i class="fas fa-comment-dots" aria-hidden="true"></i>
-                                Ver comentarios
+                                Ver panel
                             </button>
                         </article>
 
@@ -481,7 +534,7 @@
                             <span class="tutorial-step-number">3</span>
                             <h4>Guardá lo importante</h4>
                             <p>Usá la estrella para favoritos, el signo más para colecciones y el menú de tres puntos
-                                para escuchar, compartir o marcar.</p>
+                                para escuchar, sumar a la cola, compartir, marcar o fijar una bienvenida.</p>
                             <button type="button" onclick="abrirTutorialGuardadosLumina()">
                                 <i class="fas fa-floppy-disk" aria-hidden="true"></i>
                                 Abrir guardados
@@ -513,7 +566,8 @@
                         <article class="tutorial-step-card">
                             <span class="tutorial-step-number">6</span>
                             <h4>Rezá con Lectio</h4>
-                            <p>Elegí un pasaje, leelo despacio y guardá tu respuesta en leer, meditar y orar.</p>
+                            <p>Elegí un pasaje, leelo despacio y guardá tu respuesta en leer, meditar y orar para poder
+                                volver a ella.</p>
                             <button type="button" onclick="abrirLectioDivina()">
                                 <i class="fas fa-feather-alt" aria-hidden="true"></i>
                                 Abrir Lectio
@@ -523,8 +577,8 @@
                         <article class="tutorial-step-card">
                             <span class="tutorial-step-number">7</span>
                             <h4>Ajustá el modo</h4>
-                            <p>Desde la pluma podés usar modo desierto, texto corrido y Palabra de bienvenida para leer
-                                con más foco.</p>
+                            <p>Desde la pluma podés usar modo desierto, texto corrido y Palabra de bienvenida para
+                                entrar con más foco.</p>
                             <button type="button" onclick="abrirTutorialModosLumina()">
                                 <i class="fas fa-sliders" aria-hidden="true"></i>
                                 Ver modos
@@ -533,12 +587,12 @@
 
                         <article class="tutorial-step-card">
                             <span class="tutorial-step-number">8</span>
-                            <h4>Cuidá tu camino</h4>
-                            <p>Exportá datos, restaurá respaldos, sincronizá con Google o limpiá caché cuando necesites
-                                actualizar.</p>
+                            <h4>Ubicá los ajustes</h4>
+                            <p>La tuerca del header controla tema, voz, velocidad, temporizador y cola. En la pluma,
+                                Ajustes y Resguardo cuida nube, respaldos, caché para modo sin conexión y progreso.</p>
                             <button type="button" onclick="abrirTutorialAjustesLumina()">
                                 <i class="fas fa-cloud" aria-hidden="true"></i>
-                                Ver resguardo
+                                Abrir resguardo
                             </button>
                         </article>
                     </div>
@@ -553,7 +607,7 @@
                         <div class="tutorial-gesture-item">
                             <span><i class="fas fa-comment-dots" aria-hidden="true"></i></span>
                             <strong>Texto del versículo</strong>
-                            <p>Abre comentarios de la Tradición y notas personales.</p>
+                            <p>Abre Tradición, Referencias relacionadas y tus notas personales.</p>
                         </div>
                         <div class="tutorial-gesture-item">
                             <span><i class="fas fa-star" aria-hidden="true"></i></span>
@@ -568,7 +622,12 @@
                         <div class="tutorial-gesture-item">
                             <span><i class="fas fa-ellipsis-h" aria-hidden="true"></i></span>
                             <strong>Acciones</strong>
-                            <p>Escuchar, compartir, marcar como leído o usar como bienvenida.</p>
+                            <p>Escuchar, añadir a la cola, compartir, marcar como leído o usar como bienvenida.</p>
+                        </div>
+                        <div class="tutorial-gesture-item">
+                            <span><i class="fas fa-cog" aria-hidden="true"></i></span>
+                            <strong>Tuerca</strong>
+                            <p>Cambia tema, voz, velocidad, temporizador, cola y detención global del audio.</p>
                         </div>
                     </div>
                 </section>
@@ -577,8 +636,9 @@
                     <div>
                         <p class="tutorial-kicker">Para acompañar a alguien nuevo</p>
                         <h3>Un recorrido de cinco minutos</h3>
-                        <p>Abrí un capítulo, tocá un versículo, mostrá la estrella y el signo más, probá una búsqueda y
-                            cerrá con Lectio Divina. Con eso la persona ya entiende el corazón de Lumina.</p>
+                        <p>Abrí un capítulo, tocá un versículo para mostrar Tradición, Referencias y notas; después
+                            mostrá favoritos, colecciones, cola de audio, búsqueda, Lectio Divina y una forma de
+                            compartir. Con eso la persona ya entiende el corazón de Lumina.</p>
                     </div>
                     <button type="button" class="tutorial-primary-button" onclick="abrirTutorialComentariosLumina()">
                         <i class="fas fa-route" aria-hidden="true"></i>
@@ -651,9 +711,10 @@
                             Si alguien llega por primera vez, no necesita entender todo: necesita saber dónde tocar
                             primero.
                         </blockquote>
-                        <p>Esta guía abre una vista práctica con el recorrido básico de Lumina: leer un capítulo, tocar
-                            un versículo, guardar hallazgos, buscar, activar concordancias, rezar con Lectio y cuidar
-                            los datos.</p>
+                        <p>Esta guía no intenta explicar todo de golpe: abre un recorrido práctico para leer un
+                            capítulo, tocar un versículo, ver Tradición, Referencias y notas, escuchar con cola y
+                            temporizador, guardar hallazgos, buscar, activar concordancias, rezar con Lectio, compartir
+                            y cuidar los datos.</p>
 
                         <div class="panel-lumina-herramientas">
                             <button type="button"
@@ -664,8 +725,8 @@
                                 </span>
                                 <span class="panel-lumina-cta-copy">
                                     <strong>Abrir guía práctica</strong>
-                                    <span>Una vista completa para recorrer Lumina paso a paso, con botones que llevan a
-                                        cada herramienta.</span>
+                                    <span>Una vista completa para recorrer Lumina paso a paso, con botones que abren cada
+                                        herramienta en contexto.</span>
                                 </span>
                             </button>
 
@@ -685,9 +746,16 @@
                             <h3>Recorrido mínimo</h3>
                             <ul class="panel-lumina-glosario">
                                 <li><strong>Leé:</strong> elegí libro y capítulo desde la portada.</li>
-                                <li><strong>Explorá:</strong> tocá un versículo para abrir Tradición y notas.</li>
-                                <li><strong>Guardá:</strong> usá estrella, pasajes, colecciones y Lectio para volver después.</li>
-                                <li><strong>Compartí:</strong> convertí un versículo o una colección en algo enviable.</li>
+                                <li><strong>Explorá:</strong> tocá un versículo para abrir Tradición, Referencias y
+                                    notas.</li>
+                                <li><strong>Escuchá:</strong> usá la tuerca del header para voz, velocidad, cola,
+                                    temporizador y detener cualquier lectura.</li>
+                                <li><strong>Guardá:</strong> usá estrella, pasajes, colecciones y Lectio para volver
+                                    después sin perder el hilo.</li>
+                                <li><strong>Compartí:</strong> convertí un versículo, una colección o una Lectio en algo
+                                    enviable.</li>
+                                <li><strong>Cuidá:</strong> entrá en la pluma, sección Ajustes y Resguardo, para nube,
+                                    respaldos, caché para modo sin conexión y progreso de lectura.</li>
                             </ul>
                         </div>
                     </div>
@@ -775,22 +843,25 @@
                         </blockquote>
                         <p><em>Lumina</em> nació para que la Sagrada Escritura pueda leerse en español con profundidad,
                             belleza y sentido eclesial. Está pensada en nuestra lengua y desde nuestra fe: no para
-                            aislar el texto bíblico, sino para leerlo en diálogo con la Tradición, la oración y la vida
-                            concreta del creyente.</p>
+                            aislar el texto bíblico, sino para entrar en él junto a la Tradición, la oración, la escucha
+                            y la vida concreta del creyente.</p>
                         <p>Su intuición de fondo es sencilla: la Biblia no es un archivo muerto ni una suma de citas
                             sueltas. Es una Palabra viva, recibida en la Iglesia, rezada por generaciones, comentada
                             por santos, predicadores, maestros y comunidades. Por eso <em>Lumina</em> intenta unir lo
                             que a veces aparece separado: lectura, estudio, escucha, memoria personal, contemplación y
                             transmisión.</p>
-                        <p>Hoy <em>Lumina</em> ya no es solo un lector bíblico. Es un ecosistema espiritual y
-                            práctico: un lugar donde podés buscar, escuchar, marcar, anotar, guardar, rezar, compartir
-                            y continuar tu camino entre dispositivos sin perder lo que fuiste descubriendo.</p>
+                        <p>Hoy <em>Lumina</em> ya no es solo un lector bíblico. Es un ecosistema espiritual y práctico:
+                            un lugar donde podés abrir un versículo y encontrar Tradición, Referencias y notas; buscar,
+                            escuchar, marcar, anotar, guardar, rezar, compartir y continuar tu camino, incluso retomando
+                            una lectura en voz alta desde donde la dejaste.</p>
 
                         <h3>Una Biblia acompañada por la Tradición</h3>
                         <p>El centro sigue siendo la Escritura. Alrededor de ella aparecen ayudas que buscan servir al
-                            texto, no reemplazarlo. Las concordancias permiten ver cómo una palabra, una imagen o una
-                            promesa resuenan en otros pasajes. Los comentarios de la Tradición, especialmente la
-                            <em>Catena Aurea</em>, ayudan a leer con compañía, con memoria y con Iglesia.
+                            texto, no reemplazarlo. En el panel del versículo conviven la Tradición, las Referencias
+                            relacionadas y tus notas personales. Las concordancias permiten ver cómo una palabra, una
+                            imagen o una promesa resuenan en otros pasajes. Los comentarios de la Tradición,
+                            especialmente la <em>Catena Aurea</em>, ayudan a leer con compañía, con memoria y con
+                            Iglesia.
                         </p>
                         <p>La meta no es convertir la lectura bíblica en una experiencia cargada de distracciones, sino
                             darle profundidad cuando hace falta y silencio cuando el alma lo pide. Por eso Lumina
@@ -804,8 +875,13 @@
                                 recientes cuando quieras seguir un hilo.</li>
                             <li><strong>Concordancias vivas:</strong> Activá las concordancias y tocá una palabra para
                                 descubrir cómo ese concepto aparece y se ilumina en otros pasajes.</li>
+                            <li><strong>Panel del versículo:</strong> Tocá un versículo para pasar de la lectura al
+                                diálogo: Tradición, Referencias relacionadas y tus notas quedan reunidas en un mismo
+                                lugar.</li>
                             <li><strong>Lectura escuchada:</strong> Escuchá versículos, capítulos, libros completos,
-                                comentarios de la Tradición y pasajes elegidos para Lectio Divina.</li>
+                                comentarios de la Tradición y pasajes elegidos para Lectio Divina. También podés
+                                ajustar la velocidad, armar una cola, ver qué queda pendiente, usar temporizador para
+                                dormir y continuar desde el último versículo escuchado.</li>
                             <li><strong>Diario espiritual integrado:</strong> Guardá favoritos, escribí notas
                                 personales, armá colecciones temáticas y conservá tus Lectios dentro de la misma
                                 experiencia.</li>
@@ -815,6 +891,9 @@
                             <li><strong>Camino de lectura:</strong> Marcá capítulos y libros como leídos, mirá tu
                                 avance y, si necesitás empezar de nuevo, restablecé solo ese progreso sin borrar tus
                                 notas ni tus colecciones.</li>
+                            <li><strong>Compartir y resguardar:</strong> Generá tarjetas PNG, PDFs y enlaces
+                                importables; exportá respaldos, restaurá datos y sincronizá con Google si necesitás
+                                continuar en más de un dispositivo.</li>
                         </ul>
 
                         <h3>Compartir lo recibido</h3>
@@ -833,11 +912,12 @@
                         <p>La experiencia principal vive en tu dispositivo mediante almacenamiento local, con modo sin
                             conexión cuando el contenido esencial ya fue preparado. Si iniciás sesión con Google,
                             <em>Lumina</em> puede sincronizar favoritos, notas, pasajes, colecciones, Lectio, búsquedas,
-                            preferencias y progreso de lectura entre tus dispositivos usando Firebase.
+                            preferencias, ajustes de audio y progreso de lectura entre tus dispositivos usando Firebase.
                         </p>
-                        <p>La nube es una ayuda, no una imposición. Podés exportar tus datos, restaurarlos por
-                            categorías, limpiar caché para tomar la versión más reciente y controlar de manera explícita
-                            el reinicio del progreso de lectura. La idea es que tu camino espiritual siga siendo tuyo:
+                        <p>La tuerca del header reúne los ajustes inmediatos de experiencia: tema, voz, velocidad,
+                            temporizador, cola y detener lectura. La pluma, en cambio, guarda los modos contemplativos,
+                            la Palabra de bienvenida y Ajustes y Resguardo: nube, exportación, restauración, caché y
+                            reinicio del progreso de lectura. La idea es que tu camino espiritual siga siendo tuyo:
                             Lumina lo acompaña, lo resguarda y lo deja disponible para volver.</p>
 
                         <p>La Biblia no necesita volverse nueva; nosotros sí necesitamos nuevas puertas para entrar en
@@ -887,7 +967,8 @@
                     </div>
 
                     <div id="lumina-seccion-conceptos" class="hidden" data-lumina-contenido>
-                        <p>¿Nuev@ en la lectura bíblica? Acá un glosario providencial para caminar con <em>Lumina</em>.
+                        <p>¿Llegás por primera vez a la lectura bíblica? Acá un glosario providencial para caminar con
+                            <em>Lumina</em>.
                         </p>
                         <ul class="panel-lumina-glosario">
                             <li><strong>Catena Aurea:</strong> Es una "cadena de oro". Una obra donde Santo Tomás de
@@ -898,7 +979,7 @@
                             <li><strong>Concordancias:</strong> Son los puentes entre versículos. Si un texto te remite
                                 a otro, <em>Lumina</em> te permite viajar entre ellos para descubrir cómo la Escritura
                                 se explica a sí misma.</li>
-                            Haz l <li><strong>Padres de la Iglesia:</strong> Son los grandes maestros y pastores de los
+                            <li><strong>Padres de la Iglesia:</strong> Son los grandes maestros y pastores de los
                                 primeros siglos. Sus comentarios en <em>Lumina</em> no son solo opiniones: son la <span
                                     class="tradicion-viva">Tradición viva</span> que ha custodiado el sentido del
                                 Evangelio desde el principio.</li>
@@ -1355,24 +1436,28 @@
                 <blockquote class="text-center italic">
                     "La tecnología, al igual que la filosofía, también puede ser sierva de la teología."
                 </blockquote>
-                <p><em>Lumina</em> es una app web para leer la Sagrada Escritura en español con belleza, profundidad y
-                    sentido eclesial, acompañando la Palabra con la Tradición, la oración y tu propio camino.</p>
-                <p>Podés leer, buscar, escuchar, guardar, rezar Lectio Divina, crear colecciones, compartir lo recibido
-                    y sincronizar tus datos si iniciás sesión con Google.</p>
+                <p><em>Lumina</em> es una app web para entrar en la Sagrada Escritura en español con belleza,
+                    profundidad y sentido eclesial: Biblia, Tradición, oración, escucha y memoria personal en un mismo
+                    lugar.</p>
+                <p>No hace falta conocer todas sus herramientas desde el primer día. Empezá leyendo un capítulo; cuando
+                    un versículo te llame, tocalo para abrir Tradición, Referencias y notas. Desde ahí podés escuchar,
+                    guardar, compartir, rezar con Lectio Divina y cuidar tus datos con respaldo en archivo o nube.</p>
                 <h3>Para empezar</h3>
                 <ul>
-                    <li><strong>Leé y escuchá:</strong> Recorré la Biblia, los comentarios de la Tradición y la
-                        <em>Catena Aurea</em>, con concordancias y lectura en voz alta.
+                    <li><strong>Leé con compañía:</strong> Recorré la Biblia con comentarios de la Tradición,
+                        <em>Catena Aurea</em>, concordancias y referencias relacionadas.
                     </li>
-                    <li><strong>Guardá tu camino:</strong> Conservá favoritos, notas, pasajes, colecciones, Lectios, búsquedas
-                        recientes y progreso de lectura.</li>
-                    <li><strong>Compartí lo recibido:</strong> Enviá textos, tarjetas, PDFs o enlaces para que otros
-                        importen colecciones y Lectios.</li>
-                    <li><strong>Continuá donde estés:</strong> Usá Lumina sin conexión, exportá tus datos o llevá tu
-                        biblioteca entre dispositivos con la nube.</li>
+                    <li><strong>Entrá en el versículo:</strong> Tocá el texto para ver Tradición, Referencias
+                        relacionadas y tus notas personales en un mismo panel.</li>
+                    <li><strong>Escuchá a tu ritmo:</strong> Usá voz, velocidad, cola, temporizador y continuación desde
+                        el último versículo escuchado.</li>
+                    <li><strong>Guardá y rezá:</strong> Conservá favoritos, notas, pasajes, colecciones, Lectios,
+                        búsquedas recientes y progreso de lectura.</li>
+                    <li><strong>Compartí y resguardá:</strong> Enviá textos, tarjetas, PDFs o enlaces importables, y
+                        respaldá tus datos cuando lo necesites.</li>
                 </ul>
-                <p>Si querés profundizar en el espíritu y en cada herramienta de <em>Lumina</em>, podés ampliar todo
-                    esto en la sección <strong>"Sobre Lumina"</strong>.</p>
+                <p>La <strong>guía práctica</strong> te lleva paso a paso. <strong>Sobre Lumina</strong> explica el
+                    espíritu del proyecto y cómo se ordenan sus herramientas.</p>
             </div>
 
             <!-- Botones de inicio -->

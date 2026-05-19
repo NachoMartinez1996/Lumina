@@ -9641,7 +9641,7 @@ body.dark .share-verse-card-canvas {
     position: absolute;
     top: calc(100% + 0.55rem);
     right: -0.25rem;
-    width: 16rem;
+    width: 18rem;
     max-height: 24rem;
     overflow-y: auto;
     padding: 0.45rem;
@@ -9787,6 +9787,61 @@ body.dark .share-verse-card-canvas {
     box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.2);
 }
 
+.settings-audio-status {
+    margin: 0.65rem 0.8rem 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #7b6a58;
+}
+
+.settings-audio-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+    margin: 0 0.8rem 0.65rem;
+}
+
+.settings-audio-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 2.35rem;
+    padding: 0.5rem 0.55rem;
+    border: 1px solid rgba(184, 134, 11, 0.18);
+    border-radius: 0.65rem;
+    background: rgba(255, 255, 255, 0.68);
+    color: #4b3a21;
+    font-size: 0.78rem;
+    font-weight: 800;
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.settings-audio-button:hover {
+    border-color: rgba(184, 134, 11, 0.42);
+    background: rgba(255, 250, 239, 0.94);
+    color: #8a6208;
+}
+
+.settings-audio-button:focus-visible {
+    outline: none;
+    border-color: #b8860b;
+    box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.18);
+}
+
+.settings-audio-button-secondary {
+    color: #7b6a58;
+}
+
+#btn-vaciar-cola-lectura {
+    grid-column: 1 / -1;
+}
+
+.settings-audio-button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
 .settings-stop-reading-button {
     width: 100%;
     display: inline-flex;
@@ -9832,6 +9887,22 @@ body.dark .share-verse-card-canvas {
     box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.15);
 }
 
+.dark .settings-audio-status {
+    color: #cbd5e1;
+}
+
+.dark .settings-audio-button {
+    background: rgba(31, 41, 55, 0.88);
+    border-color: rgba(212, 175, 55, 0.16);
+    color: #e5e7eb;
+}
+
+.dark .settings-audio-button:hover {
+    border-color: rgba(212, 175, 55, 0.38);
+    background: rgba(55, 65, 81, 0.9);
+    color: #f5e6b0;
+}
+
 .dark .settings-stop-reading-button {
     background: rgba(212, 175, 55, 0.12);
     border-color: rgba(212, 175, 55, 0.18);
@@ -9842,6 +9913,231 @@ body.dark .share-verse-card-canvas {
     background: rgba(212, 175, 55, 0.18);
     border-color: rgba(212, 175, 55, 0.42);
     color: #f5e6b0;
+}
+
+.modal-cola-lectura {
+    position: fixed;
+    inset: 0;
+    z-index: 30010;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.58);
+    backdrop-filter: blur(6px);
+}
+
+.modal-cola-lectura.hidden {
+    display: none;
+}
+
+.modal-cola-lectura-card {
+    width: min(42rem, 100%);
+    max-height: min(42rem, 88vh);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid rgba(184, 134, 11, 0.28);
+    border-radius: 1.5rem;
+    background: #fcfaf7;
+    box-shadow: 0 24px 70px rgba(35, 27, 19, 0.26);
+}
+
+.modal-cola-lectura-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.2rem 1.25rem 0.9rem;
+    border-bottom: 1px solid rgba(184, 134, 11, 0.12);
+}
+
+.modal-cola-lectura-eyebrow {
+    margin: 0 0 0.25rem;
+    color: #b8860b;
+    font-size: 0.76rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.modal-cola-lectura-title {
+    margin: 0;
+    color: #231b13;
+    font-family: Georgia, serif;
+    font-size: 1.55rem;
+    font-weight: 700;
+}
+
+.modal-cola-lectura-subtitle {
+    margin: 0.35rem 0 0;
+    color: #7b6a58;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.modal-cola-lectura-close {
+    width: 2.35rem;
+    height: 2.35rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 999px;
+    color: #7b6a58;
+    transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.modal-cola-lectura-close:hover {
+    background: rgba(184, 134, 11, 0.1);
+    color: #8a6208;
+}
+
+.modal-cola-lectura-list {
+    display: grid;
+    gap: 0.65rem;
+    overflow-y: auto;
+    padding: 1rem 1.25rem;
+}
+
+.modal-cola-lectura-empty {
+    padding: 2rem 1rem;
+    color: #7b6a58;
+    text-align: center;
+    font-weight: 700;
+}
+
+.modal-cola-lectura-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.8rem;
+    align-items: start;
+    padding: 0.85rem;
+    border: 1px solid rgba(184, 134, 11, 0.12);
+    border-radius: 0.85rem;
+    background: rgba(255, 255, 255, 0.65);
+}
+
+.modal-cola-lectura-number {
+    min-width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgba(184, 134, 11, 0.12);
+    color: #b8860b;
+    font-size: 0.82rem;
+    font-weight: 900;
+}
+
+.modal-cola-lectura-ref {
+    margin: 0;
+    color: #8a6208;
+    font-size: 0.86rem;
+    font-weight: 900;
+}
+
+.modal-cola-lectura-text {
+    margin: 0.25rem 0 0;
+    color: #4b3a21;
+    font-family: Georgia, serif;
+    font-size: 0.96rem;
+    line-height: 1.45;
+}
+
+.modal-cola-lectura-remove {
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    color: #9f1239;
+    transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.modal-cola-lectura-remove:hover {
+    background: rgba(244, 63, 94, 0.12);
+    color: #be123c;
+}
+
+.modal-cola-lectura-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    padding: 0.9rem 1.25rem 1.15rem;
+    border-top: 1px solid rgba(184, 134, 11, 0.12);
+}
+
+.modal-cola-lectura-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 2.4rem;
+    padding: 0.55rem 0.9rem;
+    border: 1px solid rgba(184, 134, 11, 0.2);
+    border-radius: 0.75rem;
+    color: #4b3a21;
+    font-size: 0.84rem;
+    font-weight: 900;
+}
+
+.modal-cola-lectura-btn-primary {
+    background: rgba(184, 134, 11, 0.14);
+    color: #8a6208;
+}
+
+.modal-cola-lectura-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+body.dark .modal-cola-lectura-card {
+    background: #1a1d23;
+    border-color: rgba(212, 175, 55, 0.18);
+}
+
+body.dark .modal-cola-lectura-header,
+body.dark .modal-cola-lectura-actions {
+    border-color: rgba(212, 175, 55, 0.12);
+}
+
+body.dark .modal-cola-lectura-title,
+body.dark .modal-cola-lectura-text,
+body.dark .modal-cola-lectura-btn {
+    color: #f3f4f6;
+}
+
+body.dark .modal-cola-lectura-subtitle,
+body.dark .modal-cola-lectura-empty {
+    color: #cbd5e1;
+}
+
+body.dark .modal-cola-lectura-item {
+    background: rgba(31, 41, 55, 0.68);
+    border-color: rgba(212, 175, 55, 0.14);
+}
+
+body.dark .modal-cola-lectura-ref,
+body.dark .modal-cola-lectura-eyebrow,
+body.dark .modal-cola-lectura-number,
+body.dark .modal-cola-lectura-btn-primary {
+    color: #f5d978;
+}
+
+@media (max-width: 480px) {
+    .settings-audio-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-cola-lectura-actions {
+        flex-direction: column;
+    }
+
+    .modal-cola-lectura-btn {
+        width: 100%;
+    }
 }
 
 .settings-dropdown.hidden {

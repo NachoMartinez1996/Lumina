@@ -2054,6 +2054,8 @@ const CLAVE_BUSQUEDAS_RECIENTES = 'lumina_busquedas_recientes_v1';
 const CLAVE_DARKMODE = 'lumina_darkmode';
 const CLAVE_CONCORDANCIA = 'lumina_concordancia';
 const CLAVE_VOZ_SELECCIONADA = 'lumina_voz_seleccionada_v1';
+const CLAVE_VELOCIDAD_LECTURA = 'lumina_velocidad_lectura_v1';
+const CLAVE_CONTINUAR_LECTURA = 'lumina_continuar_lectura_v1';
 const CLAVE_BIENVENIDA = 'lumina_bienvenida_v1';
 const LIMITE_BUSQUEDAS_RECIENTES = 12;
 let modoDesiertoActivo = false;
@@ -2163,6 +2165,8 @@ const CATEGORIAS_RESPALDO_LUMINA = [
             CLAVE_TEXTO_CORRIDO,
             CLAVE_VERSICULO_INICIO,
             CLAVE_CONFIG_VERSICULO_INICIO,
+            CLAVE_VELOCIDAD_LECTURA,
+            CLAVE_CONTINUAR_LECTURA,
             CLAVE_BIENVENIDA
         ]
     }
@@ -8230,7 +8234,7 @@ function escucharComentario(autor, texto, btn) {
         return;
     }
 
-    detenerConRestauracion();
+    detenerConRestauracion({ limpiarCola: false, conservarTemporizador: true });
 
     const contenido = `Comentario de ${autor}. ${texto}`;
     const utterance = crearUtteranceLectura(contenido);
@@ -8265,7 +8269,7 @@ function escucharNota(texto, btn) {
         return;
     }
 
-    detenerConRestauracion();
+    detenerConRestauracion({ limpiarCola: false, conservarTemporizador: true });
 
     const utterance = crearUtteranceLectura(texto);
 
@@ -8309,7 +8313,7 @@ function escucharPasajeLectio(btn) {
         return;
     }
 
-    detenerConRestauracion();
+    detenerConRestauracion({ limpiarCola: false, conservarTemporizador: true });
 
     const referencia = formatearReferenciaLectio(libro, capitulo, desde, hasta);
     const contenido = `${referencia}. ${obtenerTextoPlanoPasajeLectio(libro, capitulo, desde, hasta)}`;
@@ -10738,6 +10742,503 @@ let timeoutLecturaActiva = null;
 let speechSynthesisDesbloqueada = false;
 let vozEspanolPrecargada = null;
 let listenerVocesLecturaRegistrado = false;
+const VELOCIDAD_LECTURA_DEFAULT = 0.92;
+const VELOCIDADES_LECTURA_PERMITIDAS = [0.8, 0.92, 1, 1.15, 1.3];
+let temporizadorLecturaMinutos = 0;
+let timeoutTemporizadorLectura = null;
+let colaLecturaPendiente = [];
+
+function normalizarVelocidadLectura(valor) {
+    const numero = Number.parseFloat(valor);
+    if (!Number.isFinite(numero)) return VELOCIDAD_LECTURA_DEFAULT;
+
+    const velocidadPermitida = VELOCIDADES_LECTURA_PERMITIDAS.find(item => Math.abs(item - numero) < 0.01);
+    return velocidadPermitida || VELOCIDAD_LECTURA_DEFAULT;
+}
+
+function obtenerVelocidadLectura() {
+    return normalizarVelocidadLectura(leerPersistencia(CLAVE_VELOCIDAD_LECTURA, String(VELOCIDAD_LECTURA_DEFAULT)));
+}
+
+function aplicarVelocidadLectura(valor, { guardar = true } = {}) {
+    const velocidad = normalizarVelocidadLectura(valor);
+    const selector = document.getElementById('selector-velocidad-lectura');
+    if (selector && selector.value !== String(velocidad)) {
+        selector.value = String(velocidad);
+    }
+
+    if (guardar) {
+        escribirPersistencia(CLAVE_VELOCIDAD_LECTURA, String(velocidad));
+    }
+
+    return velocidad;
+}
+
+function obtenerResumenContinuarLectura() {
+    const progreso = obtenerProgresoContinuarLectura();
+    if (!progreso?.libro) return '';
+
+    if (Number.isFinite(progreso.capitulo) && Number.isFinite(progreso.versiculo)) {
+        return formatearReferenciaCompartida(progreso.libro, progreso.capitulo, progreso.versiculo);
+    }
+
+    if (Number.isFinite(progreso.capitulo)) {
+        return `${progreso.libro} ${progreso.capitulo}`;
+    }
+
+    return progreso.libro;
+}
+
+function actualizarEstadoColaLectura() {
+    const estado = document.getElementById('estado-cola-lectura');
+    const btnContinuar = document.getElementById('btn-continuar-lectura-global');
+    const btnVaciar = document.getElementById('btn-vaciar-cola-lectura');
+    const totalCola = colaLecturaPendiente.length;
+    const resumenContinuar = obtenerResumenContinuarLectura();
+
+    if (estado) {
+        if (totalCola > 0) {
+            estado.textContent = `${totalCola} pendiente${totalCola === 1 ? '' : 's'} en cola`;
+        } else if (resumenContinuar) {
+            estado.textContent = `Continuar desde ${resumenContinuar}`;
+        } else {
+            estado.textContent = 'Cola vacía';
+        }
+    }
+
+    if (btnContinuar) {
+        const hayAlgoParaContinuar = totalCola > 0 || Boolean(resumenContinuar);
+        btnContinuar.disabled = !hayAlgoParaContinuar;
+        btnContinuar.title = totalCola > 0 ? 'Reproducir cola' : 'Continuar lectura';
+        btnContinuar.setAttribute('aria-label', totalCola > 0 ? 'Reproducir cola de lectura' : 'Continuar lectura en voz alta guardada');
+        const texto = totalCola > 0 ? 'Reproducir cola' : 'Continuar';
+        const textoBoton = btnContinuar.querySelector('span');
+        if (textoBoton) textoBoton.textContent = texto;
+    }
+
+    if (btnVaciar) {
+        btnVaciar.disabled = totalCola === 0;
+    }
+
+    const modalCola = document.getElementById('modal-cola-lectura');
+    if (modalCola && !modalCola.classList.contains('hidden')) {
+        renderizarContenidoModalColaLectura();
+    }
+}
+
+function normalizarItemLecturaCola(item) {
+    if (!item) return null;
+
+    const libro = String(item.libro || '').trim();
+    const capitulo = Number(item.capitulo);
+    const versiculo = Number(item.versiculo);
+    const texto = String(item.texto || bibleContent[libro]?.[capitulo]?.[versiculo] || '').trim();
+
+    if (!libro || !Number.isFinite(capitulo) || !Number.isFinite(versiculo) || !texto) return null;
+
+    return {
+        libro,
+        capitulo,
+        versiculo,
+        texto
+    };
+}
+
+function agregarItemsAColaLectura(items, mensaje = 'Agregado a la cola') {
+    const normalizados = (Array.isArray(items) ? items : [items])
+        .map(normalizarItemLecturaCola)
+        .filter(Boolean);
+
+    if (normalizados.length === 0) {
+        lanzarToast('No hay texto disponible para agregar a la cola');
+        return false;
+    }
+
+    colaLecturaPendiente.push(...normalizados);
+    actualizarEstadoColaLectura();
+    lanzarToast(mensaje);
+    return true;
+}
+
+function agregarVersiculoAColaLectura(libro, capitulo, versiculo, texto) {
+    const referencia = formatearReferenciaCompartida(libro, capitulo, versiculo);
+    agregarItemsAColaLectura(
+        { libro, capitulo, versiculo, texto },
+        `${referencia} agregado a la cola`
+    );
+}
+
+function vaciarColaLectura() {
+    if (colaLecturaPendiente.length === 0) {
+        lanzarToast('La cola ya está vacía');
+        actualizarEstadoColaLectura();
+        return;
+    }
+
+    colaLecturaPendiente = [];
+    actualizarEstadoColaLectura();
+    lanzarToast('Cola de lectura vaciada');
+}
+
+function quitarItemColaLectura(indice) {
+    if (!Number.isInteger(indice) || indice < 0 || indice >= colaLecturaPendiente.length) return;
+
+    colaLecturaPendiente.splice(indice, 1);
+    actualizarEstadoColaLectura();
+    lanzarToast('Quitado de la cola');
+}
+
+function asegurarModalColaLectura() {
+    let modal = document.getElementById('modal-cola-lectura');
+    if (modal) return modal;
+
+    modal = document.createElement('div');
+    modal.id = 'modal-cola-lectura';
+    modal.className = 'modal-cola-lectura hidden';
+    modal.innerHTML = `
+        <div class="modal-cola-lectura-card" role="dialog" aria-modal="true" aria-labelledby="modal-cola-lectura-titulo" onclick="event.stopPropagation()">
+            <div class="modal-cola-lectura-header">
+                <div>
+                    <p class="modal-cola-lectura-eyebrow">Audio de Lumina</p>
+                    <h3 id="modal-cola-lectura-titulo" class="modal-cola-lectura-title">Cola de lectura</h3>
+                    <p class="modal-cola-lectura-subtitle" data-cola-lectura-subtitulo></p>
+                </div>
+                <button type="button" class="modal-cola-lectura-close" aria-label="Cerrar cola de lectura">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="modal-cola-lectura-list" data-cola-lectura-lista></div>
+            <div class="modal-cola-lectura-actions">
+                <button type="button" class="modal-cola-lectura-btn" data-cola-lectura-vaciar>
+                    <i class="fas fa-list-check" aria-hidden="true"></i>
+                    <span>Vaciar cola</span>
+                </button>
+                <button type="button" class="modal-cola-lectura-btn modal-cola-lectura-btn-primary" data-cola-lectura-reproducir>
+                    <i class="fas fa-play" aria-hidden="true"></i>
+                    <span>Reproducir cola</span>
+                </button>
+            </div>
+        </div>
+    `;
+
+    modal.addEventListener('click', cerrarModalColaLectura);
+    modal.querySelector('.modal-cola-lectura-close')?.addEventListener('click', cerrarModalColaLectura);
+    modal.querySelector('[data-cola-lectura-vaciar]')?.addEventListener('click', () => {
+        vaciarColaLectura();
+        renderizarContenidoModalColaLectura();
+    });
+    modal.querySelector('[data-cola-lectura-reproducir]')?.addEventListener('click', () => {
+        cerrarModalColaLectura();
+        reproducirColaLectura();
+    });
+
+    document.addEventListener('keydown', event => {
+        const modalActual = document.getElementById('modal-cola-lectura');
+        if (!modalActual || modalActual.classList.contains('hidden')) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            cerrarModalColaLectura();
+        }
+    });
+
+    document.body.appendChild(modal);
+    return modal;
+}
+
+function renderizarContenidoModalColaLectura() {
+    const modal = document.getElementById('modal-cola-lectura');
+    if (!modal) return;
+
+    const lista = modal.querySelector('[data-cola-lectura-lista]');
+    const subtitulo = modal.querySelector('[data-cola-lectura-subtitulo]');
+    const botonReproducir = modal.querySelector('[data-cola-lectura-reproducir]');
+    const botonVaciar = modal.querySelector('[data-cola-lectura-vaciar]');
+    const total = colaLecturaPendiente.length;
+
+    if (subtitulo) {
+        subtitulo.textContent = total === 0
+            ? 'Todavía no agregaste versículos a la cola.'
+            : `${total} versículo${total === 1 ? '' : 's'} pendiente${total === 1 ? '' : 's'}.`;
+    }
+
+    if (botonReproducir) botonReproducir.disabled = total === 0;
+    if (botonVaciar) botonVaciar.disabled = total === 0;
+    if (!lista) return;
+
+    lista.innerHTML = '';
+
+    if (total === 0) {
+        const vacio = document.createElement('div');
+        vacio.className = 'modal-cola-lectura-empty';
+        vacio.textContent = 'Usá “Añadir a cola” desde el menú de un versículo para armar tu recorrido.';
+        lista.appendChild(vacio);
+        return;
+    }
+
+    colaLecturaPendiente.forEach((item, indice) => {
+        const entrada = document.createElement('article');
+        entrada.className = 'modal-cola-lectura-item';
+        entrada.innerHTML = `
+            <span class="modal-cola-lectura-number">${indice + 1}</span>
+            <div>
+                <p class="modal-cola-lectura-ref">${escapeHtml(formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo))}</p>
+                <p class="modal-cola-lectura-text">${escapeHtml(truncarTextoFavorito(item.texto, 180))}</p>
+            </div>
+            <button type="button" class="modal-cola-lectura-remove" aria-label="Quitar ${escapeHtml(formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo))} de la cola">
+                <i class="fas fa-times" aria-hidden="true"></i>
+            </button>
+        `;
+
+        entrada.querySelector('.modal-cola-lectura-remove')?.addEventListener('click', () => {
+            quitarItemColaLectura(indice);
+        });
+
+        lista.appendChild(entrada);
+    });
+}
+
+function abrirModalColaLectura() {
+    const modal = asegurarModalColaLectura();
+    renderizarContenidoModalColaLectura();
+    modal.classList.remove('hidden');
+    requestAnimationFrame(() => {
+        modal.querySelector('.modal-cola-lectura-close')?.focus();
+    });
+}
+
+function cerrarModalColaLectura() {
+    document.getElementById('modal-cola-lectura')?.classList.add('hidden');
+}
+
+function obtenerProgresoContinuarLectura() {
+    try {
+        const progreso = JSON.parse(leerPersistencia(CLAVE_CONTINUAR_LECTURA, 'null'));
+        if (!progreso || typeof progreso !== 'object') return null;
+        return progreso;
+    } catch (error) {
+        console.warn('No se pudo leer el punto de continuación:', error);
+        return null;
+    }
+}
+
+function guardarProgresoContinuarLectura(item, contexto = {}, indice = 0) {
+    const normalizado = normalizarItemLecturaCola(item);
+    if (!normalizado) return;
+
+    const progreso = {
+        tipo: contexto.tipo || 'versiculo',
+        titulo: contexto.titulo || '',
+        libroContexto: contexto.libro || normalizado.libro,
+        capituloContexto: Number.isFinite(contexto.capitulo) ? contexto.capitulo : normalizado.capitulo,
+        indice,
+        updatedAt: new Date().toISOString(),
+        ...normalizado
+    };
+
+    escribirPersistencia(CLAVE_CONTINUAR_LECTURA, JSON.stringify(progreso));
+    actualizarEstadoColaLectura();
+}
+
+function buscarIndiceSecuenciaPorReferencia(secuencia, progreso) {
+    return secuencia.findIndex(item =>
+        item?.libro === progreso.libro
+        && Number(item.capitulo) === Number(progreso.capitulo)
+        && Number(item.versiculo) === Number(progreso.versiculo)
+    );
+}
+
+function construirContinuacionLectura(progreso) {
+    if (!progreso?.libro) return null;
+
+    const tipo = progreso.tipo || 'versiculo';
+    const itemActual = normalizarItemLecturaCola(progreso);
+    if (!itemActual) return null;
+
+    if (tipo === 'libro') {
+        const secuenciaLibro = construirSecuenciaLecturaLibro(progreso.libroContexto || progreso.libro);
+        const indice = buscarIndiceSecuenciaPorReferencia(secuenciaLibro, progreso);
+        return {
+            secuencia: secuenciaLibro.slice(Math.max(0, indice)),
+            contexto: {
+                tipo: 'libro',
+                libro: progreso.libroContexto || progreso.libro,
+                titulo: progreso.titulo || progreso.libroContexto || progreso.libro
+            }
+        };
+    }
+
+    if (tipo === 'capitulo') {
+        const libro = progreso.libroContexto || progreso.libro;
+        const capitulo = Number(progreso.capituloContexto || progreso.capitulo);
+        const secuenciaCapitulo = construirListaVersiculosCapitulo(libro, capitulo);
+        const indice = buscarIndiceSecuenciaPorReferencia(secuenciaCapitulo, progreso);
+        return {
+            secuencia: secuenciaCapitulo.slice(Math.max(0, indice)),
+            contexto: {
+                tipo: 'capitulo',
+                libro,
+                capitulo,
+                titulo: progreso.titulo || `${libro} ${capitulo}`
+            }
+        };
+    }
+
+    return {
+        secuencia: [itemActual],
+        contexto: {
+            tipo: 'versiculo',
+            libro: itemActual.libro,
+            capitulo: itemActual.capitulo,
+            titulo: formatearReferenciaCompartida(itemActual.libro, itemActual.capitulo, itemActual.versiculo)
+        }
+    };
+}
+
+function activarEstadoSecuenciaLectura(contexto = {}) {
+    leyendoCapituloCompleto = contexto.tipo === 'capitulo';
+    leyendoLibroCompleto = contexto.tipo === 'libro';
+    libroEnReproduccion = leyendoLibroCompleto ? contexto.libro : null;
+    capituloEnReproduccion = leyendoCapituloCompleto ? Number(contexto.capitulo) : null;
+
+    if (leyendoCapituloCompleto && libroActual === contexto.libro && Number(capituloActual) === Number(contexto.capitulo)) {
+        actualizarBotonLeerCapitulo(true);
+    } else if (leyendoLibroCompleto && libroActual === contexto.libro) {
+        actualizarBotonLeerLibro(true);
+    } else {
+        actualizarBotonesReproduccionListas();
+    }
+}
+
+function reproducirColaLectura({ silencioso = false } = {}) {
+    if (colaLecturaPendiente.length === 0) {
+        if (!silencioso) lanzarToast('La cola está vacía');
+        actualizarEstadoColaLectura();
+        return false;
+    }
+
+    if (!silencioso && hayLecturaEnVozAltaActiva()) {
+        detenerLectura({ limpiarCola: false, conservarTemporizador: true });
+    }
+
+    const secuencia = colaLecturaPendiente.splice(0);
+    actualizarEstadoColaLectura();
+    activarEstadoSecuenciaLectura({ tipo: 'cola' });
+
+    const inicioCorrecto = reproducirSecuenciaVersiculos(secuencia, {
+        contexto: { tipo: 'cola', titulo: 'Cola de lectura' },
+        onFin: () => finalizarLecturaSecuencial(),
+        onError: () => finalizarLecturaSecuencial()
+    });
+
+    if (!inicioCorrecto) {
+        finalizarLecturaSecuencial();
+        lanzarToast('No se pudo iniciar la cola de lectura');
+    }
+
+    return inicioCorrecto;
+}
+
+function reproducirColaLecturaSiPendiente() {
+    if (colaLecturaPendiente.length === 0) return false;
+    return reproducirColaLectura({ silencioso: true });
+}
+
+function manejarContinuarLecturaGlobal() {
+    if (colaLecturaPendiente.length > 0) {
+        reproducirColaLectura();
+        return;
+    }
+
+    continuarLecturaGuardada();
+}
+
+function continuarLecturaGuardada() {
+    if (!navegadorSoportaLectura()) {
+        avisarLecturaVozAltaNoDisponible();
+        return;
+    }
+
+    const progreso = obtenerProgresoContinuarLectura();
+    const continuacion = construirContinuacionLectura(progreso);
+
+    if (!continuacion || continuacion.secuencia.length === 0) {
+        lanzarToast('No hay una lectura para continuar');
+        actualizarEstadoColaLectura();
+        return;
+    }
+
+    detenerLectura({ limpiarCola: false, conservarTemporizador: true });
+    activarEstadoSecuenciaLectura(continuacion.contexto);
+
+    const inicioCorrecto = reproducirSecuenciaVersiculos(continuacion.secuencia, {
+        contexto: continuacion.contexto,
+        onFin: () => finalizarLecturaSecuencial({
+            actualizarBotonCapitulo: continuacion.contexto.tipo === 'capitulo',
+            actualizarBotonLibro: continuacion.contexto.tipo === 'libro'
+        }),
+        onError: () => finalizarLecturaSecuencial({
+            actualizarBotonCapitulo: continuacion.contexto.tipo === 'capitulo',
+            actualizarBotonLibro: continuacion.contexto.tipo === 'libro'
+        })
+    });
+
+    if (!inicioCorrecto) {
+        finalizarLecturaSecuencial();
+        lanzarToast('No se pudo continuar la lectura');
+    }
+}
+
+function sincronizarSelectorTemporizadorLectura() {
+    const selector = document.getElementById('selector-temporizador-lectura');
+    if (selector && selector.value !== String(temporizadorLecturaMinutos)) {
+        selector.value = String(temporizadorLecturaMinutos);
+    }
+}
+
+function cancelarTemporizadorLectura({ resetSelector = false } = {}) {
+    if (timeoutTemporizadorLectura) {
+        clearTimeout(timeoutTemporizadorLectura);
+        timeoutTemporizadorLectura = null;
+    }
+
+    if (resetSelector) {
+        temporizadorLecturaMinutos = 0;
+        sincronizarSelectorTemporizadorLectura();
+    }
+}
+
+function programarTemporizadorLecturaSiCorresponde() {
+    if (timeoutTemporizadorLectura) return;
+    cancelarTemporizadorLectura();
+    if (!temporizadorLecturaMinutos || temporizadorLecturaMinutos <= 0) return;
+
+    timeoutTemporizadorLectura = setTimeout(() => {
+        timeoutTemporizadorLectura = null;
+        temporizadorLecturaMinutos = 0;
+        sincronizarSelectorTemporizadorLectura();
+        detenerReproduccionesLuminaActivas();
+        lanzarToast('Temporizador: lectura detenida');
+    }, temporizadorLecturaMinutos * 60 * 1000);
+}
+
+function aplicarTemporizadorLectura(valor) {
+    const minutos = Number.parseInt(valor, 10);
+    temporizadorLecturaMinutos = Number.isFinite(minutos) && minutos > 0 ? minutos : 0;
+    sincronizarSelectorTemporizadorLectura();
+
+    if (temporizadorLecturaMinutos > 0) {
+        if (hayLecturaEnVozAltaActiva()) {
+            programarTemporizadorLecturaSiCorresponde();
+            lanzarToast(`La lectura se detendrá en ${temporizadorLecturaMinutos} minutos`);
+        } else {
+            lanzarToast('El temporizador se activará al iniciar la lectura');
+        }
+        return;
+    }
+
+    cancelarTemporizadorLectura();
+    lanzarToast('Temporizador desactivado');
+}
 
 function navegadorSoportaLectura() {
     return 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
@@ -10922,16 +11423,16 @@ function actualizarContenidoBotonAudioVersiculo(btn, reproduciendo) {
         : '<i class="fas fa-volume-up text-sm" aria-hidden="true"></i>';
 }
 
-function detenerConRestauracion() {
+function detenerConRestauracion(opciones = {}) {
     if (btnAudioActivo) {
         restaurarIconoParla(btnAudioActivo);
         btnAudioActivo = null;
     }
-    detenerLectura();
+    detenerLectura(opciones);
 }
 
-function detenerReproduccionesLuminaActivas() {
-    detenerConRestauracion();
+function detenerReproduccionesLuminaActivas(opciones = {}) {
+    detenerConRestauracion(opciones);
     detenerAudiosCelebracion();
 }
 
@@ -10966,7 +11467,7 @@ function hayLecturaEnVozAltaActiva() {
 
 function detenerLecturaDesdeAjustes() {
     const habiaReproduccionActiva = hayLecturaEnVozAltaActiva() || hayAudioCelebracionActivo();
-    detenerReproduccionesLuminaActivas();
+    detenerReproduccionesLuminaActivas({ limpiarCola: true, resetTemporizador: true });
     lanzarToast(habiaReproduccionActiva ? 'Lectura detenida' : 'No hay lectura en curso');
 }
 
@@ -10982,7 +11483,7 @@ function limpiarEstadoLectura() {
     });
 }
 
-function detenerLectura() {
+function detenerLectura({ limpiarCola = true, resetTemporizador = true, conservarTemporizador = false } = {}) {
     if (!navegadorSoportaLectura()) return;
 
     // Limpiar monitores de reproducción
@@ -10991,6 +11492,14 @@ function detenerLectura() {
     if (timeoutLecturaActiva) {
         clearTimeout(timeoutLecturaActiva);
         timeoutLecturaActiva = null;
+    }
+
+    if (limpiarCola) {
+        colaLecturaPendiente = [];
+    }
+
+    if (!conservarTemporizador) {
+        cancelarTemporizadorLectura({ resetSelector: resetTemporizador });
     }
 
     leyendoCapituloCompleto = false;
@@ -11004,6 +11513,7 @@ function detenerLectura() {
     limpiarEstadoLectura();
     limpiarResaltadoVersiculo();
     actualizarBotonesReproduccionListas();
+    actualizarEstadoColaLectura();
 }
 
 function normalizarTextoParaLectura(texto) {
@@ -11040,7 +11550,7 @@ function crearUtteranceLectura(texto) {
     }
 
     // 3. Parámetros de entonación
-    utterance.rate = 0.92; // Velocidad levemente pausada para mayor claridad
+    utterance.rate = obtenerVelocidadLectura(); // Velocidad configurable desde ajustes
     utterance.pitch = 1.0; // Tono natural
     utterance.volume = 1.0; // Volumen al máximo por defecto
 
@@ -11160,8 +11670,12 @@ function reproducirUtterance(utterance) {
 
         const textoFragmento = fragmentos[indice];
         if (!textoFragmento) {
+            timeoutLecturaActiva = null;
             if (typeof utterance.onend === 'function') {
                 utterance.onend();
+            }
+            if (!reproducirColaLecturaSiPendiente()) {
+                cancelarTemporizadorLectura({ resetSelector: true });
             }
             return;
         }
@@ -11195,8 +11709,12 @@ function reproducirUtterance(utterance) {
             if (token !== tokenLecturaActiva) return;
             indice += 1;
             if (indice >= fragmentos.length) {
+                timeoutLecturaActiva = null;
                 if (typeof utterance.onend === 'function') {
                     utterance.onend(event);
+                }
+                if (!reproducirColaLecturaSiPendiente()) {
+                    cancelarTemporizadorLectura({ resetSelector: true });
                 }
                 return;
             }
@@ -11224,6 +11742,7 @@ function reproducirUtterance(utterance) {
         desbloquearSpeechSynthesis();
         window.speechSynthesis.cancel();
         timeoutLecturaActiva = setTimeout(hablarSiguiente, 80);
+        programarTemporizadorLecturaSiCorresponde();
         return true;
     } catch (error) {
         console.error('Error al iniciar la lectura en voz alta:', error);
@@ -11245,6 +11764,8 @@ function finalizarLecturaSecuencial(opciones = {}) {
     vozActiva = null;
     limpiarEstadoLectura();
     limpiarResaltadoVersiculo();
+    cancelarTemporizadorLectura({ resetSelector: true });
+    actualizarEstadoColaLectura();
 
     if (actualizarBotonCapitulo) {
         actualizarBotonLeerCapitulo(false);
@@ -11259,6 +11780,37 @@ function finalizarLecturaSecuencial(opciones = {}) {
     actualizarBotonesReproduccionListas();
 }
 
+function esItemVersiculoLectura(item) {
+    return Boolean(
+        item?.libro
+        && Number.isFinite(Number(item.capitulo))
+        && Number.isFinite(Number(item.versiculo))
+    );
+}
+
+function debeAnunciarReferenciaCola(item, itemAnterior, contexto = {}) {
+    if (contexto.tipo !== 'cola' || !esItemVersiculoLectura(item)) return false;
+    if (!esItemVersiculoLectura(itemAnterior)) return true;
+
+    return item.libro !== itemAnterior.libro
+        || Number(item.capitulo) !== Number(itemAnterior.capitulo);
+}
+
+function formatearReferenciaHabladaCola(item) {
+    return `${item.libro}, capítulo ${item.capitulo}, versículo ${item.versiculo}.`;
+}
+
+function obtenerTextoNarradoSecuencia(item, itemAnterior, contexto = {}) {
+    const texto = String(item?.texto || '').trim();
+    if (!texto) return '';
+
+    if (debeAnunciarReferenciaCola(item, itemAnterior, contexto)) {
+        return `${formatearReferenciaHabladaCola(item)} ${texto}`;
+    }
+
+    return texto;
+}
+
 function reproducirSecuenciaVersiculos(secuencia, opciones = {}) {
     if (!Array.isArray(secuencia) || secuencia.length === 0 || !navegadorSoportaLectura()) {
         return false;
@@ -11268,10 +11820,13 @@ function reproducirSecuenciaVersiculos(secuencia, opciones = {}) {
         pausaEntreVersiculosMs = esDispositivoMovilLectura() ? 80 : 60,
         onPrimerInicio,
         onFin,
-        onError
+        onError,
+        contexto = {}
     } = opciones;
 
     const token = ++tokenLecturaActiva;
+    let secuenciaReproduccion = secuencia.slice();
+    let contextoReproduccion = { ...contexto };
     let indiceActual = 0;
     let inicioNotificado = false;
 
@@ -11283,16 +11838,28 @@ function reproducirSecuenciaVersiculos(secuencia, opciones = {}) {
     const reproducirSiguiente = () => {
         if (token !== tokenLecturaActiva) return;
 
-        const item = secuencia[indiceActual];
+        const item = secuenciaReproduccion[indiceActual];
         if (!item) {
             timeoutLecturaActiva = null;
+            if (colaLecturaPendiente.length > 0) {
+                secuenciaReproduccion = colaLecturaPendiente.splice(0);
+                indiceActual = 0;
+                inicioNotificado = true;
+                contextoReproduccion = { tipo: 'cola', titulo: 'Cola de lectura' };
+                activarEstadoSecuenciaLectura({ tipo: 'cola' });
+                actualizarEstadoColaLectura();
+                reproducirSiguiente();
+                return;
+            }
+
             if (typeof onFin === 'function') {
                 onFin();
             }
             return;
         }
 
-        const texto = String(item.texto || '').trim();
+        const itemAnterior = secuenciaReproduccion[indiceActual - 1] || null;
+        const texto = obtenerTextoNarradoSecuencia(item, itemAnterior, contextoReproduccion);
         if (!texto) {
             indiceActual += 1;
             reproducirSiguiente();
@@ -11306,6 +11873,7 @@ function reproducirSecuenciaVersiculos(secuencia, opciones = {}) {
 
             if (Number.isFinite(item.capitulo) && Number.isFinite(item.versiculo) && item.libro) {
                 resaltarVersiculo(item.libro, item.capitulo, item.versiculo);
+                guardarProgresoContinuarLectura(item, contextoReproduccion, indiceActual);
             } else {
                 limpiarResaltadoVersiculo();
             }
@@ -11351,6 +11919,7 @@ function reproducirSecuenciaVersiculos(secuencia, opciones = {}) {
         desbloquearSpeechSynthesis();
         window.speechSynthesis.cancel();
         timeoutLecturaActiva = setTimeout(reproducirSiguiente, 80);
+        programarTemporizadorLecturaSiCorresponde();
         return true;
     } catch (error) {
         timeoutLecturaActiva = null;
@@ -11545,7 +12114,7 @@ function escucharVersiculo(libro, capitulo, versiculo, texto) {
         return;
     }
 
-    detenerLectura();
+    detenerLectura({ limpiarCola: false, conservarTemporizador: true });
 
     // Función interna para no repetir código (DRY: Don't Repeat Yourself)
     const iniciarEjecucion = () => {
@@ -11566,6 +12135,10 @@ function escucharVersiculo(libro, capitulo, versiculo, texto) {
 
             // Resaltar el versículo completo
             resaltarVersiculo(libro, capitulo, versiculo);
+            guardarProgresoContinuarLectura(
+                { libro, capitulo, versiculo, texto },
+                { tipo: 'versiculo', titulo: formatearReferenciaCompartida(libro, capitulo, versiculo) }
+            );
         };
 
         utterance.onend = () => {
@@ -11610,7 +12183,7 @@ function leerCapituloEntero() {
         return;
     }
 
-    detenerLectura();
+    detenerLectura({ limpiarCola: false, conservarTemporizador: true });
     leyendoCapituloCompleto = true;
     capituloEnReproduccion = capituloActual;
 
@@ -11623,6 +12196,12 @@ function leerCapituloEntero() {
     }
 
     const inicioCorrecto = reproducirSecuenciaVersiculos(secuencia, {
+        contexto: {
+            tipo: 'capitulo',
+            libro: libroActual,
+            capitulo: capituloActual,
+            titulo: `${libroActual} ${capituloActual}`
+        },
         onFin: () => finalizarLecturaSecuencial({ actualizarBotonCapitulo: true }),
         onError: () => finalizarLecturaSecuencial({ actualizarBotonCapitulo: true })
     });
@@ -11655,7 +12234,7 @@ function leerCapituloEspecifico(capitulo) {
     const secuencia = construirListaVersiculosCapitulo(libroActual, capitulo);
     if (secuencia.length === 0) return;
 
-    detenerLectura();
+    detenerLectura({ limpiarCola: false, conservarTemporizador: true });
     leyendoCapituloCompleto = true;
     capituloEnReproduccion = capitulo;
     actualizarBotonesReproduccionListas();
@@ -11666,6 +12245,12 @@ function leerCapituloEspecifico(capitulo) {
     }
 
     const inicioCorrecto = reproducirSecuenciaVersiculos(secuencia, {
+        contexto: {
+            tipo: 'capitulo',
+            libro: libroActual,
+            capitulo,
+            titulo: `${libroActual} ${capitulo}`
+        },
         onFin: () => finalizarLecturaSecuencial(),
         onError: () => finalizarLecturaSecuencial()
     });
@@ -11701,7 +12286,7 @@ function leerLibroEntero(libroNombre) {
     const secuencia = construirSecuenciaLecturaLibro(libroNombre);
     if (secuencia.length === 0) return;
 
-    detenerLectura();
+    detenerLectura({ limpiarCola: false, conservarTemporizador: true });
     leyendoLibroCompleto = true;
     libroEnReproduccion = libroNombre;
 
@@ -11714,6 +12299,11 @@ function leerLibroEntero(libroNombre) {
     }
 
     const inicioCorrecto = reproducirSecuenciaVersiculos(secuencia, {
+        contexto: {
+            tipo: 'libro',
+            libro: libroNombre,
+            titulo: libroNombre
+        },
         onFin: () => finalizarLecturaSecuencial({ actualizarBotonLibro: true }),
         onError: () => finalizarLecturaSecuencial({ actualizarBotonLibro: true })
     });
@@ -11803,10 +12393,23 @@ function initSettingsMenu() {
 
     document.getElementById('theme-light-option')?.addEventListener('click', () => aplicarDarkMode(false));
     document.getElementById('theme-dark-option')?.addEventListener('click', () => aplicarDarkMode(true));
+    document.getElementById('selector-velocidad-lectura')?.addEventListener('change', event => {
+        const velocidad = aplicarVelocidadLectura(event.target.value);
+        lanzarToast(`Velocidad de lectura: ${velocidad}x`);
+    });
+    document.getElementById('selector-temporizador-lectura')?.addEventListener('change', event => {
+        aplicarTemporizadorLectura(event.target.value);
+    });
 
+    aplicarVelocidadLectura(obtenerVelocidadLectura(), { guardar: false });
+    sincronizarSelectorTemporizadorLectura();
     cargarVocesEnSelector();
     registrarActualizacionVocesLectura();
     document.getElementById('btn-detener-lectura-global')?.addEventListener('click', detenerLecturaDesdeAjustes);
+    document.getElementById('btn-ver-cola-lectura')?.addEventListener('click', abrirModalColaLectura);
+    document.getElementById('btn-continuar-lectura-global')?.addEventListener('click', manejarContinuarLecturaGlobal);
+    document.getElementById('btn-vaciar-cola-lectura')?.addEventListener('click', vaciarColaLectura);
+    actualizarEstadoColaLectura();
 }
 
 function cargarVocesEnSelector() {
@@ -13038,6 +13641,14 @@ function construirAccionesVersiculoHtml(libro, capitulo, versiculo, textoOrigina
                     </button>
                     <button type="button"
                         class="verse-card-menu-item"
+                        onclick='event.stopPropagation(); cerrarMenusAccionesVersiculo(); agregarVersiculoAColaLectura(${libroLiteral}, ${capitulo}, ${versiculo}, ${textoLiteral}); return false;'
+                        title="Añadir a la cola de lectura"
+                        aria-label="Añadir ${escapeHtml(referencia)} a la cola de lectura">
+                        <i class="fas fa-list-ul menu-item-icono text-sm" aria-hidden="true"></i>
+                        <span>Añadir a cola</span>
+                    </button>
+                    <button type="button"
+                        class="verse-card-menu-item"
                         onclick='event.stopPropagation(); cerrarMenusAccionesVersiculo(); compartirVersiculo(${libroLiteral}, ${capitulo}, ${versiculo}, ${textoLiteral}); return false;'
                         title="Compartir versículo o crear tarjeta"
                         aria-label="Compartir ${escapeHtml(referencia)}">
@@ -13367,7 +13978,7 @@ function abrirCapituloTutorialLumina(libro = 'Evangelio según San Juan', capitu
 
 function abrirTutorialLecturaBasica() {
     if (!abrirCapituloTutorialLumina()) return;
-    lanzarToast('Abrimos un capítulo de ejemplo. Tocá un versículo para entrar en comentarios y notas.');
+    lanzarToast('Abrimos un capítulo de ejemplo. Tocá un versículo para ver Tradición, Referencias y notas.');
 }
 
 function abrirTutorialComentariosLumina() {
@@ -13381,7 +13992,7 @@ function abrirTutorialComentariosLumina() {
         const texto = bibleContent[libro]?.[capitulo]?.[versiculo] || '';
         resaltarVersiculo(libro, capitulo, versiculo);
         abrirPanel(libro, capitulo, versiculo, texto);
-        lanzarToast('Este panel reúne Tradición y notas personales para el versículo.');
+        lanzarToast('Este panel reúne Tradición, Referencias y notas personales.');
     });
 }
 
