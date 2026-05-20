@@ -9641,6 +9641,7 @@ body.dark .share-verse-card-canvas {
     top: calc(100% + 0.55rem);
     right: -0.25rem;
     width: 18rem;
+    box-sizing: border-box;
     max-height: 24rem;
     overflow-y: auto;
     padding: 0.45rem;
@@ -10145,8 +10146,36 @@ body.dark .modal-cola-lectura-btn-primary {
 
 @media (max-width: 640px) {
     .settings-dropdown {
+        position: fixed;
+        top: var(--settings-menu-top, calc(env(safe-area-inset-top, 0px) + 8rem));
+        left: var(--settings-menu-left, max(0.75rem, env(safe-area-inset-left)));
         right: auto;
-        left: -0.25rem;
-        width: min(14rem, 90vw);
+        width: var(--settings-menu-width, calc(100vw - 1.5rem));
+        max-height: var(--settings-menu-max-height, calc(100dvh - 9rem));
+        padding: 0.55rem;
+        overscroll-behavior: contain;
+        z-index: 30020;
+    }
+
+    .settings-item-label {
+        padding: 0.55rem 0.65rem;
+        gap: 0.62rem;
+    }
+
+    .settings-theme-options {
+        padding-inline: 0.65rem;
+    }
+
+    .settings-select {
+        font-size: 0.84rem;
+        min-height: 2.7rem;
+    }
+
+    .settings-audio-status {
+        margin-inline: 0.65rem;
+    }
+
+    .settings-audio-actions {
+        margin-inline: 0.65rem;
     }
 }

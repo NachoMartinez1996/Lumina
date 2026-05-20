@@ -12420,11 +12420,64 @@ function initSettingsMenu() {
 
     if (!btnSettings || !settingsMenu) return;
 
+    const limpiarPosicionMobile = () => {
+        settingsMenu.style.removeProperty('--settings-menu-top');
+        settingsMenu.style.removeProperty('--settings-menu-left');
+        settingsMenu.style.removeProperty('--settings-menu-width');
+        settingsMenu.style.removeProperty('--settings-menu-max-height');
+    };
+
+    const ajustarPosicionMobile = () => {
+        if (!window.matchMedia('(max-width: 640px)').matches) {
+            limpiarPosicionMobile();
+            return;
+        }
+
+        const margen = 12;
+        const rect = btnSettings.getBoundingClientRect();
+        const viewportWidth = window.visualViewport?.width || window.innerWidth;
+        const viewportHeight = window.visualViewport?.height || window.innerHeight;
+        const ancho = Math.min(288, Math.max(0, viewportWidth - margen * 2));
+        const izquierdaIdeal = rect.right - ancho;
+        const izquierda = Math.min(
+            Math.max(izquierdaIdeal, margen),
+            Math.max(margen, viewportWidth - ancho - margen)
+        );
+        let arriba = Math.max(margen, rect.bottom + 8);
+        if (arriba + 220 > viewportHeight - margen) {
+            arriba = Math.max(margen, viewportHeight - 220 - margen);
+        }
+        const altoMaximo = Math.max(120, viewportHeight - arriba - margen);
+
+        settingsMenu.style.setProperty('--settings-menu-top', `${arriba}px`);
+        settingsMenu.style.setProperty('--settings-menu-left', `${izquierda}px`);
+        settingsMenu.style.setProperty('--settings-menu-width', `${ancho}px`);
+        settingsMenu.style.setProperty('--settings-menu-max-height', `${altoMaximo}px`);
+    };
+
+    const cerrarSettingsMenu = () => {
+        settingsMenu.classList.add('hidden');
+        btnSettings.setAttribute('aria-expanded', 'false');
+        limpiarPosicionMobile();
+    };
+
+    const actualizarPosicionSiAbierto = () => {
+        if (!settingsMenu.classList.contains('hidden')) {
+            ajustarPosicionMobile();
+        }
+    };
+
     btnSettings.addEventListener('click', (e) => {
         e.stopPropagation();
         const isOpen = !settingsMenu.classList.contains('hidden');
-        settingsMenu.classList.toggle('hidden');
-        btnSettings.setAttribute('aria-expanded', !isOpen ? 'true' : 'false');
+        if (isOpen) {
+            cerrarSettingsMenu();
+            return;
+        }
+
+        settingsMenu.classList.remove('hidden');
+        btnSettings.setAttribute('aria-expanded', 'true');
+        ajustarPosicionMobile();
     });
 
     settingsMenu.addEventListener('click', (e) => {
@@ -12433,10 +12486,13 @@ function initSettingsMenu() {
 
     document.addEventListener('click', () => {
         if (!settingsMenu.classList.contains('hidden')) {
-            settingsMenu.classList.add('hidden');
-            btnSettings.setAttribute('aria-expanded', 'false');
+            cerrarSettingsMenu();
         }
     });
+
+    window.addEventListener('resize', actualizarPosicionSiAbierto);
+    window.visualViewport?.addEventListener('resize', actualizarPosicionSiAbierto);
+    window.visualViewport?.addEventListener('scroll', actualizarPosicionSiAbierto);
 
     const darkMode = leerPersistencia(CLAVE_DARKMODE) === 'true';
     aplicarDarkMode(darkMode, { guardar: false });
