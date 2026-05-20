@@ -2062,6 +2062,7 @@ let modoDesiertoActivo = false;
 let textoCorridoActivo = false;
 let versiculoInicioGuardado = null;
 let versiculoInicioActual = null;
+let versiculoInicioMostradoEnModal = null;
 let versiculoInicioMostradoEnSesion = false;
 let versiculoInicioPendienteTrasBienvenida = false;
 let leidos = new Set();
@@ -2758,6 +2759,7 @@ function prepararVersiculoInicioActual() {
 
     if (candidatos.length === 0) {
         versiculoInicioActual = null;
+        versiculoInicioMostradoEnModal = null;
         return null;
     }
 
@@ -2777,6 +2779,15 @@ function prepararVersiculoInicioActual() {
 
 function obtenerVersiculoInicioActivo() {
     return versiculoInicioActual || prepararVersiculoInicioActual();
+}
+
+function fijarVersiculoInicioMostradoEnModal(versiculoInicio) {
+    versiculoInicioMostradoEnModal = normalizarVersiculoInicio(versiculoInicio);
+    return versiculoInicioMostradoEnModal;
+}
+
+function obtenerVersiculoInicioMostradoEnModal() {
+    return versiculoInicioMostradoEnModal || obtenerVersiculoInicioActivo();
 }
 
 function esVersiculoInicio(libro, capitulo, versiculo) {
@@ -3093,12 +3104,12 @@ function obtenerSaludoVersiculoInicio(fecha = new Date()) {
     };
 }
 
-function renderizarModalVersiculoInicio() {
+function renderizarModalVersiculoInicio(versiculoInicioPreparado = null) {
     const referencia = document.getElementById('versiculo-inicio-referencia');
     const texto = document.getElementById('versiculo-inicio-texto');
     const saludo = document.getElementById('versiculo-inicio-saludo');
     const detalleSaludo = document.getElementById('versiculo-inicio-saludo-detalle');
-    const versiculoInicio = obtenerVersiculoInicioActivo();
+    const versiculoInicio = fijarVersiculoInicioMostradoEnModal(versiculoInicioPreparado || obtenerVersiculoInicioActivo());
     if (!referencia || !texto || !versiculoInicio) return;
 
     const saludoInicio = obtenerSaludoVersiculoInicio();
@@ -3119,8 +3130,9 @@ function abrirModalVersiculoInicio() {
     const modal = document.getElementById('modal-versiculo-inicio');
     if (!modal) return;
 
-    if (!prepararVersiculoInicioActual()) return;
-    renderizarModalVersiculoInicio();
+    const versiculoInicio = prepararVersiculoInicioActual();
+    if (!versiculoInicio) return;
+    renderizarModalVersiculoInicio(versiculoInicio);
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     versiculoInicioMostradoEnSesion = true;
@@ -3159,6 +3171,7 @@ function elegirVersiculoComoInicio(libro, capitulo, versiculo, texto) {
         coleccionId: configuracionVersiculoInicio.coleccionId || ''
     };
     versiculoInicioActual = versiculoInicioGuardado;
+    versiculoInicioMostradoEnModal = null;
     guardarVersiculoInicioGuardado();
     guardarConfiguracionVersiculoInicio();
     refrescarBotonesVersiculoInicio();
@@ -3190,6 +3203,7 @@ function desactivarVersiculoInicio() {
         coleccionId: configuracionVersiculoInicio.coleccionId || ''
     };
     versiculoInicioActual = null;
+    versiculoInicioMostradoEnModal = null;
     guardarConfiguracionVersiculoInicio();
     refrescarBotonesVersiculoInicio();
     actualizarControlesVersiculoInicio();
@@ -3198,7 +3212,7 @@ function desactivarVersiculoInicio() {
 }
 
 function abrirVersiculoInicioGuardado() {
-    const versiculoInicio = obtenerVersiculoInicioActivo();
+    const versiculoInicio = obtenerVersiculoInicioMostradoEnModal();
     if (!versiculoInicio) return;
 
     cerrarModalVersiculoInicio();
@@ -3223,7 +3237,7 @@ function abrirVersiculoInicioGuardado() {
 }
 
 function escucharVersiculoInicioGuardado() {
-    const versiculoInicio = obtenerVersiculoInicioActivo();
+    const versiculoInicio = obtenerVersiculoInicioMostradoEnModal();
     if (!versiculoInicio) return;
 
     escucharVersiculo(
@@ -3347,6 +3361,7 @@ function cambiarModoVersiculoInicio(modo) {
     }
 
     versiculoInicioActual = null;
+    versiculoInicioMostradoEnModal = null;
     guardarConfiguracionVersiculoInicio();
     refrescarBotonesVersiculoInicio();
     actualizarControlesVersiculoInicio();
@@ -3358,6 +3373,7 @@ function cambiarColeccionVersiculoInicio(coleccionId) {
         coleccionId: String(coleccionId || '').trim()
     };
     versiculoInicioActual = null;
+    versiculoInicioMostradoEnModal = null;
     guardarConfiguracionVersiculoInicio();
     refrescarBotonesVersiculoInicio();
     actualizarControlesVersiculoInicio();
@@ -3372,6 +3388,7 @@ function probarVersiculoInicio() {
 
     versiculoInicioMostradoEnSesion = false;
     versiculoInicioActual = null;
+    versiculoInicioMostradoEnModal = null;
     abrirModalVersiculoInicio();
 }
 
@@ -5900,9 +5917,41 @@ function mostrarPanelPasajes() {
     abrirPanelLateral('panel-favoritos');
 }
 
+function obtenerScrollPanelGuardados() {
+    return document.querySelector('#panel-favoritos .panel-guardados-body');
+}
+
+function capturarScrollPanelGuardados() {
+    const contenedor = obtenerScrollPanelGuardados();
+    if (!contenedor) return null;
+    return {
+        top: contenedor.scrollTop,
+        left: contenedor.scrollLeft
+    };
+}
+
+function restaurarScrollPanelGuardados(estadoScroll) {
+    if (!estadoScroll) return;
+
+    requestAnimationFrame(() => {
+        const contenedor = obtenerScrollPanelGuardados();
+        if (!contenedor) return;
+
+        const maxTop = Math.max(0, contenedor.scrollHeight - contenedor.clientHeight);
+        const maxLeft = Math.max(0, contenedor.scrollWidth - contenedor.clientWidth);
+        contenedor.scrollTo({
+            top: Math.min(estadoScroll.top, maxTop),
+            left: Math.min(estadoScroll.left, maxLeft),
+            behavior: 'auto'
+        });
+    });
+}
+
 function refrescarPanelGuardadosSiVisible() {
     const panel = document.getElementById('panel-favoritos');
     if (!panel || panel.classList.contains('translate-x-full')) return;
+
+    const estadoScroll = capturarScrollPanelGuardados();
 
     switch (panelGuardadosTabActiva) {
         case 'colecciones':
@@ -5917,6 +5966,7 @@ function refrescarPanelGuardadosSiVisible() {
     }
 
     actualizarTabsPanelGuardados();
+    restaurarScrollPanelGuardados(estadoScroll);
 }
 
 function obtenerColeccionesParaModal() {

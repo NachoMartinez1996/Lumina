@@ -3318,14 +3318,13 @@ body:not(.dark) #lista-favoritos .fa-comment {
 }
 
 .referencia-relacionada-texto {
-    display: -webkit-box;
-    overflow: hidden;
+    display: block;
+    overflow: visible;
     color: #4c3a28;
     font-size: 0.86rem;
     font-weight: 600;
     line-height: 1.45;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    white-space: normal;
 }
 
 .dark .referencia-relacionada-card {
