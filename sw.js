@@ -1,4 +1,4 @@
-const VERSION_CACHE = '4.296.014';
+const VERSION_CACHE = '4.296.020';
 // Bump this only when Biblia/Catena/Agustin JSON files change.
 const VERSION_CACHE_DATA = '2026-05-14.1';
 const CACHE_SHELL = `lumina-shell-${VERSION_CACHE}`;
@@ -6,12 +6,15 @@ const CACHE_RUNTIME = `lumina-runtime-${VERSION_CACHE}`;
 const CACHE_DATA = `lumina-data-${VERSION_CACHE_DATA}`;
 const APP_SHELL = './index.html';
 
-const archivosShell = [
+const archivosShellCore = [
   './',
   './index.html',
   './lumina.css',
   './style.css',
-  './script.js',
+  './script.js'
+];
+
+const archivosShellComplementarios = [
   './firebase-config.js',
   './assets/vendor/fontawesome/css/all.min.css',
   './assets/vendor/fontawesome/webfonts/fa-brands-400.ttf',
@@ -30,6 +33,11 @@ const archivosShell = [
   './Favicon/android-icon-192x192.png',
   './Favicon/ms-icon-310x310.png',
   './manifest.json'
+];
+
+const archivosShell = [
+  ...archivosShellCore,
+  ...archivosShellComplementarios
 ];
 
 const archivosDatos = [
@@ -201,7 +209,12 @@ function crearRespuestaOfflineFallback() {
 self.addEventListener('install', evento => {
   evento.waitUntil(
     caches.open(CACHE_SHELL)
-      .then(cache => cache.addAll(archivosShell))
+      .then(async cache => {
+        await cache.addAll(archivosShellCore);
+        await Promise.allSettled(
+          archivosShellComplementarios.map(recurso => cache.add(recurso))
+        );
+      })
       .then(() => self.skipWaiting())
   );
 });

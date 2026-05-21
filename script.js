@@ -782,6 +782,19 @@ const TEMAS_REFERENCIAS_BIBLICAS = [
         ]
     },
     {
+        id: 'descanso_sagrado',
+        etiqueta: 'descanso sagrado',
+        terminos: ['ningún trabajo', 'ningun trabajo', 'descanso', 'reposo', 'sábado', 'sabado'],
+        referencias: [
+            ['Génesis', 2, 2],
+            ['Éxodo', 20, 8],
+            ['Éxodo', 31, 15],
+            ['Levítico', 23, 3],
+            ['Deuteronomio', 5, 12],
+            ['Carta a los Hebreos', 4, 9]
+        ]
+    },
+    {
         id: 'pan',
         etiqueta: 'figura eucarística',
         terminos: ['pan', 'mana', 'maná', 'alimento', 'hambre', 'comer', 'eucaristia', 'eucaristía', 'cuerpo'],
@@ -1029,14 +1042,27 @@ function temaContieneReferencia(tema, libro, capitulo, versiculo) {
     return tema.referencias.some(ref => obtenerClaveReferenciaRelacionada(ref[0], ref[1], ref[2]) === clave);
 }
 
+function terminoTemaCoincideConTexto(termino, tokensTexto, secuenciaTexto) {
+    const palabrasTermino = extraerPalabras(normalizarTexto(String(termino || '')))
+        .map(palabra => palabra.trim())
+        .filter(Boolean);
+
+    if (palabrasTermino.length === 0) return false;
+    if (palabrasTermino.length === 1) return tokensTexto.has(palabrasTermino[0]);
+
+    return ` ${secuenciaTexto} `.includes(` ${palabrasTermino.join(' ')} `);
+}
+
 function obtenerTemasRelacionadosVersiculo(libro, capitulo, versiculo, textoVersiculo) {
     const textoNormalizado = normalizarTexto(String(textoVersiculo || ''));
-    const tokens = new Set(extraerPalabras(textoNormalizado));
+    const palabrasTexto = extraerPalabras(textoNormalizado);
+    const tokens = new Set(palabrasTexto);
+    const secuenciaTexto = palabrasTexto.join(' ');
 
     return TEMAS_REFERENCIAS_BIBLICAS
         .map(tema => {
-            const terminos = tema.terminos.map(termino => normalizarTexto(String(termino)));
-            const coincidencias = terminos.filter(termino => tokens.has(termino) || textoNormalizado.includes(termino));
+            const terminos = [...new Set(tema.terminos.map(termino => normalizarTexto(String(termino))))];
+            const coincidencias = terminos.filter(termino => terminoTemaCoincideConTexto(termino, tokens, secuenciaTexto));
             const referenciaTema = temaContieneReferencia(tema, libro, capitulo, versiculo);
             return {
                 ...tema,
@@ -4060,8 +4086,13 @@ function obtenerRangoCapituloCompleto(libro, capitulo) {
 }
 
 function esCapituloGuardadoComoPasaje(libro, capitulo) {
+    return !!obtenerPasajeGuardadoDeCapituloCompleto(libro, capitulo);
+}
+
+function obtenerPasajeGuardadoDeCapituloCompleto(libro, capitulo) {
     const rango = obtenerRangoCapituloCompleto(libro, capitulo);
-    return !!rango && !!obtenerPasajeGuardadoPorRango(libro, capitulo, rango.desde, rango.hasta);
+    if (!rango) return null;
+    return obtenerPasajeGuardadoPorRango(libro, capitulo, rango.desde, rango.hasta);
 }
 
 function esPasajeCapituloCompleto(pasaje) {
@@ -4144,16 +4175,26 @@ function actualizarBotonGuardarCapituloPasajeUI(libro, capitulo) {
     const guardado = esCapituloGuardadoComoPasaje(libro, capitulo);
     boton.classList.toggle('activo', guardado);
     boton.setAttribute('aria-pressed', guardado ? 'true' : 'false');
-    boton.title = guardado ? 'Capítulo guardado como pasaje' : 'Guardar capítulo como pasaje';
-    boton.setAttribute('aria-label', guardado ? 'Capítulo guardado como pasaje' : 'Guardar capítulo como pasaje');
+    boton.title = guardado ? 'Quitar capítulo de pasajes guardados' : 'Guardar capítulo como pasaje';
+    boton.setAttribute('aria-label', guardado ? 'Quitar capítulo de pasajes guardados' : 'Guardar capítulo como pasaje');
     const texto = boton.querySelector('[data-pasaje-capitulo-texto]');
     if (texto) texto.textContent = guardado ? 'CAPÍTULO GUARDADO' : 'GUARDAR CAPÍTULO';
 }
 
-function guardarCapituloActualComoPasaje(libro = libroActual, capitulo = capituloActual) {
+function toggleCapituloActualComoPasaje(libro = libroActual, capitulo = capituloActual) {
     const rango = obtenerRangoCapituloCompleto(libro, capitulo);
     if (!rango) {
         lanzarToast('No hay versículos para guardar en este capítulo');
+        return;
+    }
+
+    const pasajeExistente = obtenerPasajeGuardadoDeCapituloCompleto(libro, capitulo);
+    if (pasajeExistente) {
+        pasajesGuardados = pasajesGuardados.filter(item => item.id !== pasajeExistente.id);
+        guardarPasajesGuardados();
+        lanzarToast(`Capítulo quitado de pasajes guardados: ${formatearReferenciaPasajeGuardado(pasajeExistente)}`);
+        actualizarBotonGuardarCapituloPasajeUI(libro, capitulo);
+        refrescarPanelGuardadosSiVisible();
         return;
     }
 
@@ -4161,6 +4202,10 @@ function guardarCapituloActualComoPasaje(libro = libroActual, capitulo = capitul
     lanzarToast(resultado.mensaje);
     actualizarBotonGuardarCapituloPasajeUI(libro, capitulo);
     refrescarPanelGuardadosSiVisible();
+}
+
+function guardarCapituloActualComoPasaje(libro = libroActual, capitulo = capituloActual) {
+    toggleCapituloActualComoPasaje(libro, capitulo);
 }
 
 async function guardarPasajeDesdeVersiculo(libro, capitulo, desde) {
@@ -4819,7 +4864,7 @@ function toggleFavoritoVersiculo(libro, capitulo, versiculo) {
     if (stars.length > 0) {
         if (favoritos.has(obtenerClaveFavoritoVersiculo(libro, capitulo, versiculo))) {
             stars.forEach(star => star.classList.add('animacion-fav'));
-            lanzarToast("Versículo guardado ?");
+            lanzarToast("Versículo guardado");
         } else {
             lanzarToast("Versículo quitado");
         }
@@ -7143,9 +7188,9 @@ function renderizarEstadoBusquedaVacio(termino = '', filtro = filtroLibroBusqued
         return `
             <div class="resultado-busqueda-empty">
                 <div class="resultado-busqueda-empty-icon"><i class="fas fa-search"></i></div>
-                <div class="resultado-busqueda-empty-titulo">${valorFiltro === FILTRO_BUSQUEDA_TODOS ? 'Buscá en versículos, comentarios y notas' : `Filtrando por ${escapeHtml(etiquetaFiltro)}`}</div>
+                <div class="resultado-busqueda-empty-titulo">${valorFiltro === FILTRO_BUSQUEDA_TODOS ? 'Buscá palabras, conceptos y notas' : `Filtrando por ${escapeHtml(etiquetaFiltro)}`}</div>
                 <div class="resultado-busqueda-empty-texto">${valorFiltro === FILTRO_BUSQUEDA_TODOS
-                ? 'Escribí una palabra o una frase breve para encontrar pasajes, comentarios de la Tradición y tus notas personales en un mismo panel.'
+                ? 'Escribí una palabra o una frase breve para encontrar pasajes por texto o por sentido, comentarios de la Tradición y tus notas personales.'
                 : `Escribí una palabra o una frase breve para buscar solo dentro de ${escapeHtml(etiquetaFiltro)}.`}</div>
             </div>
         `;
@@ -7156,7 +7201,7 @@ function renderizarEstadoBusquedaVacio(termino = '', filtro = filtroLibroBusqued
             <div class="resultado-busqueda-empty-icon"><i class="fas fa-book-open"></i></div>
             <div class="resultado-busqueda-empty-titulo">Sin coincidencias para "${escapeHtml(terminoNormalizado)}"${valorFiltro === FILTRO_BUSQUEDA_TODOS ? '' : ` en ${escapeHtml(etiquetaFiltro)}`}</div>
             <div class="resultado-busqueda-empty-texto">${valorFiltro === FILTRO_BUSQUEDA_TODOS
-            ? 'Probá con una sola palabra, una variante singular/plural o un término más corto para ampliar los resultados en versículos, comentarios y notas.'
+            ? 'Probá con una palabra, un tema bíblico conocido o una frase más corta para ampliar los resultados en versículos, comentarios y notas.'
             : `Probá con otra palabra o cambiá el filtro de libro para ampliar los resultados fuera de ${escapeHtml(etiquetaFiltro)}.`}</div>
         </div>
     `;
@@ -7195,6 +7240,315 @@ function crearRegexBusqueda(termino) {
         requiereTodos: conceptos.length > 1,
         regexes: conceptos.map(concepto => new RegExp(`\\b${escaparConceptoRegexBusqueda(concepto)}\\b`, 'i'))
     };
+}
+
+function crearRangoReferenciasBusquedaSemantica(libro, capitulo, desde, hasta) {
+    const referencias = [];
+    for (let versiculo = desde; versiculo <= hasta; versiculo++) {
+        referencias.push([libro, capitulo, versiculo]);
+    }
+    return referencias;
+}
+
+const PALABRAS_VACIAS_BUSQUEDA_SEMANTICA = new Set([
+    ...PALABRAS_VACIAS_AFINIDAD_BIBLICA,
+    'a', 'al', 'de', 'el', 'la', 'las', 'lo', 'los', 'un', 'una', 'y',
+    'san', 'santa', 'santo', 'sobre', 'acerca'
+]);
+
+const CONCEPTOS_BUSQUEDA_SEMANTICA_BIBLICA = [
+    {
+        id: 'anunciacion_maria',
+        titulo: 'Anunciación de María',
+        consultas: [
+            'Anunciación de María',
+            'Anunciación del Señor',
+            'El ángel Gabriel anuncia a María',
+            'Ave María',
+            'Dios te salve María',
+            'Llena de gracia',
+            'Fiat de María',
+            'Encarnación'
+        ],
+        terminos: ['anunciación', 'anunciacion', 'anuncio', 'ángel', 'angel', 'maría', 'maria', 'gabriel', 'nazaret', 'virgen', 'gracia', 'fiat', 'encarnación', 'encarnacion'],
+        terminosClave: ['anunciacion', 'anuncio', 'angel', 'gabriel', 'fiat', 'encarnacion'],
+        minimoCoincidencias: 1,
+        resaltar: 'Gabriel - María - llena de gracia - Espíritu Santo - Hijo de Dios',
+        referencias: crearRangoReferenciasBusquedaSemantica('Evangelio según San Lucas', 1, 26, 38)
+    },
+    {
+        id: 'visitacion_magnificat',
+        titulo: 'Visitación y Magníficat',
+        consultas: ['Visitación de María', 'María visita a Isabel', 'Magníficat', 'Mi alma canta la grandeza del Señor'],
+        terminos: ['visitación', 'visitacion', 'isabel', 'magnificat', 'maría', 'maria', 'saludo', 'grandeza'],
+        terminosClave: ['visitacion', 'isabel', 'magnificat'],
+        minimoCoincidencias: 1,
+        resaltar: 'María - Isabel - Espíritu Santo - Mi alma canta',
+        referencias: crearRangoReferenciasBusquedaSemantica('Evangelio según San Lucas', 1, 39, 56)
+    },
+    {
+        id: 'nacimiento_jesus',
+        titulo: 'Nacimiento de Jesús',
+        consultas: ['Nacimiento de Jesús', 'Navidad', 'Belén', 'Pesebre', 'Jesús nace en Belén'],
+        terminos: ['nacimiento', 'navidad', 'belén', 'belen', 'pesebre', 'pastores', 'maría', 'maria', 'josé', 'jose'],
+        terminosClave: ['nacimiento', 'navidad', 'belen', 'pesebre'],
+        minimoCoincidencias: 1,
+        resaltar: 'Belén - María - pesebre - Salvador',
+        referencias: [
+            ...crearRangoReferenciasBusquedaSemantica('Evangelio según San Mateo', 1, 18, 25),
+            ...crearRangoReferenciasBusquedaSemantica('Evangelio según San Lucas', 2, 1, 20)
+        ]
+    },
+    {
+        id: 'presentacion_templo',
+        titulo: 'Presentación de Jesús en el Templo',
+        consultas: ['Presentación en el Templo', 'Simeón y Ana', 'Purificación de María', 'Nunc dimittis'],
+        terminos: ['presentación', 'presentacion', 'templo', 'simeón', 'simeon', 'ana', 'purificación', 'purificacion'],
+        terminosClave: ['presentacion', 'simeon', 'purificacion'],
+        minimoCoincidencias: 1,
+        resaltar: 'Templo - Simeón - luz - María',
+        referencias: crearRangoReferenciasBusquedaSemantica('Evangelio según San Lucas', 2, 22, 38)
+    },
+    {
+        id: 'bodas_cana',
+        titulo: 'Bodas de Caná',
+        consultas: ['Bodas de Caná', 'Primer milagro de Jesús', 'Agua convertida en vino', 'Hagan todo lo que él les diga'],
+        terminos: ['caná', 'cana', 'bodas', 'vino', 'agua', 'madre', 'milagro'],
+        terminosClave: ['cana', 'bodas', 'vino'],
+        minimoCoincidencias: 1,
+        resaltar: 'Caná - vino - madre - hagan todo',
+        referencias: crearRangoReferenciasBusquedaSemantica('Evangelio según San Juan', 2, 1, 11)
+    },
+    {
+        id: 'padre_nuestro',
+        titulo: 'Padre Nuestro',
+        consultas: ['Padre Nuestro', 'Oración del Señor', 'Enséñanos a orar', 'Venga tu Reino'],
+        terminos: ['padre', 'nuestro', 'oración', 'oracion', 'reino', 'pan', 'perdona', 'tentación', 'tentacion'],
+        terminosClave: ['padre', 'nuestro'],
+        minimoCoincidencias: 2,
+        resaltar: 'Padre nuestro - Reino - pan - perdona',
+        referencias: [
+            ...crearRangoReferenciasBusquedaSemantica('Evangelio según San Mateo', 6, 9, 13),
+            ...crearRangoReferenciasBusquedaSemantica('Evangelio según San Lucas', 11, 1, 4)
+        ]
+    },
+    {
+        id: 'buen_samaritano',
+        titulo: 'Buen Samaritano',
+        consultas: ['Buen Samaritano', 'Parábola del buen samaritano', 'Quién es mi prójimo', 'Ve y haz tú lo mismo'],
+        terminos: ['samaritano', 'prójimo', 'projimo', 'compasión', 'compasion', 'posadero', 'herido'],
+        terminosClave: ['samaritano', 'projimo'],
+        minimoCoincidencias: 1,
+        resaltar: 'Samaritano - compasión - prójimo',
+        referencias: crearRangoReferenciasBusquedaSemantica('Evangelio según San Lucas', 10, 25, 37)
+    },
+    {
+        id: 'hijo_prodigo',
+        titulo: 'Hijo pródigo',
+        consultas: ['Hijo pródigo', 'Padre misericordioso', 'Parábola del hijo pródigo', 'Volveré a mi padre'],
+        terminos: ['pródigo', 'prodigo', 'misericordioso', 'padre', 'herencia', 'perdón', 'perdon', 'alegría', 'alegria'],
+        terminosClave: ['prodigo', 'misericordioso'],
+        minimoCoincidencias: 1,
+        resaltar: 'Padre - hijo - misericordia - estaba perdido',
+        referencias: crearRangoReferenciasBusquedaSemantica('Evangelio según San Lucas', 15, 11, 32)
+    },
+    {
+        id: 'bienaventuranzas',
+        titulo: 'Bienaventuranzas',
+        consultas: ['Bienaventuranzas', 'Felices los pobres', 'Sermón de la montaña', 'Dichosos los pobres'],
+        terminos: ['bienaventuranzas', 'bienaventurados', 'felices', 'pobres', 'mansos', 'misericordiosos', 'montaña', 'montana'],
+        terminosClave: ['bienaventuranzas', 'bienaventurados', 'felices'],
+        minimoCoincidencias: 1,
+        resaltar: 'Felices - pobres - Reino - misericordiosos',
+        referencias: [
+            ...crearRangoReferenciasBusquedaSemantica('Evangelio según San Mateo', 5, 1, 12),
+            ...crearRangoReferenciasBusquedaSemantica('Evangelio según San Lucas', 6, 20, 23)
+        ]
+    },
+    {
+        id: 'transfiguracion',
+        titulo: 'Transfiguración',
+        consultas: ['Transfiguración de Jesús', 'Monte Tabor', 'Jesús transfigurado', 'Este es mi Hijo amado'],
+        terminos: ['transfiguración', 'transfiguracion', 'tabor', 'monte', 'moisés', 'moises', 'elías', 'elias', 'hijo amado'],
+        terminosClave: ['transfiguracion', 'tabor'],
+        minimoCoincidencias: 1,
+        resaltar: 'rostro - Moisés - Elías - Hijo amado',
+        referencias: [
+            ...crearRangoReferenciasBusquedaSemantica('Evangelio según San Mateo', 17, 1, 8),
+            ...crearRangoReferenciasBusquedaSemantica('Evangelio según San Marcos', 9, 2, 8),
+            ...crearRangoReferenciasBusquedaSemantica('Evangelio según San Lucas', 9, 28, 36)
+        ]
+    },
+    {
+        id: 'ultima_cena_eucaristia',
+        titulo: 'Última Cena y Eucaristía',
+        consultas: ['Última Cena', 'Institución de la Eucaristía', 'Esto es mi cuerpo', 'Esto es mi sangre', 'Fracción del pan'],
+        terminos: ['última', 'ultima', 'cena', 'eucaristía', 'eucaristia', 'cuerpo', 'sangre', 'pan', 'cáliz', 'caliz'],
+        terminosClave: ['eucaristia', 'cena', 'cuerpo', 'sangre'],
+        minimoCoincidencias: 1,
+        resaltar: 'pan - cuerpo - sangre - alianza',
+        referencias: [
+            ...crearRangoReferenciasBusquedaSemantica('Evangelio según San Mateo', 26, 26, 29),
+            ...crearRangoReferenciasBusquedaSemantica('Evangelio según San Marcos', 14, 22, 25),
+            ...crearRangoReferenciasBusquedaSemantica('Evangelio según San Lucas', 22, 14, 20),
+            ...crearRangoReferenciasBusquedaSemantica('Primera Carta a los Corintios', 11, 23, 26)
+        ]
+    },
+    {
+        id: 'pasion_cruz',
+        titulo: 'Pasión y Cruz',
+        consultas: ['Pasión de Cristo', 'Crucifixión de Jesús', 'Jesús en la cruz', 'Calvario', 'Gólgota'],
+        terminos: ['pasión', 'pasion', 'cruz', 'crucifixión', 'crucifixion', 'calvario', 'gólgota', 'golgota'],
+        terminosClave: ['pasion', 'cruz', 'crucifixion', 'calvario', 'golgota'],
+        minimoCoincidencias: 1,
+        resaltar: 'cruz - crucificado - Padre - entregó',
+        referencias: [
+            ...crearRangoReferenciasBusquedaSemantica('Evangelio según San Lucas', 23, 33, 46),
+            ...crearRangoReferenciasBusquedaSemantica('Evangelio según San Juan', 19, 16, 30)
+        ]
+    },
+    {
+        id: 'resurreccion_jesus',
+        titulo: 'Resurrección de Jesús',
+        consultas: ['Resurrección de Jesús', 'Sepulcro vacío', 'Domingo de Pascua', 'Ha resucitado'],
+        terminos: ['resurrección', 'resurreccion', 'sepulcro', 'vacío', 'vacio', 'pascua', 'resucitado', 'magdalena'],
+        terminosClave: ['resurreccion', 'sepulcro', 'pascua'],
+        minimoCoincidencias: 1,
+        resaltar: 'sepulcro - resucitado - María Magdalena',
+        referencias: [
+            ...crearRangoReferenciasBusquedaSemantica('Evangelio según San Mateo', 28, 1, 10),
+            ...crearRangoReferenciasBusquedaSemantica('Evangelio según San Lucas', 24, 1, 12),
+            ...crearRangoReferenciasBusquedaSemantica('Evangelio según San Juan', 20, 1, 18)
+        ]
+    },
+    {
+        id: 'pentecostes',
+        titulo: 'Pentecostés',
+        consultas: ['Pentecostés', 'Venida del Espíritu Santo', 'Lenguas de fuego', 'Los discípulos reciben el Espíritu'],
+        terminos: ['pentecostés', 'pentecostes', 'espíritu', 'espiritu', 'fuego', 'lenguas', 'viento'],
+        terminosClave: ['pentecostes', 'fuego'],
+        minimoCoincidencias: 1,
+        resaltar: 'Espíritu Santo - fuego - lenguas',
+        referencias: crearRangoReferenciasBusquedaSemantica('Hechos de los Apóstoles', 2, 1, 13)
+    },
+    {
+        id: 'conversion_pablo',
+        titulo: 'Conversión de San Pablo',
+        consultas: ['Conversión de San Pablo', 'Camino a Damasco', 'Saulo cae del caballo', 'Saulo por qué me persigues'],
+        terminos: ['conversión', 'conversion', 'pablo', 'saulo', 'damasco', 'perseguir', 'luz'],
+        terminosClave: ['conversion', 'saulo', 'damasco'],
+        minimoCoincidencias: 1,
+        resaltar: 'Saulo - Damasco - luz - Jesús',
+        referencias: crearRangoReferenciasBusquedaSemantica('Hechos de los Apóstoles', 9, 1, 19)
+    }
+];
+
+function obtenerTokensBusquedaSemantica(termino) {
+    return [...new Set(extraerPalabras(normalizarTexto(String(termino || '')))
+        .map(token => token.trim())
+        .filter(token => token.length >= 3 && !PALABRAS_VACIAS_BUSQUEDA_SEMANTICA.has(token)))];
+}
+
+function normalizarListaBusquedaSemantica(valores) {
+    return (valores || [])
+        .map(valor => normalizarTexto(normalizarTerminoBusqueda(valor)))
+        .filter(Boolean);
+}
+
+function calcularPuntajeConceptoBusquedaSemantica(concepto, terminoNormalizado, tokensConsulta) {
+    if (!terminoNormalizado) return 0;
+
+    const consultas = normalizarListaBusquedaSemantica(concepto.consultas);
+    const terminos = new Set(normalizarListaBusquedaSemantica(concepto.terminos));
+    const terminosClave = new Set(normalizarListaBusquedaSemantica(concepto.terminosClave));
+    const tokens = tokensConsulta.length > 0 ? tokensConsulta : obtenerTokensBusquedaSemantica(terminoNormalizado);
+
+    const puntajeAlias = consultas.reduce((mejor, consulta) => {
+        const permiteCoincidenciaParcial = tokens.length > 1 || terminosClave.has(terminoNormalizado);
+        if (terminoNormalizado === consulta) return Math.max(mejor, 140);
+        if (permiteCoincidenciaParcial && terminoNormalizado.length >= 6 && consulta.includes(terminoNormalizado)) return Math.max(mejor, 118);
+        if (consulta.length >= 6 && terminoNormalizado.includes(consulta)) return Math.max(mejor, 110);
+        return mejor;
+    }, 0);
+
+    const coincidencias = tokens.filter(token => terminos.has(token));
+    const tieneClave = coincidencias.some(token => terminosClave.has(token));
+    const minimo = concepto.minimoCoincidencias ?? 2;
+    const cubreConsulta = tokens.length > 0 && coincidencias.length === tokens.length;
+    const puntajeTokens = coincidencias.length >= minimo && (tieneClave || (tokens.length > 1 && cubreConsulta))
+        ? 70 + (coincidencias.length * 10) + (tieneClave ? 12 : 0)
+        : 0;
+
+    return Math.max(puntajeAlias, puntajeTokens);
+}
+
+function obtenerConceptosCoincidentesBusquedaSemantica(termino) {
+    const terminoNormalizado = normalizarTexto(normalizarTerminoBusqueda(termino));
+    const tokensConsulta = obtenerTokensBusquedaSemantica(terminoNormalizado);
+
+    return CONCEPTOS_BUSQUEDA_SEMANTICA_BIBLICA
+        .map(concepto => ({
+            ...concepto,
+            puntaje: calcularPuntajeConceptoBusquedaSemantica(concepto, terminoNormalizado, tokensConsulta)
+        }))
+        .filter(concepto => concepto.puntaje > 0)
+        .sort((a, b) => b.puntaje - a.puntaje || a.titulo.localeCompare(b.titulo, 'es'));
+}
+
+function obtenerResultadosBusquedaSemantica(termino, limite = 36) {
+    if (!datosBibliaCargados) return [];
+
+    const resultados = new Map();
+    const conceptos = obtenerConceptosCoincidentesBusquedaSemantica(termino);
+
+    conceptos.forEach((concepto, indiceConcepto) => {
+        concepto.referencias.forEach((referencia, indiceReferencia) => {
+            const [libro, capitulo, versiculo] = referencia;
+            if (!referenciaBiblicaDisponible(libro, capitulo, versiculo)) return;
+
+            const clave = obtenerClaveReferenciaRelacionada(libro, capitulo, versiculo);
+            const puntaje = concepto.puntaje - (indiceConcepto * 8) - (indiceReferencia * 0.05);
+            const existente = resultados.get(clave);
+            if (existente && existente.puntajeBusquedaSemantica >= puntaje) return;
+
+            resultados.set(clave, {
+                libro,
+                capitulo: Number(capitulo),
+                versiculo: Number(versiculo),
+                texto: obtenerTextoReferenciaBiblica(libro, capitulo, versiculo),
+                coincidenciaSemantica: true,
+                motivoBusquedaSemantica: `Coincidencia semántica: ${concepto.titulo}`,
+                terminoResaltadoSemantico: concepto.resaltar || concepto.titulo,
+                puntajeBusquedaSemantica: puntaje
+            });
+        });
+    });
+
+    return [...resultados.values()]
+        .sort(compararResultadosBusquedaVersiculos)
+        .slice(0, limite);
+}
+
+function obtenerClaveResultadoBusquedaVersiculo(item) {
+    return obtenerClaveReferenciaRelacionada(item.libro, item.capitulo, item.versiculo);
+}
+
+function combinarResultadoBusquedaSemantica(destino, semantico) {
+    const puntajeActual = destino.puntajeBusquedaSemantica ?? 0;
+    if (puntajeActual > semantico.puntajeBusquedaSemantica) return destino;
+
+    destino.coincidenciaSemantica = true;
+    destino.motivoBusquedaSemantica = semantico.motivoBusquedaSemantica;
+    destino.terminoResaltadoSemantico = semantico.terminoResaltadoSemantico;
+    destino.puntajeBusquedaSemantica = semantico.puntajeBusquedaSemantica;
+    return destino;
+}
+
+function compararResultadosBusquedaVersiculos(a, b) {
+    const puntajeA = a.puntajeBusquedaSemantica ?? 0;
+    const puntajeB = b.puntajeBusquedaSemantica ?? 0;
+    if (puntajeA !== puntajeB) return puntajeB - puntajeA;
+    return compararFavoritosPorOrdenBiblico(a, b);
 }
 
 function coincideTextoBusqueda(texto, consulta) {
@@ -7286,7 +7640,11 @@ function crearTarjetaResultadoBusquedaVersiculo(item, terminoBusqueda = '') {
     const identificadorFavorito = obtenerIdentificadorFavoritoVersiculo(item.libro, item.capitulo, item.versiculo);
     const referencia = formatearReferenciaCompartida(item.libro, item.capitulo, item.versiculo);
     const tarjeta = document.createElement('div');
-    const texto = renderizarTextoBusquedaResaltadoHtml(item.texto, terminoBusqueda);
+    const terminoResaltado = item.terminoResaltadoSemantico || terminoBusqueda;
+    const texto = renderizarTextoBusquedaResaltadoHtml(item.texto, terminoResaltado);
+    const metaSemantica = item.coincidenciaSemantica && item.motivoBusquedaSemantica
+        ? `<p class="resultado-busqueda-meta resultado-busqueda-meta-semantica">${escapeHtml(item.motivoBusquedaSemantica)}</p>`
+        : '';
 
     tarjeta.className = 'resultado-busqueda-item';
     tarjeta.innerHTML = `
@@ -7296,6 +7654,7 @@ function crearTarjetaResultadoBusquedaVersiculo(item, terminoBusqueda = '') {
                     <i class="fas fa-bible resultado-busqueda-icono" aria-hidden="true"></i>
                     <div class="resultado-busqueda-ref">${escapeHtml(referencia)}</div>
                 </div>
+                ${metaSemantica}
             </div>
             <div class="resultado-busqueda-ref-tools">
                 <button
@@ -7311,7 +7670,10 @@ function crearTarjetaResultadoBusquedaVersiculo(item, terminoBusqueda = '') {
         <div class="resultado-busqueda-texto resultado-busqueda-texto-completo">${texto}</div>
     `;
 
-    configurarTarjetaResultadoBusqueda(tarjeta, () => irAVersiculo(item.libro, item.capitulo, item.versiculo, 'busqueda', terminoBusqueda));
+    configurarTarjetaResultadoBusqueda(
+        tarjeta,
+        () => irAVersiculo(item.libro, item.capitulo, item.versiculo, 'busqueda', terminoResaltado)
+    );
 
     const botonFavorito = tarjeta.querySelector('[data-favorito-versiculo]');
     botonFavorito?.addEventListener('click', (event) => {
@@ -7512,11 +7874,22 @@ function construirIndiceBusqueda() {
 
 function buscarVersiculos(termino) {
     const regex = crearRegexBusqueda(termino);
-    if (!regex) return [];
+    const resultados = new Map();
 
-    return indiceBusqueda
-        .filter(item => coincideTextoBusqueda(item.texto, regex))
-        .sort(compararFavoritosPorOrdenBiblico);
+    if (regex) {
+        indiceBusqueda.forEach(item => {
+            if (!coincideTextoBusqueda(item.texto, regex)) return;
+            resultados.set(obtenerClaveResultadoBusquedaVersiculo(item), { ...item });
+        });
+    }
+
+    obtenerResultadosBusquedaSemantica(termino).forEach(item => {
+        const clave = obtenerClaveResultadoBusquedaVersiculo(item);
+        const existente = resultados.get(clave);
+        resultados.set(clave, existente ? combinarResultadoBusquedaSemantica(existente, item) : item);
+    });
+
+    return [...resultados.values()].sort(compararResultadosBusquedaVersiculos);
 }
 
 function buscarComentarios(termino) {
@@ -13808,9 +14181,9 @@ function abrirLectura(capitulo) {
         <button type="button"
                 id="btn-guardar-capitulo-pasaje"
                 class="btn-guardar-capitulo-pasaje ${capituloGuardadoComoPasaje ? 'activo' : ''} inline-flex items-center gap-2 px-4 py-2 rounded-full border border-oro/30 bg-oro/10 text-oro font-sans font-bold text-sm transition hover:scale-[1.02] hover:bg-oro/20"
-                onclick='event.stopPropagation(); guardarCapituloActualComoPasaje(${libroActualLiteral}, ${capitulo}); return false;'
-                title="${capituloGuardadoComoPasaje ? 'Capítulo guardado como pasaje' : 'Guardar capítulo como pasaje'}"
-                aria-label="${capituloGuardadoComoPasaje ? 'Capítulo guardado como pasaje' : 'Guardar capítulo como pasaje'}"
+                onclick='event.stopPropagation(); toggleCapituloActualComoPasaje(${libroActualLiteral}, ${capitulo}); return false;'
+                title="${capituloGuardadoComoPasaje ? 'Quitar capítulo de pasajes guardados' : 'Guardar capítulo como pasaje'}"
+                aria-label="${capituloGuardadoComoPasaje ? 'Quitar capítulo de pasajes guardados' : 'Guardar capítulo como pasaje'}"
                 aria-pressed="${capituloGuardadoComoPasaje ? 'true' : 'false'}">
             <i class="fas fa-bookmark"></i>
             <span data-pasaje-capitulo-texto>${capituloGuardadoComoPasaje ? 'CAPÍTULO GUARDADO' : 'GUARDAR CAPÍTULO'}</span>
@@ -14165,22 +14538,7 @@ function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null)
         </div>
     `;
 
-    const capituloPrefacio = obtenerCapituloPrefacio(libro, capitulo);
-    const tienePrefacioContextual = tienePrefacio(libro, capituloPrefacio);
-
     let tradicionHtml = `<div class="text-xs font-sans text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3"><i class="fas fa-feather-alt"></i> Tradición de los Padres y Doctores</div>`;
-
-    if (tienePrefacioContextual) {
-        const referenciaPrefacio = formatearReferenciaPrefacio(libro, capituloPrefacio);
-        tradicionHtml += `
-            <button type="button"
-                    class="prefacio-btn w-full mb-5 py-3 rounded-xl shadow-sm transition-all font-sans font-bold text-sm flex items-center justify-center gap-2"
-                    onclick="abrirPrefacio('${libro}', ${capituloPrefacio})"
-                    aria-label="Abrir ${escapeHtml(referenciaPrefacio)}">
-                <i class="fas fa-scroll" aria-hidden="true"></i> Ver ${escapeHtml(referenciaPrefacio)}
-            </button>
-        `;
-    }
 
     if (comentarios.length === 0) {
         tradicionHtml += `<div class="text-gray-600 dark:text-gray-400 italic font-sans text-center py-10">Aún no se han cargado comentarios de la Tradición para este pasaje.<br> Recemos para que un alma caritativa me los haga llegar.</div>`;
@@ -15554,12 +15912,17 @@ window.addEventListener('lumina:firebase-ready', event => {
 let registroServiceWorkerLumina = null;
 let hayNuevaVersionLumina = false;
 let recargaPendientePorActualizacion = false;
-const RECURSOS_OFFLINE_APP = [
-    './index.html',
-    './style.css',
-    './script.js',
-    './firebase-config.js',
+const RECURSOS_OFFLINE_APP_SHELL = [
+    './',
+    './index.html'
+];
+const RECURSOS_OFFLINE_APP_NUCLEO = [
     './lumina.css',
+    './style.css',
+    './script.js'
+];
+const RECURSOS_OFFLINE_APP_COMPLEMENTARIOS = [
+    './firebase-config.js',
     './assets/vendor/fontawesome/css/all.min.css',
     './assets/vendor/fontawesome/webfonts/fa-brands-400.woff2',
     './assets/vendor/fontawesome/webfonts/fa-regular-400.woff2',
@@ -15572,6 +15935,8 @@ const RECURSOS_OFFLINE_BIBLIOTECA = [
     './Catena_Aurea_Completa.json',
     './agustin_salmos.json'
 ];
+let inventarioCacheLuminaMemo = null;
+let inventarioCacheLuminaMemoAt = 0;
 
 function marcarNuevaVersionLuminaDisponible(disponible) {
     hayNuevaVersionLumina = disponible;
@@ -15618,15 +15983,24 @@ async function actualizarLuminaDesdeAviso() {
 async function estaRecursoDisponibleEnCache(ruta) {
     if (!('caches' in window)) return false;
 
+    const scope = registroServiceWorkerLumina?.scope || navigator.serviceWorker?.controller?.scriptURL || window.location.href;
     const candidatos = [
         ruta,
-        new URL(ruta, window.location.href).href
+        String(ruta || '').replace(/^\.\//, ''),
+        new URL(ruta, window.location.href).href,
+        new URL(ruta, document.baseURI || window.location.href).href,
+        new URL(ruta, scope).href
     ];
 
     for (const candidato of candidatos) {
+        if (!candidato) continue;
         const respuesta = await caches.match(candidato, { ignoreSearch: true });
         if (respuesta) return true;
     }
+
+    const inventario = await obtenerInventarioCacheLumina();
+    const rutaNormalizada = normalizarRutaCacheLumina(ruta);
+    if (rutaNormalizada && inventario.rutas.has(rutaNormalizada)) return true;
 
     return false;
 }
@@ -15643,14 +16017,116 @@ async function recursosOfflineDisponibles(recursos) {
     return true;
 }
 
-async function obtenerDisponibilidadOfflineLumina() {
-    const appLista = await recursosOfflineDisponibles(RECURSOS_OFFLINE_APP);
-    const bibliotecaLista = await recursosOfflineDisponibles(RECURSOS_OFFLINE_BIBLIOTECA);
+function normalizarRutaCacheLumina(ruta) {
+    try {
+        const url = new URL(ruta, registroServiceWorkerLumina?.scope || window.location.href);
+        return url.pathname.toLowerCase().replace(/\/index\.html$/, '/');
+    } catch (_) {
+        return '';
+    }
+}
+
+async function obtenerInventarioCacheLumina({ refrescar = false } = {}) {
+    const ahora = Date.now();
+    if (!refrescar && inventarioCacheLuminaMemo && ahora - inventarioCacheLuminaMemoAt < 2000) {
+        return inventarioCacheLuminaMemo;
+    }
+
+    const inventario = {
+        caches: [],
+        rutas: new Set()
+    };
+
+    if (!('caches' in window)) return inventario;
+
+    try {
+        const nombres = await caches.keys();
+        inventario.caches = nombres.filter(nombre => nombre.startsWith('lumina-'));
+
+        await Promise.all(inventario.caches.map(async nombre => {
+            const cache = await caches.open(nombre);
+            const solicitudes = await cache.keys();
+            solicitudes.forEach(solicitud => {
+                const url = new URL(solicitud.url);
+                inventario.rutas.add(url.pathname.toLowerCase().replace(/\/index\.html$/, '/'));
+            });
+        }));
+    } catch (error) {
+        console.warn('Lumina no pudo inspeccionar el inventario de caché:', error);
+    }
+
+    inventarioCacheLuminaMemo = inventario;
+    inventarioCacheLuminaMemoAt = ahora;
+    return inventario;
+}
+
+async function obtenerEstadoRecursosOffline(recursos) {
+    const faltantes = [];
+
+    if (!('caches' in window)) {
+        return {
+            disponibles: false,
+            faltantes: [...recursos]
+        };
+    }
+
+    for (const recurso of recursos) {
+        if (!(await estaRecursoDisponibleEnCache(recurso))) {
+            faltantes.push(recurso);
+        }
+    }
 
     return {
-        appLista,
-        bibliotecaLista,
-        listoParaOffline: appLista && bibliotecaLista
+        disponibles: faltantes.length === 0,
+        faltantes
+    };
+}
+
+async function obtenerEstadoShellOfflineLumina() {
+    const shell = await obtenerEstadoRecursosOffline(RECURSOS_OFFLINE_APP_SHELL);
+    const nucleo = await obtenerEstadoRecursosOffline(RECURSOS_OFFLINE_APP_NUCLEO);
+    const complementarios = await obtenerEstadoRecursosOffline(RECURSOS_OFFLINE_APP_COMPLEMENTARIOS);
+    const shellHtmlDisponible = shell.faltantes.length < RECURSOS_OFFLINE_APP_SHELL.length;
+
+    return {
+        disponible: shellHtmlDisponible && nucleo.disponibles,
+        parcial: shellHtmlDisponible || nucleo.faltantes.length < RECURSOS_OFFLINE_APP_NUCLEO.length,
+        faltantes: [
+            ...(shellHtmlDisponible ? [] : ['index.html']),
+            ...nucleo.faltantes
+        ],
+        complementariosFaltantes: complementarios.faltantes
+    };
+}
+
+async function obtenerEstadoBibliotecaOfflineLumina() {
+    const archivos = await obtenerEstadoRecursosOffline(RECURSOS_OFFLINE_BIBLIOTECA);
+    const bibliaNormalizadaLista = esBibliaNormalizadaValida(bibleContent)
+        || esBibliaNormalizadaValida(await leerContenidoNormalizadoLumina(CLAVE_CONTENIDO_BIBLIA_LUMINA));
+    const comentariosNormalizadosListos = datosComentariosCargados
+        || esComentariosNormalizadosValidos(await leerContenidoNormalizadoLumina(CLAVE_CONTENIDO_COMENTARIOS_LUMINA));
+
+    return {
+        disponible: archivos.disponibles || (bibliaNormalizadaLista && comentariosNormalizadosListos),
+        archivosDisponibles: archivos.disponibles,
+        normalizadaDisponible: bibliaNormalizadaLista && comentariosNormalizadosListos,
+        faltantes: archivos.faltantes,
+        bibliaNormalizadaLista,
+        comentariosNormalizadosListos
+    };
+}
+
+async function obtenerDisponibilidadOfflineLumina() {
+    const app = await obtenerEstadoShellOfflineLumina();
+    const biblioteca = await obtenerEstadoBibliotecaOfflineLumina();
+
+    return {
+        appLista: app.disponible,
+        appParcial: app.parcial,
+        bibliotecaLista: biblioteca.disponible,
+        listoParaOffline: app.disponible && biblioteca.disponible,
+        app,
+        biblioteca
     };
 }
 
@@ -15661,6 +16137,7 @@ async function offlineEsencialDisponible() {
 
 function obtenerEstadoIndicadorConexion(disponibilidad) {
     const appLista = !!disponibilidad?.appLista;
+    const appParcial = !!disponibilidad?.appParcial;
     const bibliotecaLista = !!disponibilidad?.bibliotecaLista;
     const listoParaOffline = appLista && bibliotecaLista;
 
@@ -15683,6 +16160,15 @@ function obtenerEstadoIndicadorConexion(disponibilidad) {
             };
         }
 
+        if (appParcial) {
+            return {
+                texto: "Completando caché offline...",
+                tooltip: "Lumina ya tiene parte de la app guardada y está completando los archivos que faltan para futuras aperturas sin internet.",
+                toast: "Lumina está completando la caché offline. Podés seguir usando la app.",
+                estado: "online-app-syncing"
+            };
+        }
+
         return {
             texto: "Preparando app sin conexión...",
             tooltip: "Lumina sigue guardando los archivos de la app para poder abrirse sin internet en este dispositivo.",
@@ -15693,9 +16179,9 @@ function obtenerEstadoIndicadorConexion(disponibilidad) {
 
     if (listoParaOffline) {
         return {
-            texto: "Sin conexión: usando contenido cacheado",
-            tooltip: "Sin conexión. Lumina está usando el contenido esencial guardado en este dispositivo.",
-            toast: "Sin conexión. Estás usando la versión guardada en este dispositivo.",
+            texto: "Sin conexión: Lumina offline lista",
+            tooltip: "Sin conexión. Lumina está usando la app y la biblioteca guardadas en este dispositivo.",
+            toast: "Sin conexión. Lumina está funcionando con la app y la biblioteca guardadas.",
             estado: "offline-ready"
         };
     }
@@ -15709,12 +16195,54 @@ function obtenerEstadoIndicadorConexion(disponibilidad) {
         };
     }
 
+    if (appParcial) {
+        return {
+            texto: "Sin conexión: Lumina abierta con caché parcial",
+            tooltip: "Lumina está funcionando ahora, pero no pudimos confirmar todos los archivos necesarios para abrirla desde cero sin internet.",
+            toast: "Sin conexión. Lumina está funcionando; cuando vuelva internet completará la caché que falte.",
+            estado: "offline-partial"
+        };
+    }
+
     return {
-        texto: "Sin conexión: falta app guardada",
-        tooltip: "Sin conexión, pero este dispositivo todavía no guardó los archivos básicos para abrir Lumina offline.",
-        toast: "Sin conexión. A este dispositivo todavía le faltan archivos básicos para abrir Lumina offline.",
+        texto: "Sin conexión: caché offline no confirmada",
+        tooltip: "Sin conexión. Lumina está abierta, pero no pudimos confirmar una copia local completa para próximas aperturas.",
+        toast: "Sin conexión. Lumina está abierta; al volver internet revisará y completará la caché offline.",
         estado: "offline-app-missing"
     };
+}
+
+function formatearRecursosFaltantesCache(recursos, limite = 3) {
+    if (!Array.isArray(recursos) || recursos.length === 0) return '';
+
+    const nombres = recursos
+        .map(recurso => String(recurso || '').replace(/^\.\//, ''))
+        .filter(Boolean);
+
+    const visibles = nombres.slice(0, limite).join(', ');
+    const restantes = nombres.length > limite ? ` y ${nombres.length - limite} más` : '';
+    return `${visibles}${restantes}`;
+}
+
+function obtenerDetalleDiagnosticoCache(disponibilidad) {
+    const detalles = [];
+    const faltantesApp = disponibilidad?.app?.faltantes || [];
+    const faltantesBiblioteca = disponibilidad?.biblioteca?.faltantes || [];
+    const faltantesComplementarios = disponibilidad?.app?.complementariosFaltantes || [];
+
+    if (faltantesApp.length > 0) {
+        detalles.push(`app: ${formatearRecursosFaltantesCache(faltantesApp)}`);
+    }
+
+    if (!disponibilidad?.biblioteca?.normalizadaDisponible && faltantesBiblioteca.length > 0) {
+        detalles.push(`biblioteca: ${formatearRecursosFaltantesCache(faltantesBiblioteca)}`);
+    }
+
+    if (!disponibilidad?.appLista && faltantesComplementarios.length > 0) {
+        detalles.push(`extras: ${formatearRecursosFaltantesCache(faltantesComplementarios, 2)}`);
+    }
+
+    return detalles.join(' | ');
 }
 
 async function actualizarIndicadorConexion() {
@@ -15730,11 +16258,13 @@ async function actualizarIndicadorConexion() {
 
     const disponibilidad = await obtenerDisponibilidadOfflineLumina();
     const detalle = obtenerEstadoIndicadorConexion(disponibilidad);
+    const diagnosticoCache = obtenerDetalleDiagnosticoCache(disponibilidad);
 
     textoEl.textContent = detalle.texto;
     badge.dataset.offlineState = detalle.estado;
     badge.dataset.toastMessage = detalle.toast;
-    badge.setAttribute("title", detalle.tooltip);
+    badge.dataset.cacheDetail = diagnosticoCache;
+    badge.setAttribute("title", diagnosticoCache ? `${detalle.tooltip} ${diagnosticoCache}` : detalle.tooltip);
     badge.setAttribute("aria-label", detalle.toast);
 
     if (iconoEl) {
@@ -15753,8 +16283,9 @@ async function mostrarDetalleEstadoConexion() {
     if (!badge) return;
 
     const mensaje = badge.dataset.toastMessage || badge.getAttribute("title");
+    const diagnostico = badge.dataset.cacheDetail || '';
     if (mensaje) {
-        lanzarToast(mensaje);
+        lanzarToast(diagnostico ? `${mensaje} (${diagnostico})` : mensaje);
     }
 }
 
