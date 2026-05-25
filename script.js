@@ -1670,19 +1670,44 @@ function obtenerSiguienteOrdenComentarios(comentarios) {
 }
 
 function aplicarComentariosNormalizados(value) {
-    comentariosDB = value.comentariosDB;
+    comentariosDB = normalizarTextosComentariosDB(value.comentariosDB);
     secuenciaComentariosDB = Number.isInteger(value.secuenciaComentariosDB)
         ? value.secuenciaComentariosDB
         : obtenerSiguienteOrdenComentarios(comentariosDB);
     datosComentariosCargados = Object.keys(comentariosDB).some(clave => clave !== '__ranges');
 }
 
-function limpiarTextoComentarioTradicion(texto) {
+function normalizarEspaciadoComentarioTradicion(texto) {
     return String(texto || '')
+        .replace(/\(\s+/g, '(')
+        .replace(/\s+\)/g, ')')
+        .replace(/\)\s+([.,;:!?])/g, ')$1');
+}
+
+function limpiarTextoComentarioTradicion(texto) {
+    return normalizarEspaciadoComentarioTradicion(String(texto || '')
         .replace(/\r\n?/g, '\n')
         .replace(/[ \t]+\n/g, '\n')
         .replace(/\n{3,}/g, '\n\n')
+    )
         .trim();
+}
+
+function normalizarTextosComentariosDB(db) {
+    const comentarios = db && typeof db === 'object' ? db : { __ranges: [] };
+    if (!Array.isArray(comentarios.__ranges)) comentarios.__ranges = [];
+
+    Object.entries(comentarios).forEach(([clave, items]) => {
+        if (clave === '__ranges' || !Array.isArray(items)) return;
+
+        items.forEach(item => {
+            if (item && typeof item === 'object' && typeof item.texto === 'string') {
+                item.texto = limpiarTextoComentarioTradicion(item.texto);
+            }
+        });
+    });
+
+    return comentarios;
 }
 
 function crearComentarioTradicion(autor, texto) {
@@ -2060,6 +2085,7 @@ let vistaRetornoTutorial = 'vista-libros';
 let busquedasRecientes = [];
 let estadoSeccionesBusqueda = {
     versiculos: false,
+    campoSemantico: false,
     comentarios: false,
     notas: false
 };
@@ -3486,7 +3512,11 @@ function refrescarResultadosBusquedaSiVisible() {
             terminoNormalizado,
             resultados.total,
             filtroLibroBusquedaActual,
-            { modoNotasSinTermino: resultados.modoNotasSinTermino }
+            {
+                modoNotasSinTermino: resultados.modoNotasSinTermino,
+                totalCampoSemantico: resultados.totalCampoSemantico,
+                totalTextual: resultados.totalTextual
+            }
         );
     }
 
@@ -6994,6 +7024,10 @@ function obtenerTextoContadorBusqueda(termino, total, filtro = filtroLibroBusque
         ? ''
         : ` en ${obtenerEtiquetaFiltroLibroBusqueda(valorFiltro)}`;
     const modoNotasSinTermino = opciones.modoNotasSinTermino === true;
+    const totalCampoSemantico = Number(opciones.totalCampoSemantico || 0);
+    const totalTextual = Number.isFinite(Number(opciones.totalTextual))
+        ? Number(opciones.totalTextual)
+        : Math.max(0, Number(total || 0) - totalCampoSemantico);
 
     if (!terminoNormalizado) {
         if (modoNotasSinTermino) {
@@ -7006,6 +7040,10 @@ function obtenerTextoContadorBusqueda(termino, total, filtro = filtroLibroBusque
             return `${total} nota${total !== 1 ? 's' : ''} guardada${total !== 1 ? 's' : ''} ${ubicacionNotas}`;
         }
         return `Buscá una palabra o frase${sufijoFiltro}`;
+    }
+
+    if (totalCampoSemantico > 0) {
+        return `${totalTextual} coincidencia${totalTextual !== 1 ? 's' : ''} textual${totalTextual !== 1 ? 'es' : ''} para "${terminoNormalizado}"${sufijoFiltro} · ${totalCampoSemantico} en campo semántico`;
     }
 
     return `${total} resultado${total !== 1 ? 's' : ''} para "${terminoNormalizado}"${sufijoFiltro}`;
@@ -7529,21 +7567,6 @@ function obtenerResultadosBusquedaSemantica(termino, limite = 36) {
         .slice(0, limite);
 }
 
-function obtenerClaveResultadoBusquedaVersiculo(item) {
-    return obtenerClaveReferenciaRelacionada(item.libro, item.capitulo, item.versiculo);
-}
-
-function combinarResultadoBusquedaSemantica(destino, semantico) {
-    const puntajeActual = destino.puntajeBusquedaSemantica ?? 0;
-    if (puntajeActual > semantico.puntajeBusquedaSemantica) return destino;
-
-    destino.coincidenciaSemantica = true;
-    destino.motivoBusquedaSemantica = semantico.motivoBusquedaSemantica;
-    destino.terminoResaltadoSemantico = semantico.terminoResaltadoSemantico;
-    destino.puntajeBusquedaSemantica = semantico.puntajeBusquedaSemantica;
-    return destino;
-}
-
 function compararResultadosBusquedaVersiculos(a, b) {
     const puntajeA = a.puntajeBusquedaSemantica ?? 0;
     const puntajeB = b.puntajeBusquedaSemantica ?? 0;
@@ -7786,6 +7809,9 @@ function renderizarResultadosBusqueda(contenedor, resultados, termino = '', filt
     const mensajeVersiculos = terminoNormalizado
         ? 'No hubo versículos que coincidan en esta búsqueda.'
         : 'Escribí una palabra o frase para buscar versículos.';
+    const mensajeCampoSemantico = terminoNormalizado
+        ? 'No hubo pasajes sugeridos por campo semántico.'
+        : 'Escribí una frase o tema bíblico para ver sugerencias semánticas.';
     const mensajeComentarios = terminoNormalizado
         ? 'No hubo comentarios que coincidan en esta búsqueda.'
         : 'Escribí una palabra o frase para buscar comentarios.';
@@ -7797,6 +7823,7 @@ function renderizarResultadosBusqueda(contenedor, resultados, termino = '', filt
 
     estadoSeccionesBusqueda = {
         versiculos: false,
+        campoSemantico: false,
         comentarios: false,
         notas: !terminoNormalizado
     };
@@ -7816,6 +7843,19 @@ function renderizarResultadosBusqueda(contenedor, resultados, termino = '', filt
             mensajeVersiculos
         ),
         resultados.versiculos
+    ) || haySeccionesVisibles;
+
+    haySeccionesVisibles = agregarSeccionPanelSiTieneItems(
+        contenedor,
+        () => crearSeccionBusqueda(
+            'campoSemantico',
+            'Campo semántico',
+            'fa-link',
+            resultados.campoSemantico,
+            item => crearTarjetaResultadoBusquedaVersiculo(item, terminoNormalizado),
+            mensajeCampoSemantico
+        ),
+        resultados.campoSemantico
     ) || haySeccionesVisibles;
 
     haySeccionesVisibles = agregarSeccionPanelSiTieneItems(
@@ -7874,23 +7914,17 @@ function construirIndiceBusqueda() {
 
 function buscarVersiculos(termino) {
     const regex = crearRegexBusqueda(termino);
-    const resultados = new Map();
+    if (!regex) return [];
 
-    if (regex) {
-        indiceBusqueda.forEach(item => {
-            if (!coincideTextoBusqueda(item.texto, regex)) return;
-            resultados.set(obtenerClaveResultadoBusquedaVersiculo(item), { ...item });
-        });
-    }
-
-    obtenerResultadosBusquedaSemantica(termino).forEach(item => {
-        const clave = obtenerClaveResultadoBusquedaVersiculo(item);
-        const existente = resultados.get(clave);
-        resultados.set(clave, existente ? combinarResultadoBusquedaSemantica(existente, item) : item);
-    });
-
-    return [...resultados.values()].sort(compararResultadosBusquedaVersiculos);
+    return indiceBusqueda
+        .filter(item => coincideTextoBusqueda(item.texto, regex))
+        .sort(compararFavoritosPorOrdenBiblico);
 }
+
+function buscarCampoSemantico(termino) {
+    return obtenerResultadosBusquedaSemantica(termino);
+}
+
 
 function buscarComentarios(termino) {
     const regex = crearRegexBusqueda(termino);
@@ -8009,18 +8043,21 @@ function buscarResultadosBusqueda(termino, filtro = filtroLibroBusquedaActual) {
     const mostrarTodasLasNotas = !terminoNormalizado;
     const resultados = {
         versiculos: terminoNormalizado ? aplicarFiltroLibroBusqueda(buscarVersiculos(terminoNormalizado), filtro) : [],
+        campoSemantico: terminoNormalizado ? aplicarFiltroLibroBusqueda(buscarCampoSemantico(terminoNormalizado), filtro) : [],
         comentarios: terminoNormalizado ? aplicarFiltroLibroBusqueda(buscarComentarios(terminoNormalizado), filtro) : [],
         notas: aplicarFiltroLibroBusqueda(buscarNotas(terminoNormalizado, mostrarTodasLasNotas), filtro)
     };
 
     let numeroResultado = 1;
-    ['versiculos', 'comentarios', 'notas'].forEach(clave => {
+    ['versiculos', 'campoSemantico', 'comentarios', 'notas'].forEach(clave => {
         resultados[clave].forEach(item => {
             item.numeroResultado = numeroResultado++;
         });
     });
 
     resultados.total = numeroResultado - 1;
+    resultados.totalCampoSemantico = resultados.campoSemantico.length;
+    resultados.totalTextual = resultados.versiculos.length + resultados.comentarios.length + resultados.notas.length;
     resultados.modoNotasSinTermino = mostrarTodasLasNotas;
     return resultados;
 }
@@ -8050,7 +8087,11 @@ function mostrarResultadosBusqueda(termino) {
             terminoNormalizado,
             resultados.total,
             filtroLibroBusquedaActual,
-            { modoNotasSinTermino: resultados.modoNotasSinTermino }
+            {
+                modoNotasSinTermino: resultados.modoNotasSinTermino,
+                totalCampoSemantico: resultados.totalCampoSemantico,
+                totalTextual: resultados.totalTextual
+            }
         );
     }
 

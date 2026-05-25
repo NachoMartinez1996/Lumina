@@ -1,4 +1,4 @@
-const VERSION_CACHE = '4.296.020';
+const VERSION_CACHE = '4.296.022';
 // Bump this only when Biblia/Catena/Agustin JSON files change.
 const VERSION_CACHE_DATA = '2026-05-14.1';
 const CACHE_SHELL = `lumina-shell-${VERSION_CACHE}`;
