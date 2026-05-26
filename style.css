@@ -258,6 +258,13 @@ body.dark {
     color: #e2e8f0;
 }
 
+body.dark #vista-libros {
+    background:
+        radial-gradient(circle at top, rgba(250, 204, 21, 0.08), transparent 42%),
+        linear-gradient(180deg, #0d0f12 0%, #111827 100%);
+    color: #e2e8f0;
+}
+
 .dark header {
     background-color: #1a1d23;
     border-bottom: 2px solid #2d3748;
@@ -7962,6 +7969,14 @@ body.dark #contenido-panel-personales .palabra-resaltada {
     -webkit-backdrop-filter: blur(12px);
 }
 
+body.dark .app-header {
+    border-bottom-color: #2d3748;
+    background:
+        radial-gradient(circle at top left, rgba(212, 175, 55, 0.1), transparent 34%),
+        linear-gradient(180deg, rgba(20, 27, 38, 0.98), rgba(13, 18, 28, 0.96));
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+}
+
 .header-shell {
     position: relative;
     overflow: visible;
@@ -7993,6 +8008,29 @@ body.dark #contenido-panel-personales .palabra-resaltada {
     align-items: baseline;
     flex-wrap: wrap;
     gap: 0.1rem 0.35rem;
+}
+
+body.dark .header-title {
+    color: #f3f4f6 !important;
+}
+
+body.dark .header-title span {
+    color: #aeb7c6 !important;
+}
+
+body.dark header button,
+body.dark header label {
+    color: #e5e7eb !important;
+}
+
+body.dark #busqueda-input {
+    background: #242933 !important;
+    border-color: #374151 !important;
+    color: #e5e7eb !important;
+}
+
+body.dark header .fa-search {
+    color: #9ca3af !important;
 }
 
 .header-favoritos-label {

@@ -19,6 +19,9 @@
     <style>
         .progreso-biblia-card{border-radius:1.5rem;background:linear-gradient(135deg,rgba(255,255,255,.92),rgba(248,250,252,.88))}.progreso-biblia-track-wrap{position:relative;padding-top:2.35rem;padding-bottom:1.65rem}.progreso-peregrino{position:absolute;top:0;z-index:3;transform:translateX(-50%);pointer-events:none}.progreso-peregrino-figura{width:2.3rem;height:2.3rem;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;border:1px solid rgba(184,134,11,.22);background:linear-gradient(135deg,rgba(255,248,231,.98),rgba(255,232,185,.96));color:#8a6200;box-shadow:0 10px 20px rgba(184,134,11,.18)}.progreso-peregrino-figura svg{width:1.2rem;height:1.2rem;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.progreso-burbuja-biblia{top:auto;bottom:0;transform:translate(-50%,108%)}#panel-busqueda,#panel-comentarios,#panel-favoritos,#panel-concordancia{position:fixed;top:0;right:0;z-index:50;width:90%;max-width:420px;height:100%;display:flex;flex-direction:column;overflow:hidden;background:#e5e2dc;border-left:1px solid #d2c8b7;box-shadow:0 25px 50px -12px rgba(0,0,0,.25)}#panel-lumina{position:fixed;top:0;left:0;z-index:50;width:92%;max-width:440px;height:100%;display:flex;flex-direction:column;overflow:hidden;background:#e5e2dc;border-right:1px solid #d2c8b7;box-shadow:0 25px 50px -12px rgba(0,0,0,.25)}html:not(.lumina-full-ui) #panel-busqueda,html:not(.lumina-full-ui) #panel-comentarios,html:not(.lumina-full-ui) #panel-favoritos,html:not(.lumina-full-ui) #panel-concordancia,html:not(.lumina-full-ui) #panel-lumina{display:none!important}#overlay-paneles-derecha,#overlay-panel-lumina{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.35)}
     </style>
+    <style>
+        body.dark{background:#0d0f12;color:#e2e8f0}body.dark #vista-libros{background:radial-gradient(circle at top,rgba(250,204,21,.08),transparent 42%),linear-gradient(180deg,#0d0f12,#111827);color:#e2e8f0}body.dark .app-header{border-bottom-color:#2d3748;background:radial-gradient(circle at top left,rgba(212,175,55,.1),transparent 34%),linear-gradient(180deg,rgba(20,27,38,.98),rgba(13,18,28,.96));box-shadow:0 12px 28px rgba(0,0,0,.24)}body.dark .header-title{color:#f3f4f6!important}body.dark .header-title span{color:#aeb7c6!important}body.dark header button,body.dark header label{color:#e5e7eb!important}body.dark #busqueda-input{background:#242933!important;border-color:#374151!important;color:#e5e7eb!important}body.dark header .fa-search{color:#9ca3af!important}
+    </style>
     <script>
         (function () {
             var estilos = [];
@@ -46,7 +49,7 @@
         <link rel="stylesheet"
             href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap">
         <link rel="stylesheet" href="lumina.css?v=1">
-        <link rel="stylesheet" href="style.min.css?v=7">
+        <link rel="stylesheet" href="style.min.css?v=8">
         <link rel="stylesheet" href="assets/vendor/fontawesome/css/lumina-icons.css?v=1">
     </noscript>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -58,10 +61,19 @@
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap">
     <link rel="stylesheet" href="lumina.css?v=1">
-    <link rel="stylesheet" href="style.min.css?v=7">
+    <link rel="stylesheet" href="style.min.css?v=8">
     <link rel="stylesheet" href="assets/vendor/fontawesome/css/lumina-icons.css?v=1">
 </head>
 <body class="font-sans antialiased h-screen overflow-hidden flex flex-col">
+    <script>
+        try {
+            if (localStorage.getItem('lumina_darkmode') === 'true') {
+                document.body.classList.add('dark');
+            }
+        } catch (error) {
+            document.body.classList.remove('dark');
+        }
+    </script>
 
     <header class="app-header px-6 py-4 flex-shrink-0 z-20 transition-colors duration-300">
         <div class="max-w-7xl mx-auto header-shell">
@@ -820,6 +832,9 @@
                 </button>
             </div>
             <div class="flex-1 overflow-y-auto p-6 md:p-8 pt-6">
+                <div class="panel-lumina-placeholder" data-lumina-placeholder>
+                    Elegí una sección para leer, orar, explorar o cuidar tus datos dentro de Lumina.
+                </div>
                 <div class="panel-lumina-nav mb-6">
                     <button type="button" class="panel-lumina-link" data-lumina-seccion="tutorial"
                         onclick="mostrarSeccionPanelLumina('tutorial')">
@@ -858,6 +873,13 @@
                     </button>
                 </div>
                 <div class="panel-lumina-validaciones">
+                    <a class="panel-lumina-validacion-html5" href="https://www.w3.org/html/logo/" target="_blank"
+                        rel="noopener noreferrer">
+                        <img src="assets/w3c/html5-badge-h-connectivity-css3-device-graphics-multimedia-performance-semantics-storage.png"
+                            width="357" height="64"
+                            alt="HTML5 Powered with Connectivity / Realtime, CSS3 / Styling, Device Access, Graphics, 3D &amp; Effects, Multimedia, Performance &amp; Integration, Semantics, and Offline &amp; Storage"
+                            title="HTML5 Powered with Connectivity / Realtime, CSS3 / Styling, Device Access, Graphics, 3D &amp; Effects, Multimedia, Performance &amp; Integration, Semantics, and Offline &amp; Storage">
+                    </a>
                     <a class="panel-lumina-validacion-css"
                         href="https://jigsaw.w3.org/css-validator/validator?lang=es&amp;profile=css3svg&amp;uri=https%3A%2F%2Fnachomartinez1996.github.io%2FLumina%2F&amp;usermedium=all&amp;vextwarning=&amp;warning=1"
                         target="_blank" rel="noopener noreferrer"
@@ -868,16 +890,6 @@
                             src="assets/w3c/vcss-blue.gif" width="88" height="31" alt="" aria-hidden="true">
                         <span>CSS validado por W3C</span>
                     </a>
-                    <a class="panel-lumina-validacion-html5" href="https://www.w3.org/html/logo/" target="_blank"
-                        rel="noopener noreferrer">
-                        <img src="assets/w3c/html5-badge-h-connectivity-css3-device-graphics-multimedia-performance-semantics-storage.png"
-                            width="357" height="64"
-                            alt="HTML5 Powered with Connectivity / Realtime, CSS3 / Styling, Device Access, Graphics, 3D &amp; Effects, Multimedia, Performance &amp; Integration, Semantics, and Offline &amp; Storage"
-                            title="HTML5 Powered with Connectivity / Realtime, CSS3 / Styling, Device Access, Graphics, 3D &amp; Effects, Multimedia, Performance &amp; Integration, Semantics, and Offline &amp; Storage">
-                    </a>
-                </div>
-                <div class="panel-lumina-placeholder" data-lumina-placeholder>
-                    Elegí una sección para leer, orar, explorar o cuidar tus datos dentro de Lumina.
                 </div>
                 <div class="acerca-de-container panel-lumina-contenido">
                     <div id="lumina-seccion-tutorial" class="hidden" data-lumina-contenido>
