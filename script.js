@@ -2111,9 +2111,9 @@ function construirMarcadorTradicionCompartidaHtml(grupos, versiculo) {
 // --------------------------------------------------------------
 let notasPersonales = {};
 let favoritos = new Set();
-// Las secciones de favoritos se abren solo cuando el usuario toca su boton.
+// Los versículos favoritos se muestran de entrada; comentarios y notas quedan plegados.
 let estadoSeccionesFavoritos = {
-    versiculos: false,
+    versiculos: true,
     comentarios: false,
     notas: false
 };
@@ -2815,11 +2815,14 @@ function obtenerVersiculosFavoritosParaInicio() {
     const entradas = [];
 
     for (const key of favoritos) {
-        if (!key.startsWith('versiculo:')) continue;
+        const favoritoVersiculo = parsearClaveFavoritoVersiculo(key);
+        if (!favoritoVersiculo) continue;
 
-        const ref = key.substring(10);
-        const [libro, capituloStr, versiculoStr] = ref.split('_');
-        const entrada = crearEntradaVersiculoInicio(libro, Number(capituloStr), Number(versiculoStr));
+        const entrada = crearEntradaVersiculoInicio(
+            favoritoVersiculo.libro,
+            favoritoVersiculo.capitulo,
+            favoritoVersiculo.versiculo
+        );
 
         if (entrada) entradas.push(entrada);
     }
@@ -4483,17 +4486,11 @@ function obtenerVersiculosFavoritosComoColeccion() {
     const entradas = [];
 
     for (const key of favoritos) {
-        if (!key.startsWith('versiculo:')) continue;
+        const favoritoVersiculo = parsearClaveFavoritoVersiculo(key);
+        if (!favoritoVersiculo) continue;
 
-        const ref = key.substring('versiculo:'.length);
-        const [libro, capituloStr, versiculoStr] = ref.split('_');
-        const capitulo = Number(capituloStr);
-        const versiculo = Number(versiculoStr);
-        const texto = bibleContent?.[libro]?.[capituloStr]?.[versiculoStr] || bibleContent?.[libro]?.[capitulo]?.[versiculo] || '';
-
-        if (!libro || !Number.isFinite(capitulo) || capitulo <= 0 || !Number.isFinite(versiculo) || versiculo <= 0) {
-            continue;
-        }
+        const { libro, capitulo, versiculo } = favoritoVersiculo;
+        const texto = obtenerTextoFavoritoVersiculo(libro, capitulo, versiculo);
 
         entradas.push({
             libro,
@@ -4900,6 +4897,40 @@ function obtenerClaveFavoritoVersiculo(libro, capitulo, versiculo) {
     return `versiculo:${libro}_${capitulo}_${versiculo}`;
 }
 
+function parsearClaveFavoritoVersiculo(key) {
+    if (!String(key || '').startsWith('versiculo:')) return null;
+
+    const partes = String(key).slice('versiculo:'.length).split('_');
+    if (partes.length < 3) return null;
+
+    const versiculo = Number(partes.pop());
+    const capitulo = Number(partes.pop());
+    const libro = partes.join('_').trim();
+
+    if (!libro || !Number.isFinite(capitulo) || capitulo <= 0 || !Number.isFinite(versiculo) || versiculo <= 0) {
+        return null;
+    }
+
+    return { libro, capitulo, versiculo };
+}
+
+function obtenerTextoFavoritoVersiculo(libro, capitulo, versiculo) {
+    return String(
+        obtenerTextoReferenciaBiblica(libro, capitulo, versiculo)
+        || bibleContent?.[libro]?.[String(capitulo)]?.[String(versiculo)]
+        || bibleContent?.[libro]?.[capitulo]?.[versiculo]
+        || ''
+    ).trim();
+}
+
+function hayFavoritosDeVersiculos() {
+    for (const key of favoritos) {
+        if (parsearClaveFavoritoVersiculo(key)) return true;
+    }
+
+    return false;
+}
+
 function obtenerIdentificadorFavoritoVersiculo(libro, capitulo, versiculo) {
     return `${libro}_${capitulo}_${versiculo}`;
 }
@@ -5037,20 +5068,17 @@ function obtenerFavoritosClasificados() {
     };
 
     for (const key of favoritos) {
-        if (key.startsWith('versiculo:')) {
-            const ref = key.substring(10);
-            const [libro, capituloStr, versiculoStr] = ref.split('_');
-            const capitulo = parseInt(capituloStr, 10);
-            const versiculo = parseFloat(versiculoStr);
-            const texto = bibleContent[libro]?.[capituloStr]?.[versiculoStr];
+        const favoritoVersiculo = parsearClaveFavoritoVersiculo(key);
 
-            if (!texto) continue;
+        if (favoritoVersiculo) {
+            const { libro, capitulo, versiculo } = favoritoVersiculo;
+            const texto = obtenerTextoFavoritoVersiculo(libro, capitulo, versiculo);
 
             grupos.versiculos.push({
                 libro,
                 capitulo,
                 versiculo,
-                texto
+                texto: texto || 'Texto bíblico pendiente de cargar.'
             });
             continue;
         }
@@ -5516,7 +5544,25 @@ function limpiarFiltroFavoritos() {
     renderizarPanelFavoritosGuardados();
 }
 
-function renderizarPanelFavoritosGuardados() {
+async function prepararBibliaParaFavoritosGuardados(listaDiv) {
+    if (datosBibliaCargados || !hayFavoritosDeVersiculos()) return;
+
+    if (listaDiv) {
+        listaDiv.innerHTML = `
+            <div class="favoritos-vacio-global text-gray-400 italic text-center py-8">
+                <i class="fas fa-spinner fa-spin mr-2" aria-hidden="true"></i>
+                Cargando tus versículos favoritos...
+            </div>
+        `;
+    }
+
+    await asegurarBibliaCargada({
+        mostrar: false,
+        mensaje: 'Cargando tus versículos favoritos...'
+    });
+}
+
+async function renderizarPanelFavoritosGuardados() {
     const listaDiv = document.getElementById('lista-favoritos');
     if (!listaDiv) return;
 
@@ -5524,6 +5570,9 @@ function renderizarPanelFavoritosGuardados() {
         document.getElementById('favoritos-filtro-libro')?.value || filtroLibroFavoritosActual
     );
     sincronizarSelectorFiltroLibroFavoritos();
+    await prepararBibliaParaFavoritosGuardados(listaDiv);
+
+    if (panelGuardadosTabActiva !== 'favoritos') return;
 
     const favoritosClasificados = obtenerFavoritosClasificados();
     const totalFavoritos = contarFavoritosClasificados(favoritosClasificados);
