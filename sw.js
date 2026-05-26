@@ -1,4 +1,4 @@
-const VERSION_CACHE = '4.296.038';
+const VERSION_CACHE = '4.296.040';
 // Bump this only when Biblia/Catena/Agustin JSON files change.
 const VERSION_CACHE_DATA = '2026-05-14.1';
 const CACHE_SHELL = `lumina-shell-${VERSION_CACHE}`;
@@ -18,6 +18,9 @@ const archivosShellComplementarios = [
   './assets/vendor/fontawesome/css/lumina-icons.css',
   './assets/vendor/fontawesome/webfonts/lumina-icons-solid.woff2',
   './assets/vendor/fontawesome/webfonts/lumina-icons-brands.woff2',
+  './assets/w3c/vcss.gif',
+  './assets/w3c/vcss-blue.gif',
+  './assets/w3c/html5-badge-h-connectivity-css3-device-graphics-multimedia-performance-semantics-storage.png',
   './Favicon/favicon.ico',
   './Favicon/favicon-32x32.png',
   './Favicon/favicon-16x16.png',

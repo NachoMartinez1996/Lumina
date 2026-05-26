@@ -5711,6 +5711,65 @@ body.dark .panel-lumina-contenido h3 {
     gap: 0.7rem;
 }
 
+.panel-lumina-validaciones {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.7rem;
+    justify-content: center;
+    margin: 0 0 1.35rem;
+}
+
+.panel-lumina-validacion-css {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    max-width: 100%;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid rgba(184, 134, 11, 0.16);
+    border-radius: 0.85rem;
+    background: rgba(255, 250, 240, 0.72);
+    color: #5d4a2f;
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1.25;
+    text-decoration: none;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.panel-lumina-validacion-css:hover,
+.panel-lumina-validacion-css:focus-visible {
+    transform: translateY(-1px);
+    border-color: rgba(184, 134, 11, 0.32);
+    background: rgba(255, 248, 230, 0.96);
+    outline: none;
+}
+
+.panel-lumina-validacion-css-img {
+    width: 88px;
+    height: 31px;
+    border: 0;
+    flex: none;
+}
+
+.panel-lumina-validacion-css-img-dark {
+    display: none;
+}
+
+.panel-lumina-validacion-html5 {
+    display: block;
+    max-width: 100%;
+    line-height: 0;
+}
+
+.panel-lumina-validacion-html5 img {
+    display: block;
+    width: 357px;
+    max-width: 100%;
+    height: auto;
+    border: 0;
+}
+
 .panel-lumina-placeholder {
     padding: 1rem 1.1rem;
     margin-bottom: 1.5rem;
@@ -5803,6 +5862,26 @@ body.dark .panel-lumina-link.activa {
 body.dark .panel-lumina-link.activa {
     background: rgba(184, 134, 11, 0.12);
     box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+}
+
+body.dark .panel-lumina-validacion-css {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(184, 134, 11, 0.18);
+    color: #e5e7eb;
+}
+
+body.dark .panel-lumina-validacion-css:hover,
+body.dark .panel-lumina-validacion-css:focus-visible {
+    background: rgba(184, 134, 11, 0.12);
+    border-color: rgba(184, 134, 11, 0.32);
+}
+
+body.dark .panel-lumina-validacion-css-img-light {
+    display: none;
+}
+
+body.dark .panel-lumina-validacion-css-img-dark {
+    display: block;
 }
 
 body.dark .panel-lumina-placeholder {
