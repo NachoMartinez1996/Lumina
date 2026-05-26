@@ -2161,6 +2161,7 @@ let versiculoInicioActual = null;
 let versiculoInicioMostradoEnModal = null;
 let versiculoInicioMostradoEnSesion = false;
 let versiculoInicioPendienteTrasBienvenida = false;
+let promesaPrepararVersiculoInicio = null;
 let leidos = new Set();
 let ultimaColeccionVersiculosId = null;
 const MODO_VERSICULO_INICIO_NINGUNO = 'ninguno';
@@ -2707,7 +2708,7 @@ function guardarLeidos() {
 function normalizarVersiculoInicio(data) {
     if (!data || typeof data !== 'object') return null;
 
-    const libro = String(data.libro || '').trim();
+    const libro = resolverNombreLibroBiblico(data.libro);
     const capitulo = Number(data.capitulo);
     const versiculo = Number(data.versiculo);
     const texto = String(data.texto || '').trim();
@@ -2805,10 +2806,23 @@ function elegirEntradaRotativaVersiculoInicio(entradas, fuenteId) {
 }
 
 function crearEntradaVersiculoInicio(libro, capitulo, versiculo, texto = '') {
-    const textoFuente = bibleContent?.[libro]?.[capitulo]?.[versiculo] ?? texto;
+    const textoFuente = obtenerTextoReferenciaBiblica(libro, capitulo, versiculo)
+        || bibleContent?.[libro]?.[String(capitulo)]?.[String(versiculo)]
+        || bibleContent?.[libro]?.[capitulo]?.[versiculo]
+        || texto;
     const textoLimpio = String(textoFuente || '').trim();
     const entrada = normalizarVersiculoInicio({ libro, capitulo, versiculo, texto: textoLimpio });
     return entrada;
+}
+
+function contarFavoritosDeVersiculos() {
+    let total = 0;
+
+    for (const key of favoritos) {
+        if (parsearClaveFavoritoVersiculo(key)) total++;
+    }
+
+    return total;
 }
 
 function obtenerVersiculosFavoritosParaInicio() {
@@ -2818,16 +2832,83 @@ function obtenerVersiculosFavoritosParaInicio() {
         const favoritoVersiculo = parsearClaveFavoritoVersiculo(key);
         if (!favoritoVersiculo) continue;
 
-        const entrada = crearEntradaVersiculoInicio(
+        const texto = obtenerTextoFavoritoVersiculo(
             favoritoVersiculo.libro,
             favoritoVersiculo.capitulo,
             favoritoVersiculo.versiculo
+        );
+        const entrada = crearEntradaVersiculoInicio(
+            favoritoVersiculo.libro,
+            favoritoVersiculo.capitulo,
+            favoritoVersiculo.versiculo,
+            texto
         );
 
         if (entrada) entradas.push(entrada);
     }
 
     return ordenarVersiculosColeccionSegunBiblia(entradas);
+}
+
+function contarVersiculosColeccionParaInicio(coleccionId) {
+    const coleccion = obtenerColeccionVersiculosPorId(coleccionId);
+    return Array.isArray(coleccion?.versiculos) ? coleccion.versiculos.length : 0;
+}
+
+function hayCandidatosPotencialesVersiculoInicio() {
+    const modo = configuracionVersiculoInicio.modo;
+
+    if (modo === MODO_VERSICULO_INICIO_NINGUNO) return false;
+    if (modo === MODO_VERSICULO_INICIO_FIJO) return !!versiculoInicioGuardado;
+    if (modo === MODO_VERSICULO_INICIO_FAVORITOS) return contarFavoritosDeVersiculos() > 0;
+    if (modo === MODO_VERSICULO_INICIO_COLECCION) {
+        return contarVersiculosColeccionParaInicio(configuracionVersiculoInicio.coleccionId) > 0;
+    }
+
+    return false;
+}
+
+function versiculoInicioNecesitaBibliaCargada() {
+    if (datosBibliaCargados) return false;
+
+    const modo = configuracionVersiculoInicio.modo;
+
+    if (modo === MODO_VERSICULO_INICIO_FAVORITOS) {
+        return contarFavoritosDeVersiculos() > 0;
+    }
+
+    if (modo === MODO_VERSICULO_INICIO_COLECCION) {
+        const coleccion = obtenerColeccionVersiculosPorId(configuracionVersiculoInicio.coleccionId);
+        return Array.isArray(coleccion?.versiculos)
+            && coleccion.versiculos.some(item => !String(item?.texto || '').trim());
+    }
+
+    return false;
+}
+
+async function prepararContenidoVersiculoInicio({ mostrar = false } = {}) {
+    if (!versiculoInicioNecesitaBibliaCargada()) return true;
+
+    if (!promesaPrepararVersiculoInicio) {
+        promesaPrepararVersiculoInicio = asegurarBibliaCargada({
+            mostrar,
+            mensaje: 'Cargando tu Palabra de bienvenida...'
+        })
+            .then(ok => {
+                if (ok) {
+                    versiculoInicioActual = null;
+                    versiculoInicioMostradoEnModal = null;
+                }
+                return ok;
+            })
+            .finally(() => {
+                promesaPrepararVersiculoInicio = null;
+            });
+    }
+
+    const ok = await promesaPrepararVersiculoInicio;
+    actualizarControlesVersiculoInicio();
+    return ok;
 }
 
 function obtenerVersiculosColeccionParaInicio(coleccionId) {
@@ -3223,11 +3304,14 @@ function renderizarModalVersiculoInicio(versiculoInicioPreparado = null) {
     texto.textContent = versiculoInicio.texto;
 }
 
-function abrirModalVersiculoInicio() {
+async function abrirModalVersiculoInicio() {
     if (versiculoInicioMostradoEnSesion) return;
 
     const modal = document.getElementById('modal-versiculo-inicio');
     if (!modal) return;
+
+    const contenidoListo = await prepararContenidoVersiculoInicio({ mostrar: false });
+    if (!contenidoListo) return;
 
     const versiculoInicio = prepararVersiculoInicioActual();
     if (!versiculoInicio) return;
@@ -3245,8 +3329,11 @@ function cerrarModalVersiculoInicio() {
     modal.classList.remove('flex');
 }
 
-function intentarMostrarVersiculoInicio() {
-    if (versiculoInicioMostradoEnSesion || obtenerCandidatosVersiculoInicio().length === 0) return;
+async function intentarMostrarVersiculoInicio() {
+    if (versiculoInicioMostradoEnSesion || !hayCandidatosPotencialesVersiculoInicio()) return;
+
+    const contenidoListo = await prepararContenidoVersiculoInicio({ mostrar: false });
+    if (!contenidoListo || versiculoInicioMostradoEnSesion || obtenerCandidatosVersiculoInicio().length === 0) return;
 
     const modalBienvenida = document.getElementById('modal-bienvenida');
     const bienvenidaVisible = modalBienvenida && !modalBienvenida.classList.contains('hidden');
@@ -3367,7 +3454,7 @@ function obtenerResumenConfiguracionVersiculoInicio() {
     }
 
     if (modo === MODO_VERSICULO_INICIO_FAVORITOS) {
-        const cantidad = obtenerVersiculosFavoritosParaInicio().length;
+        const cantidad = contarFavoritosDeVersiculos();
         if (cantidad === 0) return 'No hay versículos favoritos todavía. Cuando marques alguno, podrá rotar acá.';
         return `Rotará entre ${cantidad} versículo${cantidad === 1 ? '' : 's'} favorito${cantidad === 1 ? '' : 's'}.`;
     }
@@ -3376,7 +3463,7 @@ function obtenerResumenConfiguracionVersiculoInicio() {
         const coleccion = obtenerColeccionVersiculosPorId(configuracionVersiculoInicio.coleccionId);
         if (!coleccion) return 'Elegí una colección para que Lumina tome de ahí la Palabra de entrada.';
 
-        const cantidad = obtenerVersiculosColeccionParaInicio(coleccion.id).length;
+        const cantidad = contarVersiculosColeccionParaInicio(coleccion.id);
         if (cantidad === 0) return `La colección "${coleccion.nombre}" está vacía.`;
         return `Rotará entre ${cantidad} versículo${cantidad === 1 ? '' : 's'} de "${coleccion.nombre}".`;
     }
@@ -3445,7 +3532,7 @@ function actualizarControlesVersiculoInicio() {
     }
 
     if (botonProbar) {
-        botonProbar.disabled = obtenerCandidatosVersiculoInicio().length === 0;
+        botonProbar.disabled = !hayCandidatosPotencialesVersiculoInicio();
     }
 }
 
@@ -3478,8 +3565,10 @@ function cambiarColeccionVersiculoInicio(coleccionId) {
     actualizarControlesVersiculoInicio();
 }
 
-function probarVersiculoInicio() {
-    if (obtenerCandidatosVersiculoInicio().length === 0) {
+async function probarVersiculoInicio() {
+    const contenidoListo = await prepararContenidoVersiculoInicio({ mostrar: false });
+
+    if (!contenidoListo || obtenerCandidatosVersiculoInicio().length === 0) {
         lanzarToast('No hay versículos disponibles para esta bienvenida');
         actualizarControlesVersiculoInicio();
         return;
@@ -3488,7 +3577,7 @@ function probarVersiculoInicio() {
     versiculoInicioMostradoEnSesion = false;
     versiculoInicioActual = null;
     versiculoInicioMostradoEnModal = null;
-    abrirModalVersiculoInicio();
+    await abrirModalVersiculoInicio();
 }
 
 function inicializarControlesVersiculoInicio() {
@@ -4092,7 +4181,7 @@ function normalizarTituloPasajeGuardado(titulo) {
 function normalizarPasajeGuardado(item) {
     if (!item || typeof item !== 'object') return null;
 
-    const libro = String(item.libro || '').trim();
+    const libro = resolverNombreLibroBiblico(item.libro);
     const capitulo = Number(item.capitulo);
     const desde = Number(item.desde);
     const hasta = Number(item.hasta);
@@ -4523,7 +4612,7 @@ function coleccionUsaOrdenManual(coleccion) {
 function normalizarEntradaColeccionVersiculos(item) {
     if (!item || typeof item !== 'object') return null;
 
-    const libro = String(item.libro || '').trim();
+    const libro = resolverNombreLibroBiblico(item.libro);
     const capitulo = Number(item.capitulo);
     const versiculo = Number(item.versiculo);
     const texto = String(item.texto || '').trim();
@@ -4897,6 +4986,45 @@ function obtenerClaveFavoritoVersiculo(libro, capitulo, versiculo) {
     return `versiculo:${libro}_${capitulo}_${versiculo}`;
 }
 
+function normalizarClaveNombreLibroBiblico(nombre) {
+    return String(nombre || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[()]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .toUpperCase()
+        .trim();
+}
+
+function repararMojibakeUtf8(texto) {
+    const valor = String(texto || '');
+    if (!/[ÃÂ]/.test(valor) || typeof TextDecoder === 'undefined') return valor;
+
+    try {
+        const bytes = Uint8Array.from([...valor].map(caracter => caracter.charCodeAt(0) & 0xff));
+        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch (_) {
+        return valor;
+    }
+}
+
+function resolverNombreLibroBiblico(nombre) {
+    const valor = String(nombre || '').trim();
+    if (!valor) return '';
+
+    const reparado = repararMojibakeUtf8(valor);
+    const candidatos = reparado === valor ? [valor] : [valor, reparado];
+
+    for (const candidato of candidatos) {
+        if (ORDEN_LIBROS_BIBLICOS.has(candidato)) return candidato;
+
+        const nombreCanonico = mapaNombres[normalizarClaveNombreLibroBiblico(candidato)];
+        if (nombreCanonico) return nombreCanonico;
+    }
+
+    return valor;
+}
+
 function parsearClaveFavoritoVersiculo(key) {
     if (!String(key || '').startsWith('versiculo:')) return null;
 
@@ -4905,7 +5033,7 @@ function parsearClaveFavoritoVersiculo(key) {
 
     const versiculo = Number(partes.pop());
     const capitulo = Number(partes.pop());
-    const libro = partes.join('_').trim();
+    const libro = resolverNombreLibroBiblico(partes.join('_'));
 
     if (!libro || !Number.isFinite(capitulo) || capitulo <= 0 || !Number.isFinite(versiculo) || versiculo <= 0) {
         return null;
@@ -11420,7 +11548,7 @@ function actualizarEstadoColaLectura() {
 function normalizarItemLecturaCola(item) {
     if (!item) return null;
 
-    const libro = String(item.libro || '').trim();
+    const libro = resolverNombreLibroBiblico(item.libro);
     const capitulo = Number(item.capitulo);
     const versiculo = Number(item.versiculo);
     const texto = String(item.texto || bibleContent[libro]?.[capitulo]?.[versiculo] || '').trim();
@@ -15979,6 +16107,7 @@ function recargarEstadoDesdePersistenciaLumina() {
     actualizarProgresoTestamentosVista();
     actualizarProgresoBibliaVista();
     actualizarControlesVersiculoInicio();
+    intentarMostrarVersiculoInicio();
 }
 
 async function reiniciarProgresoBiblia() {
