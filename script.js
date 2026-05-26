@@ -5390,25 +5390,25 @@ function actualizarTabsPanelGuardados() {
     const enFavoritos = panelGuardadosTabActiva === 'favoritos';
     const enPasajes = panelGuardadosTabActiva === 'pasajes';
     const enColecciones = panelGuardadosTabActiva === 'colecciones';
+    const actualizarTab = (tab, activa) => {
+        if (!tab) return;
+        tab.classList.toggle('activa', activa);
+        tab.setAttribute('aria-selected', activa ? 'true' : 'false');
+        tab.tabIndex = activa ? 0 : -1;
+    };
+    const actualizarPanel = (panel, visible) => {
+        if (!panel) return;
+        panel.classList.toggle('hidden', !visible);
+        panel.hidden = !visible;
+    };
 
-    if (tabFavoritos) {
-        tabFavoritos.classList.toggle('activa', enFavoritos);
-        tabFavoritos.setAttribute('aria-selected', enFavoritos ? 'true' : 'false');
-    }
+    actualizarTab(tabFavoritos, enFavoritos);
+    actualizarTab(tabPasajes, enPasajes);
+    actualizarTab(tabColecciones, enColecciones);
 
-    if (tabPasajes) {
-        tabPasajes.classList.toggle('activa', enPasajes);
-        tabPasajes.setAttribute('aria-selected', enPasajes ? 'true' : 'false');
-    }
-
-    if (tabColecciones) {
-        tabColecciones.classList.toggle('activa', enColecciones);
-        tabColecciones.setAttribute('aria-selected', enColecciones ? 'true' : 'false');
-    }
-
-    if (contenidoFavoritos) contenidoFavoritos.classList.toggle('hidden', !enFavoritos);
-    if (contenidoPasajes) contenidoPasajes.classList.toggle('hidden', !enPasajes);
-    if (contenidoColecciones) contenidoColecciones.classList.toggle('hidden', !enColecciones);
+    actualizarPanel(contenidoFavoritos, enFavoritos);
+    actualizarPanel(contenidoPasajes, enPasajes);
+    actualizarPanel(contenidoColecciones, enColecciones);
     actualizarEstadoControlesFavoritos();
 }
 

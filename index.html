@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es-ar">
 
 <head>
@@ -30,16 +30,15 @@
                             <i class="fas fa-feather-alt text-2xl" aria-hidden="true"></i>
                         </button>
 
-                        <button type="button" onclick="irAlInicio()" aria-label="Ir al inicio"
-                            class="brand-home flex items-center gap-3 text-left cursor-pointer group">
-                            <h1
-                                class="header-title text-2xl md:text-3xl font-bold tracking-tight text-gray-950 dark:text-gray-100">
+                        <h1 class="brand-home min-w-0">
+                            <button type="button" onclick="irAlInicio()" aria-label="Ir al inicio"
+                                class="header-title text-2xl md:text-3xl font-bold tracking-tight text-gray-950 dark:text-gray-100 text-left cursor-pointer group">
                                 Lumina
                                 <span class="text-sm font-sans font-normal text-gray-700 dark:text-gray-400 ml-1">
                                     La Tradición Iluminando la Palabra
                                 </span>
-                            </h1>
-                        </button>
+                            </button>
+                        </h1>
                     </div>
                 </div>
 
@@ -226,10 +225,10 @@
         <i class="fas fa-feather-alt text-xl" aria-hidden="true"></i>
     </button>
 
-    <div class="flex-1 flex overflow-hidden relative">
+    <main class="flex-1 flex overflow-hidden relative">
 
         <!-- VISTA LIBROS -->
-        <main id="vista-libros"
+        <div id="vista-libros"
             class="vista flex-1 overflow-y-auto p-6 md:p-12 w-full absolute inset-0 z-30 transition-colors duration-300">
             <div class="max-w-6xl mx-auto">
                 <div class="mb-4 md:mb-5">
@@ -244,10 +243,10 @@
                 </div>
                 <div id="contenedor-libros" class="grid grid-cols-1 lg:grid-cols-2 gap-12"></div>
             </div>
-        </main>
+        </div>
 
         <!-- VISTA CAPÍTULOS -->
-        <main id="vista-capitulos"
+        <div id="vista-capitulos"
             class="vista flex-1 overflow-hidden p-6 md:p-12 hidden absolute inset-0 z-20 transition-colors duration-300">
             <div class="max-w-4xl mx-auto h-full min-h-0 flex flex-col">
                 <div class="capitulos-header-sticky mb-6">
@@ -274,10 +273,10 @@
                     <div id="contenedor-capitulos" class="grid grid-cols-5 md:grid-cols-10 gap-3"></div>
                 </div>
             </div>
-        </main>
+        </div>
 
         <!-- VISTA LECTURA (MODIFICADA: la barra de progreso dentro del scroll, el botón de marcar capítulo después de los versículos) -->
-        <main id="vista-lectura"
+        <div id="vista-lectura"
             class="vista flex-1 overflow-hidden p-6 md:p-12 hidden absolute inset-0 z-10 transition-colors duration-300">
             <div class="max-w-3xl mx-auto h-full min-h-0 flex flex-col">
                 <div class="lectura-top-tools mb-4">
@@ -315,9 +314,9 @@
                     </div>
                 </div>
             </div>
-        </main>
+        </div>
 
-        <main id="vista-lectio"
+        <div id="vista-lectio"
             class="vista flex-1 overflow-hidden p-6 md:p-12 hidden absolute inset-0 z-10 transition-colors duration-300">
             <div class="max-w-6xl mx-auto h-full min-h-0 flex flex-col gap-5">
                 <div class="lectio-top-bar flex flex-wrap items-center justify-between gap-3">
@@ -340,7 +339,7 @@
                                 dejá por escrito lo que la Palabra va obrando en vos.</p>
                         </div>
 
-                        <section class="lectio-config-card">
+                        <div class="lectio-config-card">
                             <div class="lectio-config-grid">
                                 <label class="lectio-field">
                                     <span>Libro</span>
@@ -369,13 +368,13 @@
                                 </button>
                             </div>
                             <p id="lectio-ayuda-pasaje" class="lectio-config-ayuda"></p>
-                        </section>
+                        </div>
 
                         <section id="lectio-pasaje-card" class="lectio-pasaje-card hidden">
                             <div class="lectio-pasaje-head">
                                 <div>
                                     <p class="lectio-pasaje-kicker">Pasaje elegido</p>
-                                    <h3 id="lectio-pasaje-referencia" class="lectio-pasaje-referencia"></h3>
+                                    <h3 id="lectio-pasaje-referencia" class="lectio-pasaje-referencia">Pasaje elegido</h3>
                                 </div>
                                 <div class="lectio-pasaje-meta">
                                     <span id="lectio-pasaje-badge" class="lectio-pasaje-badge hidden"></span>
@@ -428,12 +427,12 @@
                         </section>
                     </section>
 
-                    <aside class="lectio-pane lectio-pane-registro">
+                    <aside class="lectio-pane lectio-pane-registro" aria-labelledby="lectio-registro-titulo">
                         <div class="lectio-registro-card">
                             <div class="lectio-registro-head">
                                 <div>
                                     <p class="lectio-hero-kicker">Tu cuaderno</p>
-                                    <h3 class="lectio-registro-title">Lectio guardadas</h3>
+                                    <h3 id="lectio-registro-titulo" class="lectio-registro-title">Lectio guardadas</h3>
                                 </div>
                             </div>
                             <p class="lectio-registro-texto">Cada Lectio queda guardada en este dispositivo y también
@@ -444,9 +443,9 @@
                     </aside>
                 </div>
             </div>
-        </main>
+        </div>
 
-        <main id="vista-tutorial"
+        <div id="vista-tutorial"
             class="vista flex-1 overflow-y-auto p-6 md:p-12 hidden absolute inset-0 z-10 transition-colors duration-300">
             <div class="tutorial-shell max-w-6xl mx-auto">
                 <div class="tutorial-top-bar">
@@ -482,24 +481,24 @@
                         </div>
                     </div>
 
-                    <div class="tutorial-map" aria-label="Mapa rápido de Lumina">
-                        <div class="tutorial-map-row">
+                    <ul class="tutorial-map">
+                        <li class="tutorial-map-row">
                             <span class="tutorial-map-icon"><i class="fas fa-book-open" aria-hidden="true"></i></span>
                             <span>Elegí libro y capítulo</span>
-                        </div>
-                        <div class="tutorial-map-row">
+                        </li>
+                        <li class="tutorial-map-row">
                             <span class="tutorial-map-icon"><i class="fas fa-comment-dots" aria-hidden="true"></i></span>
                             <span>Abrí Tradición, Referencias y notas</span>
-                        </div>
-                        <div class="tutorial-map-row">
+                        </li>
+                        <li class="tutorial-map-row">
                             <span class="tutorial-map-icon"><i class="fas fa-star" aria-hidden="true"></i></span>
                             <span>Guardá y compartí hallazgos</span>
-                        </div>
-                        <div class="tutorial-map-row">
+                        </li>
+                        <li class="tutorial-map-row">
                             <span class="tutorial-map-icon"><i class="fas fa-feather-alt" aria-hidden="true"></i></span>
                             <span>Rezá el pasaje con Lectio</span>
-                        </div>
-                    </div>
+                        </li>
+                    </ul>
                 </section>
 
                 <section class="tutorial-section" aria-labelledby="tutorial-camino-titulo">
@@ -646,12 +645,12 @@
                     </button>
                 </section>
             </div>
-        </main>
+        </div>
 
         <!-- PANELES LATERALES (sin cambios) -->
         <div id="overlay-panel-lumina" class="hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]"
             onclick="cerrarPanelLumina()"></div>
-        <aside id="panel-lumina"
+        <aside id="panel-lumina" aria-label="Sobre Lumina"
             class="panel-lumina w-[92%] sm:w-[440px] h-full overflow-hidden transform -translate-x-full fixed left-0 top-0 border-r border-gray-200 dark:border-gray-700 z-50 transition-all duration-300 flex flex-col">
             <div
                 class="panel-lumina-header sticky top-0 z-20 p-4 md:p-4 border-b border-gray-200 dark:border-gray-700 relative">
@@ -778,7 +777,7 @@
                                 </div>
                             </div>
                             <div class="panel-lumina-bienvenida-controls">
-                                <label class="panel-lumina-control-field" for="selector-versiculo-inicio-modo">
+                                <label class="panel-lumina-control-field">
                                     <span>Origen</span>
                                     <select id="selector-versiculo-inicio-modo">
                                         <option value="ninguno">Sin bienvenida</option>
@@ -787,8 +786,7 @@
                                         <option value="coleccion">Una colección</option>
                                     </select>
                                 </label>
-                                <label id="versiculo-inicio-coleccion-row" class="panel-lumina-control-field"
-                                    for="selector-versiculo-inicio-coleccion" hidden>
+                                <label id="versiculo-inicio-coleccion-row" class="panel-lumina-control-field" hidden>
                                     <span>Colección</span>
                                     <select id="selector-versiculo-inicio-coleccion"></select>
                                 </label>
@@ -1121,7 +1119,7 @@
         </aside>
         <div id="overlay-paneles-derecha" class="hidden fixed inset-0 z-40 bg-black/35 backdrop-blur-[2px]"
             onclick="cerrarPanelActivoLateral()" aria-hidden="true"></div>
-        <aside id="panel-busqueda" data-panel-lateral="derecha"
+        <aside id="panel-busqueda" data-panel-lateral="derecha" aria-labelledby="titulo-panel-busqueda"
             class="w-[90%] sm:w-[420px] shadow-2xl h-full overflow-hidden transform translate-x-full fixed right-0 top-0 border-l border-gray-200 dark:border-gray-700 z-50 transition-all duration-300 flex flex-col">
             <button type="button" class="panel-busqueda-tirador" title="Reabrir resultados de búsqueda"
                 aria-label="Reabrir resultados de búsqueda" hidden>
@@ -1130,13 +1128,14 @@
             <div
                 class="panel-busqueda-header sticky top-0 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 md:p-8 relative">
                 <button type="button" onclick="cerrarPanelBusquedaCompleto()"
-                    class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    aria-label="Cerrar resultados de búsqueda">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
                         </path>
                     </svg>
                 </button>
-                <h2 class="text-2xl font-bold mb-2 text-oro font-sans tracking-wide mt-2 pr-6">Resultados de búsqueda
+                <h2 id="titulo-panel-busqueda" class="text-2xl font-bold mb-2 text-oro font-sans tracking-wide mt-2 pr-6">Resultados de búsqueda
                 </h2>
                 <div id="contador-busqueda" class="text-sm text-gray-500 dark:text-gray-400 mb-4">0 resultados</div>
                 <div class="h-0.5 w-12 bg-oro mb-6"></div>
@@ -1147,7 +1146,7 @@
                             aria-label="Refinar búsqueda">
                     </div>
                     <div class="panel-busqueda-tools-row">
-                        <label class="panel-busqueda-filter-field" for="busqueda-filtro-libro">
+                        <label class="panel-busqueda-filter-field">
                             <i class="fas fa-book-open" aria-hidden="true"></i>
                             <select id="busqueda-filtro-libro" class="panel-busqueda-filter-select"
                                 aria-label="Filtrar resultados por libro o sección">
@@ -1173,12 +1172,13 @@
             </div>
         </aside>
 
-        <aside id="panel-comentarios" data-panel-lateral="derecha"
+        <aside id="panel-comentarios" data-panel-lateral="derecha" aria-labelledby="titulo-panel-versiculo"
             class="w-[90%] sm:w-[420px] shadow-2xl h-full overflow-hidden transform translate-x-full fixed right-0 top-0 border-l border-gray-200 dark:border-gray-700 z-50 transition-all duration-300 flex flex-col">
             <div
                 class="panel-comentarios-header sticky top-0 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 md:p-8 relative">
                 <button type="button" onclick="cerrarPanel('panel-comentarios')"
-                    class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    aria-label="Cerrar panel de versículo">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
                         </path>
@@ -1217,13 +1217,13 @@
             </div>
         </aside>
 
-        <aside id="panel-favoritos" data-panel-lateral="derecha"
+        <aside id="panel-favoritos" data-panel-lateral="derecha" aria-labelledby="titulo-panel-guardados"
             class="w-[90%] sm:w-[420px] shadow-2xl h-full overflow-hidden transform translate-x-full fixed right-0 top-0 border-l border-gray-200 dark:border-gray-700 z-50 transition-all duration-300 flex flex-col">
             <div
                 class="panel-favoritos-header sticky top-0 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-4 md:px-5 md:py-5">
                 <div class="flex items-start justify-between gap-3">
                     <div>
-                        <h2
+                        <h2 id="titulo-panel-guardados"
                             class="panel-sticky-title text-2xl font-bold mb-1 text-oro font-sans tracking-wide mt-0 pr-6 inline-flex items-center gap-2">
                             <i class="fas fa-floppy-disk" aria-hidden="true"></i>
                             <span>Guardados</span>
@@ -1231,7 +1231,8 @@
                         <div class="h-0.5 w-12 bg-oro mb-0"></div>
                     </div>
                     <button type="button" onclick="cerrarPanel('panel-favoritos')"
-                        class="flex-shrink-0 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors z-30">
+                        class="flex-shrink-0 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors z-30"
+                        aria-label="Cerrar guardados">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M6 18L18 6M6 6l12 12"></path>
@@ -1239,26 +1240,28 @@
                     </button>
                 </div>
             </div>
-            <div class="panel-guardados-tabs px-4 md:px-5 pt-3 pb-2">
+            <div class="panel-guardados-tabs px-4 md:px-5 pt-3 pb-2" role="tablist" aria-label="Guardados">
                 <button type="button" id="tab-guardados-favoritos" class="panel-guardados-tab activa"
-                    aria-selected="true">
+                    role="tab" aria-selected="true" aria-controls="contenido-favoritos-guardados">
                     <i class="fas fa-star" aria-hidden="true"></i>
                     <span>Favoritos</span>
                 </button>
-                <button type="button" id="tab-guardados-pasajes" class="panel-guardados-tab" aria-selected="false">
+                <button type="button" id="tab-guardados-pasajes" class="panel-guardados-tab" role="tab"
+                    aria-selected="false" aria-controls="contenido-pasajes-guardados" tabindex="-1">
                     <i class="fas fa-bookmark" aria-hidden="true"></i>
                     <span>Pasajes</span>
                 </button>
-                <button type="button" id="tab-guardados-colecciones" class="panel-guardados-tab" aria-selected="false">
+                <button type="button" id="tab-guardados-colecciones" class="panel-guardados-tab" role="tab"
+                    aria-selected="false" aria-controls="contenido-colecciones-guardados" tabindex="-1">
                     <i class="fas fa-layer-group" aria-hidden="true"></i>
                     <span>Colecciones</span>
                 </button>
             </div>
             <div class="panel-guardados-body flex-1 overflow-y-auto min-h-0">
-                <div id="contenido-favoritos-guardados" class="p-4 md:p-5 pt-0 pb-4">
+                <div id="contenido-favoritos-guardados" class="p-4 md:p-5 pt-0 pb-4" role="tabpanel"
+                    aria-labelledby="tab-guardados-favoritos">
                     <div class="panel-favoritos-tools">
-                        <label class="panel-busqueda-filter-field panel-favoritos-filter-field"
-                            for="favoritos-filtro-libro">
+                        <label class="panel-busqueda-filter-field panel-favoritos-filter-field">
                             <i class="fas fa-book-open" aria-hidden="true"></i>
                             <select id="favoritos-filtro-libro" class="panel-busqueda-filter-select"
                                 aria-label="Filtrar favoritos por libro o sección">
@@ -1273,20 +1276,23 @@
                     </div>
                     <div id="lista-favoritos" class="space-y-3"></div>
                 </div>
-                <div id="contenido-colecciones-guardados" class="hidden p-4 md:p-5 pt-0 pb-4">
+                <div id="contenido-colecciones-guardados" class="hidden p-4 md:p-5 pt-0 pb-4" role="tabpanel"
+                    aria-labelledby="tab-guardados-colecciones" hidden>
                     <div id="lista-colecciones" class="space-y-3"></div>
                 </div>
-                <div id="contenido-pasajes-guardados" class="hidden p-4 md:p-5 pt-0 pb-4">
+                <div id="contenido-pasajes-guardados" class="hidden p-4 md:p-5 pt-0 pb-4" role="tabpanel"
+                    aria-labelledby="tab-guardados-pasajes" hidden>
                     <div id="lista-pasajes" class="space-y-3"></div>
                 </div>
             </div>
         </aside>
 
-        <aside id="panel-concordancia" data-panel-lateral="derecha"
+        <aside id="panel-concordancia" data-panel-lateral="derecha" aria-labelledby="titulo-concordancia"
             class="w-[90%] sm:w-[420px] shadow-2xl h-full overflow-y-auto transform translate-x-full fixed right-0 top-0 border-l border-gray-200 dark:border-gray-700 z-50 transition-all duration-300">
             <div class="p-6 md:p-8 relative">
                 <button type="button" onclick="cerrarPanel('panel-concordancia')"
-                    class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    aria-label="Cerrar concordancia">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
                         </path>
@@ -1298,7 +1304,7 @@
                 <div id="contenido-concordancia" class="space-y-3"></div>
             </div>
         </aside>
-    </div>
+    </main>
     <div id="modal-confirmacion"
         class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/50 backdrop-blur-sm">
         <div
@@ -1770,7 +1776,7 @@
                     <div>
                         <div class="share-verse-card-shell">
                             <canvas id="canvas-compartir-versiculo" class="share-verse-card-canvas" width="1080"
-                                height="1350" aria-label="Vista previa de tarjeta para compartir"></canvas>
+                                height="1350" role="img" aria-label="Vista previa de tarjeta para compartir"></canvas>
                         </div>
                     </div>
 
@@ -1858,12 +1864,12 @@
 
             <div id="contenedor-qr" class="bg-white p-2 rounded-xl mb-6 flex justify-center"></div>
 
-            <button onclick="compartirEnlaceLumina()"
+            <button type="button" onclick="compartirEnlaceLumina()"
                 class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-xl mb-3 transition">
                 Compartir por WhatsApp / Enlace
             </button>
 
-            <button onclick="cerrarModalCompartir()" class="text-gray-500 dark:text-gray-400 hover:underline">
+            <button type="button" onclick="cerrarModalCompartir()" class="text-gray-500 dark:text-gray-400 hover:underline">
                 Cerrar
             </button>
         </div>
