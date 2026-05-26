@@ -1,4 +1,4 @@
-const VERSION_CACHE = '4.296.024';
+const VERSION_CACHE = '4.296.025';
 // Bump this only when Biblia/Catena/Agustin JSON files change.
 const VERSION_CACHE_DATA = '2026-05-14.1';
 const CACHE_SHELL = `lumina-shell-${VERSION_CACHE}`;
@@ -15,7 +15,9 @@ const archivosShellCore = [
 ];
 
 const archivosShellComplementarios = [
-  './assets/vendor/fontawesome/css/all.min.css',
+  './assets/vendor/fontawesome/css/lumina-icons.css',
+  './assets/vendor/fontawesome/webfonts/lumina-icons-solid.woff2',
+  './assets/vendor/fontawesome/webfonts/lumina-icons-brands.woff2',
   './Favicon/favicon.ico',
   './Favicon/favicon-32x32.png',
   './Favicon/favicon-16x16.png',
@@ -63,6 +65,7 @@ function esRecursoShellActualizable(request) {
     path.endsWith('/script.min.js') ||
     path.endsWith('/lumina.css') ||
     path.endsWith('/style.min.css') ||
+    path.endsWith('/lumina-icons.css') ||
     path.endsWith('/manifest.json')
   );
 }
@@ -83,6 +86,7 @@ function obtenerCacheDestino(request) {
     path.endsWith('/firebase-config.js') ||
     path.endsWith('/lumina.css') ||
     path.endsWith('/style.min.css') ||
+    path.endsWith('/lumina-icons.css') ||
     path.endsWith('/manifest.json')
   ) {
     return CACHE_SHELL;
