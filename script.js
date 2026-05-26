@@ -113,7 +113,7 @@ function inicializarIndiceV2() {
         divTestamento.className = 'flex flex-col items-center w-full';
         const progresoTestamento = obtenerProgresoTestamento(testamento);
         divTestamento.innerHTML = `
-            <h3 class="text-xl font-bold mb-3 text-oro font-sans uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 pb-2 w-full text-center mx-auto">${testamento}</h3>
+            <h2 class="text-xl font-bold mb-3 text-oro font-sans uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 pb-2 w-full text-center mx-auto">${testamento}</h2>
             <div class="progreso-testamento-vista mb-4 rounded-2xl p-4 w-full" data-progreso-testamento="${sanearIdDom(testamento)}">
             <div class="flex items-center justify-between gap-3 mb-2">
                 <span class="text-[11px] uppercase tracking-wider font-sans font-bold text-gray-500 dark:text-gray-400">Progreso del testamento</span>
@@ -458,6 +458,10 @@ const EVANGELIOS_CELEBRACION = [
 // --------------------------------------------------------------
 let bibleContent = {};
 let datosBibliaCargados = false;
+let promesaCargaBibliaLumina = null;
+let promesaCargaComentariosLumina = null;
+let promesaCargaFirebaseLumina = null;
+let promesaCargaQrLumina = null;
 const NOMBRE_BD_CONTENIDO_LUMINA = 'lumina_contenido';
 const VERSION_BD_CONTENIDO_LUMINA = 1;
 const STORE_BD_CONTENIDO_LUMINA = 'recursos_normalizados';
@@ -602,14 +606,14 @@ function esBibliaNormalizadaValida(contenido) {
     return !!contenido && typeof contenido === 'object' && Object.keys(contenido).length > 0;
 }
 
-function aplicarBibliaNormalizada(contenido) {
+function aplicarBibliaNormalizada(contenido, { refrescarVista = false } = {}) {
     bibleContent = contenido;
     datosBibliaCargados = true;
     inicializarIndice();
     construirIndiceConcordancia();
     construirIndiceBusqueda();
 
-    if (libroActual) {
+    if (refrescarVista && libroActual) {
         if (capituloActual) abrirLectura(capituloActual);
         else abrirCapitulos(libroActual, obtenerCantidadCapitulos(libroActual));
     }
@@ -638,6 +642,31 @@ async function cargarBibliaJSON() {
         if (typeof iniciarBibliaMock === 'function') iniciarBibliaMock();
         return false;
     }
+}
+
+function mostrarEstadoCargaBiblia(mensaje = 'Cargando la Palabra...') {
+    const contenedor = document.getElementById('contenedor-versiculos');
+    if (contenedor) {
+        contenedor.innerHTML = `<div class="loading"><i class="fas fa-spinner fa-spin mr-2" aria-hidden="true"></i> ${escapeHtml(mensaje)}</div>`;
+    }
+}
+
+async function asegurarBibliaCargada({ mostrar = true, mensaje = 'Cargando la Palabra...' } = {}) {
+    if (datosBibliaCargados) return true;
+
+    if (mostrar) {
+        mostrarEstadoCargaBiblia(mensaje);
+        mostrarVista('vista-lectura');
+    }
+
+    if (!promesaCargaBibliaLumina) {
+        promesaCargaBibliaLumina = cargarBibliaJSON()
+            .finally(() => {
+                promesaCargaBibliaLumina = null;
+            });
+    }
+
+    return promesaCargaBibliaLumina;
 }
 
 function obtenerCantidadCapitulos(libro) {
@@ -1579,7 +1608,7 @@ function mostrarConcordancia(palabra) {
     abrirPanelLateral('panel-concordancia');
 }
 
-function irAVersiculo(libro, capitulo, versiculo, origen = '', terminoBusqueda = '') {
+async function irAVersiculo(libro, capitulo, versiculo, origen = '', terminoBusqueda = '') {
     // Cerramos paneles laterales si están abiertos
     cerrarPanel('panel-concordancia');
     cerrarPanel('panel-busqueda');
@@ -1601,34 +1630,34 @@ function irAVersiculo(libro, capitulo, versiculo, origen = '', terminoBusqueda =
         // 1. Cargamos la vista de capítulos del libro
         abrirCapitulos(libro, libroObj.caps);
 
-        setTimeout(() => {
-            // 2. Cargamos la lectura del capítulo específico
-            abrirLectura(capitulo);
+        await new Promise(resolve => setTimeout(resolve, 150));
 
+        // 2. Cargamos la lectura del capítulo específico
+        await abrirLectura(capitulo);
+
+        await new Promise(resolve => requestAnimationFrame(resolve));
+
+        // 3. Buscamos el elemento del versículo en el DOM
+        const targetId = `verse_${libro}_${capitulo}_${versiculo}`;
+        const target = document.getElementById(targetId);
+
+        if (target) {
+            // 4. Scroll suave hacia el versículo
+            target.scrollIntoView({ behavior: "smooth", block: "center" });
+
+            if (origen === 'busqueda') {
+                aplicarResaltadoBusquedaEnVersiculoLectura(libro, capitulo, versiculo, terminoBusqueda);
+            }
+
+            // 5. Aplicamos el EFECTO GLOW
+            target.classList.add('highlight-glow');
+
+            // 6. Limpiamos la clase después de 3s (duración de la animación)
+            // para que pueda volver a dispararse en el futuro
             setTimeout(() => {
-                // 3. Buscamos el elemento del versículo en el DOM
-                const targetId = `verse_${libro}_${capitulo}_${versiculo}`;
-                const target = document.getElementById(targetId);
-
-                if (target) {
-                    // 4. Scroll suave hacia el versículo
-                    target.scrollIntoView({ behavior: "smooth", block: "center" });
-
-                    if (origen === 'busqueda') {
-                        aplicarResaltadoBusquedaEnVersiculoLectura(libro, capitulo, versiculo, terminoBusqueda);
-                    }
-
-                    // 5. Aplicamos el EFECTO GLOW
-                    target.classList.add('highlight-glow');
-
-                    // 6. Limpiamos la clase después de 3s (duración de la animación) 
-                    // para que pueda volver a dispararse en el futuro
-                    setTimeout(() => {
-                        target.classList.remove('highlight-glow');
-                    }, 3000);
-                }
-            }, 250); // Tiempo para que el DOM de los versículos se renderice
-        }, 150); // Tiempo para que la vista de capítulos procese
+                target.classList.remove('highlight-glow');
+            }, 3000);
+        }
     }
 }
 
@@ -1984,6 +2013,21 @@ async function cargarComentariosJSON() {
             secuenciaComentariosDB
         });
     }
+}
+
+async function asegurarComentariosCargados({ silencioso = false } = {}) {
+    if (datosComentariosCargados) return true;
+
+    if (!promesaCargaComentariosLumina) {
+        if (!silencioso) lanzarToast('Cargando comentarios de la Tradición...');
+        promesaCargaComentariosLumina = cargarComentariosJSON()
+            .finally(() => {
+                promesaCargaComentariosLumina = null;
+            });
+    }
+
+    await promesaCargaComentariosLumina;
+    return datosComentariosCargados;
 }
 
 function obtenerComentarios(libro, capitulo, versiculo) {
@@ -3263,7 +3307,7 @@ function desactivarVersiculoInicio() {
     lanzarToast('Versículo de bienvenida desactivado');
 }
 
-function abrirVersiculoInicioGuardado() {
+async function abrirVersiculoInicioGuardado() {
     const versiculoInicio = obtenerVersiculoInicioMostradoEnModal();
     if (!versiculoInicio) return;
 
@@ -3277,7 +3321,7 @@ function abrirVersiculoInicioGuardado() {
     if (selectorCapitulos) selectorCapitulos.value = versiculoInicio.libro;
     if (selectorLectura) selectorLectura.value = versiculoInicio.libro;
 
-    abrirLectura(versiculoInicio.capitulo);
+    await abrirLectura(versiculoInicio.capitulo);
 
     requestAnimationFrame(() => {
         resaltarVersiculo(
@@ -4358,16 +4402,14 @@ function resaltarPasajeGuardadoEnLectura(pasaje) {
     }, 3600);
 }
 
-function abrirPasajeGuardado(pasajeId) {
+async function abrirPasajeGuardado(pasajeId) {
     const pasaje = obtenerPasajeGuardadoPorId(pasajeId);
     if (!pasaje) return;
 
     cerrarPanel('panel-favoritos');
-    irAVersiculo(pasaje.libro, pasaje.capitulo, pasaje.desde);
+    await irAVersiculo(pasaje.libro, pasaje.capitulo, pasaje.desde);
 
-    setTimeout(() => {
-        resaltarPasajeGuardadoEnLectura(pasaje);
-    }, 360);
+    resaltarPasajeGuardadoEnLectura(pasaje);
 }
 
 function generarIdColeccionVersiculos() {
@@ -5120,7 +5162,7 @@ function crearBotonFavoritoVersiculo(item) {
     return entrada;
 }
 
-function abrirFavoritoAnotacion(libro, capitulo, versiculo, tipo, idx, opciones = {}) {
+async function abrirFavoritoAnotacion(libro, capitulo, versiculo, tipo, idx, opciones = {}) {
     cerrarPanel('panel-busqueda');
     cerrarPanel('panel-favoritos');
 
@@ -5130,27 +5172,25 @@ function abrirFavoritoAnotacion(libro, capitulo, versiculo, tipo, idx, opciones 
     }
 
     const esBusqueda = opciones?.origen === 'busqueda';
-    irAVersiculo(
+    await irAVersiculo(
         libro,
         capitulo,
         versiculo,
         esBusqueda ? 'busqueda' : '',
         opciones?.terminoBusqueda || ''
     );
-    setTimeout(() => {
-        abrirPanel(
-            libro,
-            capitulo,
-            versiculo,
-            bibleContent[libro]?.[capitulo]?.[versiculo] || "",
-            {
-                tipoLlegada: tipo,
-                idxLlegada: idx,
-                terminoBusqueda: opciones?.terminoBusqueda || '',
-                editarNota: opciones?.editarNota === true && tipo === 'personal'
-            }
-        );
-    }, 200);
+    abrirPanel(
+        libro,
+        capitulo,
+        versiculo,
+        bibleContent[libro]?.[capitulo]?.[versiculo] || "",
+        {
+            tipoLlegada: tipo,
+            idxLlegada: idx,
+            terminoBusqueda: opciones?.terminoBusqueda || '',
+            editarNota: opciones?.editarNota === true && tipo === 'personal'
+        }
+    );
 }
 
 function crearBotonFavoritoComentario(item) {
@@ -6679,9 +6719,16 @@ async function eliminarLectioGuardada(registroId) {
     lanzarToast('Lectio eliminada');
 }
 
-function usarContextoActualEnLectio() {
+async function usarContextoActualEnLectio() {
     if (!libroActual || !capituloActual) {
         lanzarToast('Abrí antes un libro o capítulo para usarlo como punto de partida');
+        return;
+    }
+
+    if (!await asegurarBibliaCargada({
+        mostrar: false,
+        mensaje: 'Cargando la Palabra para preparar Lectio...'
+    })) {
         return;
     }
 
@@ -6707,9 +6754,11 @@ function inicializarLectioDivina() {
     renderizarListaLectioGuardadas();
 }
 
-function abrirLectioDivina() {
-    if (!datosBibliaCargados) {
-        lanzarToast('Esperá un instante mientras termina de cargar la Biblia');
+async function abrirLectioDivina() {
+    if (!await asegurarBibliaCargada({
+        mostrar: false,
+        mensaje: 'Cargando la Palabra para abrir Lectio Divina...'
+    })) {
         return;
     }
 
@@ -8062,8 +8111,17 @@ function buscarResultadosBusqueda(termino, filtro = filtroLibroBusquedaActual) {
     return resultados;
 }
 
-function mostrarResultadosBusqueda(termino) {
+async function mostrarResultadosBusqueda(termino) {
     const terminoNormalizado = normalizarTerminoBusqueda(termino);
+    if (terminoNormalizado) {
+        const bibliaLista = await asegurarBibliaCargada({
+            mostrar: false,
+            mensaje: 'Cargando la Palabra para buscar...'
+        });
+        if (!bibliaLista) return;
+        await asegurarComentariosCargados({ silencioso: true });
+    }
+
     const contenedor = document.getElementById('contenido-busqueda');
     const contador = document.getElementById('contador-busqueda');
     filtroLibroBusquedaActual = normalizarFiltroLibroBusqueda(document.getElementById('busqueda-filtro-libro')?.value || filtroLibroBusquedaActual);
@@ -9038,6 +9096,25 @@ function renderizarQrCompartirImportableLumina(enlace) {
     panelQr.classList.remove('hidden');
 }
 
+function cargarGeneradorQrLumina() {
+    if (typeof QRCode !== 'undefined') return Promise.resolve(true);
+
+    if (!promesaCargaQrLumina) {
+        promesaCargaQrLumina = new Promise(resolve => {
+            const script = document.createElement('script');
+            script.src = 'assets/vendor/qrcodejs/qrcode.min.js';
+            script.async = true;
+            script.onload = () => resolve(typeof QRCode !== 'undefined');
+            script.onerror = () => resolve(false);
+            document.head.appendChild(script);
+        }).finally(() => {
+            promesaCargaQrLumina = null;
+        });
+    }
+
+    return promesaCargaQrLumina;
+}
+
 async function mostrarQrCompartirImportableLumina() {
     cerrarModalCompartirImportableLumina({ conservarContexto: true });
 
@@ -9049,6 +9126,7 @@ async function mostrarQrCompartirImportableLumina() {
         }
 
         mostrarModalCompartirImportableLumina();
+        await cargarGeneradorQrLumina();
         renderizarQrCompartirImportableLumina(enlace);
     } catch (error) {
         console.error('No se pudo generar el QR compartido:', error);
@@ -13872,8 +13950,21 @@ function poblarSelectoresRapidos() {
     });
 }
 
-function abrirPrefacio(libro, capitulo = 0, opciones = null) {
+async function abrirPrefacio(libro, capitulo = 0, opciones = null) {
     const capituloPrefacio = obtenerCapituloPrefacio(libro, capitulo);
+    if (!datosComentariosCargados) {
+        const referenciaCarga = formatearReferenciaPrefacio(libro, capituloPrefacio);
+        document.getElementById('titulo-panel-versiculo').innerHTML = referenciaCarga;
+        document.getElementById('cita-panel-sticky').innerHTML = '';
+        document.getElementById('contenido-panel-tradicion').innerHTML = `
+            <div class="text-gray-600 dark:text-gray-400 italic font-sans text-center py-10">
+                <i class="fas fa-spinner fa-spin mr-2" aria-hidden="true"></i> Cargando prefacio de la Tradición...
+            </div>
+        `;
+        abrirPanelLateral('panel-comentarios');
+        await asegurarComentariosCargados({ silencioso: true });
+    }
+
     const comentarios = obtenerComentariosPrefacio(libro, capituloPrefacio);
     const referenciaPrefacio = formatearReferenciaPrefacio(libro, capituloPrefacio);
     const esPrefacioSalmo = libro === 'Salmos' && capituloPrefacio > 0;
@@ -14191,7 +14282,7 @@ function construirAccionesVersiculoHtml(libro, capitulo, versiculo, textoOrigina
     `;
 }
 
-function abrirLectura(capitulo) {
+async function abrirLectura(capitulo) {
     capituloActual = capitulo;
     document.getElementById('titulo-lectura').innerText = libroActual;
     document.getElementById('subtitulo-capitulo').innerHTML = `Capítulo ${capitulo}`;
@@ -14199,6 +14290,14 @@ function abrirLectura(capitulo) {
     const contenedor = document.getElementById('contenedor-versiculos');
     contenedor.innerHTML = '';
     cerrarMenusAccionesVersiculo();
+
+    const bibliaLista = await asegurarBibliaCargada({
+        mostrar: true,
+        mensaje: 'Cargando la Palabra para abrir este capítulo...'
+    });
+    if (!bibliaLista) return;
+
+    contenedor.innerHTML = '';
     const lecturaActualVisible = versiculoActualEnLectura
         && versiculoActualEnLectura.libro === libroActual
         && versiculoActualEnLectura.capitulo === capitulo;
@@ -14361,7 +14460,7 @@ function llevarLecturaAlInicio() {
     });
 }
 
-function irAlCapituloAnterior() {
+async function irAlCapituloAnterior() {
     const todosLibros = obtenerTodosLosLibros();
     const indiceLibroActual = todosLibros.findIndex(l => l.nombre === libroActual);
 
@@ -14371,7 +14470,7 @@ function irAlCapituloAnterior() {
 
     if (cantidadCapitulos) {
         // Ir al capítulo anterior del mismo libro
-        abrirLectura(cantidadCapitulos);
+        await abrirLectura(cantidadCapitulos);
         llevarLecturaAlInicio();
     } else if (indiceLibroActual > 0) {
         // Ir al último capítulo del libro anterior
@@ -14380,12 +14479,12 @@ function irAlCapituloAnterior() {
         const ultimoCapitulo = Array.isArray(libroAnterior.caps)
             ? libroAnterior.caps[libroAnterior.caps.length - 1]
             : libroAnterior.caps;
-        abrirLectura(ultimoCapitulo);
+        await abrirLectura(ultimoCapitulo);
         llevarLecturaAlInicio();
     }
 }
 
-function irAlCapituloSiguiente() {
+async function irAlCapituloSiguiente() {
     const todosLibros = obtenerTodosLosLibros();
     const indiceLibroActual = todosLibros.findIndex(l => l.nombre === libroActual);
 
@@ -14398,13 +14497,13 @@ function irAlCapituloSiguiente() {
 
     if (capituloActual < cantCapitulos) {
         // Ir al siguiente capítulo del mismo libro
-        abrirLectura(capituloActual + 1);
+        await abrirLectura(capituloActual + 1);
         llevarLecturaAlInicio();
     } else if (indiceLibroActual < todosLibros.length - 1) {
         // Ir al primer capítulo del siguiente libro
         const libroSiguiente = todosLibros[indiceLibroActual + 1];
         libroActual = libroSiguiente.nombre;
-        abrirLectura(1);
+        await abrirLectura(1);
         llevarLecturaAlInicio();
     }
 }
@@ -14483,30 +14582,32 @@ function volverDesdeTutorial() {
     irAlInicio();
 }
 
-function abrirCapituloTutorialLumina(libro = 'Evangelio según San Juan', capitulo = 1) {
-    if (!datosBibliaCargados) {
-        lanzarToast('Esperá un instante mientras termina de cargar la Biblia');
+async function abrirCapituloTutorialLumina(libro = 'Evangelio según San Juan', capitulo = 1) {
+    if (!await asegurarBibliaCargada({
+        mostrar: false,
+        mensaje: 'Cargando la Palabra para abrir el tutorial...'
+    })) {
         return false;
     }
 
     cerrarPanelLumina();
     libroActual = libro;
-    abrirLectura(capitulo);
+    await abrirLectura(capitulo);
     llevarLecturaAlInicio();
     return true;
 }
 
-function abrirTutorialLecturaBasica() {
-    if (!abrirCapituloTutorialLumina()) return;
+async function abrirTutorialLecturaBasica() {
+    if (!await abrirCapituloTutorialLumina()) return;
     lanzarToast('Abrimos un capítulo de ejemplo. Tocá un versículo para ver Tradición, Referencias y notas.');
 }
 
-function abrirTutorialComentariosLumina() {
+async function abrirTutorialComentariosLumina() {
     const libro = 'Evangelio según San Juan';
     const capitulo = 1;
     const versiculo = 1;
 
-    if (!abrirCapituloTutorialLumina(libro, capitulo)) return;
+    if (!await abrirCapituloTutorialLumina(libro, capitulo)) return;
 
     requestAnimationFrame(() => {
         const texto = bibleContent[libro]?.[capitulo]?.[versiculo] || '';
@@ -14522,9 +14623,11 @@ function abrirTutorialGuardadosLumina() {
     lanzarToast('Acá vuelven tus favoritos, notas, pasajes, colecciones y Lectio guardadas.');
 }
 
-function abrirTutorialBusquedaLumina() {
-    if (!datosBibliaCargados) {
-        lanzarToast('Esperá un instante mientras termina de cargar la Biblia');
+async function abrirTutorialBusquedaLumina() {
+    if (!await asegurarBibliaCargada({
+        mostrar: false,
+        mensaje: 'Cargando la Palabra para probar búsqueda...'
+    })) {
         return;
     }
 
@@ -14537,8 +14640,8 @@ function abrirTutorialBusquedaLumina() {
     lanzarToast('Probamos una búsqueda para ver versículos, comentarios y notas.');
 }
 
-function abrirTutorialConcordanciasLumina() {
-    if (!abrirCapituloTutorialLumina()) return;
+async function abrirTutorialConcordanciasLumina() {
+    if (!await abrirCapituloTutorialLumina()) return;
 
     const toggle = document.getElementById('toggle-concordancia');
     if (toggle) {
@@ -14561,8 +14664,7 @@ function abrirTutorialAjustesLumina() {
     mostrarSeccionPanelLumina('ajustes');
 }
 
-function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null) {
-    const comentarios = obtenerComentarios(libro, capitulo, versiculo);
+async function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null) {
     const terminoBusqueda = obtenerTerminoBusquedaLlegada(libro, capitulo, versiculo, opciones?.terminoBusqueda || '');
 
     const usaAcotacionesEspeciales = libroUsaAcotacionesEspeciales(libro);
@@ -14578,6 +14680,23 @@ function abrirPanel(libro, capitulo, versiculo, textoVersiculo, opciones = null)
             <p class="cita-versiculo-texto text-sm font-serif italic text-gray-700 dark:text-gray-300">"${renderizarTextoBusquedaResaltadoHtml(textoVersiculo, terminoBusqueda, { preservarSaltos: true })}"</p>
         </div>
     `;
+
+    if (!datosComentariosCargados) {
+        document.getElementById('contenido-panel-tradicion').innerHTML = `
+            <div class="text-xs font-sans text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3">
+                <i class="fas fa-feather-alt" aria-hidden="true"></i> Tradición de los Padres y Doctores
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 italic font-sans text-center py-10">
+                <i class="fas fa-spinner fa-spin mr-2" aria-hidden="true"></i> Cargando comentarios de la Tradición...
+            </div>
+        `;
+        document.getElementById('contenido-panel-relacionadas').innerHTML = renderizarReferenciasRelacionadasHtml(libro, capitulo, versiculo, textoVersiculo);
+        mostrarNotasPersonales(libro, capitulo, versiculo, terminoBusqueda);
+        abrirPanelLateral('panel-comentarios');
+        await asegurarComentariosCargados({ silencioso: true });
+    }
+
+    const comentarios = obtenerComentarios(libro, capitulo, versiculo);
 
     let tradicionHtml = `<div class="text-xs font-sans text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3"><i class="fas fa-feather-alt"></i> Tradición de los Padres y Doctores</div>`;
 
@@ -14981,9 +15100,27 @@ function abrirTutorialDesdeBienvenida() {
 }
 
 function verificarBienvenida() {
-    if (leerPersistencia(CLAVE_BIENVENIDA) !== 'true') {
-        abrirModalBienvenida();
-    }
+    if (leerPersistencia(CLAVE_BIENVENIDA) === 'true') return;
+
+    const controlador = new AbortController();
+    const abrir = () => {
+        controlador.abort();
+        setTimeout(() => abrirModalBienvenida(), 0);
+    };
+
+    window.addEventListener('click', abrir, {
+        once: true,
+        passive: true,
+        signal: controlador.signal
+    });
+
+    window.addEventListener('keydown', event => {
+        if (['Alt', 'Control', 'Escape', 'Meta', 'Shift', 'Tab'].includes(event.key)) return;
+        abrir();
+    }, {
+        passive: true,
+        signal: controlador.signal
+    });
 }
 
 function registrarFirebaseLumina(firebase = window.LuminaFirebase) {
@@ -15023,14 +15160,35 @@ function registrarFirebaseLumina(firebase = window.LuminaFirebase) {
         });
 }
 
-function inicializarFirebaseLumina() {
-    if (!window.LuminaFirebase) {
-        console.warn('Firebase todavía no está disponible. Lumina sigue funcionando con persistencia local.');
+function cargarFirebaseLumina() {
+    if (firebaseLumina || window.LuminaFirebase) {
+        return registrarFirebaseLumina(firebaseLumina || window.LuminaFirebase);
+    }
+
+    if (!promesaCargaFirebaseLumina) {
+        actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.conectando);
+        promesaCargaFirebaseLumina = import('./firebase-config.js')
+            .then(() => registrarFirebaseLumina(window.LuminaFirebase))
+            .catch(error => {
+                console.warn('Firebase no pudo cargarse bajo demanda:', error);
+                actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.error);
+                return null;
+            })
+            .finally(() => {
+                promesaCargaFirebaseLumina = null;
+            });
+    }
+
+    return promesaCargaFirebaseLumina;
+}
+
+function inicializarFirebaseLumina({ diferido = false } = {}) {
+    if (diferido && !window.LuminaFirebase) {
         actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.sinFirebase);
         return Promise.resolve(null);
     }
 
-    return registrarFirebaseLumina(window.LuminaFirebase);
+    return cargarFirebaseLumina();
 }
 
 function inicializarAuthNubeLumina(firebase) {
@@ -15052,6 +15210,7 @@ function inicializarAuthNubeLumina(firebase) {
 function abrirAjustesNubeLumina() {
     abrirPanelLumina();
     mostrarSeccionPanelLumina('ajustes');
+    cargarFirebaseLumina();
 }
 
 function obtenerNombreUsuarioNubeLumina(user = usuarioFirebaseLumina) {
@@ -15215,7 +15374,8 @@ function esperarOperacionNubeLumina(operacion, mensaje = 'La operación de nube 
 }
 
 async function iniciarSesionGoogleLumina() {
-    if (!firebaseLumina?.signInWithGoogle) {
+    const firebase = firebaseLumina || await cargarFirebaseLumina();
+    if (!firebase?.signInWithGoogle) {
         lanzarToast('Firebase todavía no está listo');
         return;
     }
@@ -15223,7 +15383,7 @@ async function iniciarSesionGoogleLumina() {
     actualizarEstadoNubeLumina(ESTADO_NUBE_LUMINA.conectando);
 
     try {
-        await firebaseLumina.signInWithGoogle();
+        await firebase.signInWithGoogle();
     } catch (error) {
         manejarErrorAuthLumina(error);
     }
@@ -15256,6 +15416,8 @@ function esperarFirebaseLuminaDisponible(timeoutMs = 8000) {
     if (firebaseLumina?.cargarCompartidoLumina || window.LuminaFirebase?.cargarCompartidoLumina) {
         return Promise.resolve(firebaseLumina || window.LuminaFirebase);
     }
+
+    cargarFirebaseLumina();
 
     return new Promise(resolve => {
         let resuelto = false;
@@ -15942,7 +16104,8 @@ async function sincronizarLuminaConNube({ manual = false } = {}) {
     }
 }
 
-function sincronizarLuminaConNubeManual() {
+async function sincronizarLuminaConNubeManual() {
+    await cargarFirebaseLumina();
     return sincronizarLuminaConNube({ manual: true });
 }
 
@@ -15963,13 +16126,7 @@ const RECURSOS_OFFLINE_APP_NUCLEO = [
     './script.js'
 ];
 const RECURSOS_OFFLINE_APP_COMPLEMENTARIOS = [
-    './firebase-config.js',
-    './assets/vendor/fontawesome/css/all.min.css',
-    './assets/vendor/fontawesome/webfonts/fa-brands-400.woff2',
-    './assets/vendor/fontawesome/webfonts/fa-regular-400.woff2',
-    './assets/vendor/fontawesome/webfonts/fa-solid-900.woff2',
-    './assets/vendor/fontawesome/webfonts/fa-v4compatibility.woff2',
-    './assets/vendor/qrcodejs/qrcode.min.js'
+    './assets/vendor/fontawesome/css/all.min.css'
 ];
 const RECURSOS_OFFLINE_BIBLIOTECA = [
     './Biblia_Catolica_Completa.json',
@@ -16394,14 +16551,16 @@ async function registrarServiceWorker() {
 // --------------------------------------------------------------
 // 11. INICIO
 // --------------------------------------------------------------
-window.onload = async () => {
+async function iniciarLumina() {
+    inicializarIndice();
+    poblarSelectoresRapidos();
+    mostrarVista('vista-libros');
+    actualizarTabsPanelGuardados();
+
     await inicializarPersistenciaLumina();
-    inicializarFirebaseLumina();
+    inicializarFirebaseLumina({ diferido: true });
     document.getElementById('aviso-nueva-version-lumina')?.addEventListener('click', () => actualizarLuminaDesdeAviso());
     actualizarAvisoNuevaVersionLumina();
-
-    // Registramos Service Worker para modo sin conexión
-    await registrarServiceWorker();
 
     cargarFavoritos();
     cargarColeccionesVersiculos();
@@ -16411,22 +16570,19 @@ window.onload = async () => {
     cargarLeidos();
     cargarVersiculoInicioGuardado();
     cargarConfiguracionVersiculoInicio();
-    inicializarIndice();
-    poblarSelectoresRapidos();
-    mostrarVista('vista-libros');
-    actualizarTabsPanelGuardados();
+    actualizarBotonesLeidoLibros();
+    actualizarProgresoTestamentosVista();
+    actualizarProgresoBibliaVista();
 
-    document.getElementById('contenedor-versiculos').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin mr-2"></i> Cargando la Palabra y la Tradición...</div>';
-    await Promise.all([
-        cargarBibliaJSON(),
-        cargarComentariosJSON()
-    ]);
-    await actualizarIndicadorConexion();
+    const diferirInicio = (tarea) => setTimeout(tarea, 6000);
+
+    // Registramos Service Worker para modo sin conexión después de pintar la vista inicial.
+    diferirInicio(() => registrarServiceWorker());
+    diferirInicio(() => actualizarIndicadorConexion());
 
     initSettingsMenu();
     aplicarModoDesierto(leerPersistencia(CLAVE_MODO_DESIERTO) === 'true', { guardar: false });
     aplicarTextoCorrido(leerPersistencia(CLAVE_TEXTO_CORRIDO) === 'true', { guardar: false });
-    inicializarLectioDivina();
     actualizarBotonPdfLectioSegunDispositivo();
     await procesarEnlaceCompartidoLumina();
 
@@ -16436,7 +16592,15 @@ window.onload = async () => {
         toggle.checked = true;
         concordanciaActiva = true;
     }
-    toggle.addEventListener('change', () => {
+    toggle.addEventListener('change', async () => {
+        if (!await asegurarBibliaCargada({
+            mostrar: false,
+            mensaje: 'Cargando la Palabra para activar concordancias...'
+        })) {
+            toggle.checked = false;
+            concordanciaActiva = false;
+            return;
+        }
         concordanciaActiva = toggle.checked;
         escribirPersistencia(CLAVE_CONCORDANCIA, String(concordanciaActiva));
         refrescarConcordanciaVistaActual();
@@ -16623,10 +16787,16 @@ window.onload = async () => {
         sincronizarVozEspanol();
         registrarActualizacionVocesLectura();
     }
-};
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    iniciarLumina().catch(error => {
+        console.error('No se pudo iniciar Lumina:', error);
+    });
+});
 
 // 1. Abre el modal y genera el QR
-function abrirModalCompartir() {
+async function abrirModalCompartir() {
     const modal = document.getElementById('modal-compartir');
     const contenedorQR = document.getElementById('contenedor-qr');
 
@@ -16635,6 +16805,12 @@ function abrirModalCompartir() {
 
     // Solo generamos el QR si está vacío (para no dibujarlo 20 veces)
     if (contenedorQR.innerHTML === "") {
+        const qrListo = await cargarGeneradorQrLumina();
+        if (!qrListo) {
+            contenedorQR.textContent = 'No se pudo cargar el código QR.';
+            return;
+        }
+
         new QRCode(contenedorQR, {
             text: "https://nachomartinez1996.github.io/Lumina/",
             width: 200,

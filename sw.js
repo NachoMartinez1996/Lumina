@@ -1,4 +1,4 @@
-const VERSION_CACHE = '4.296.022';
+const VERSION_CACHE = '4.296.024';
 // Bump this only when Biblia/Catena/Agustin JSON files change.
 const VERSION_CACHE_DATA = '2026-05-14.1';
 const CACHE_SHELL = `lumina-shell-${VERSION_CACHE}`;
@@ -10,22 +10,12 @@ const archivosShellCore = [
   './',
   './index.html',
   './lumina.css',
-  './style.css',
-  './script.js'
+  './style.min.css',
+  './script.min.js'
 ];
 
 const archivosShellComplementarios = [
-  './firebase-config.js',
   './assets/vendor/fontawesome/css/all.min.css',
-  './assets/vendor/fontawesome/webfonts/fa-brands-400.ttf',
-  './assets/vendor/fontawesome/webfonts/fa-brands-400.woff2',
-  './assets/vendor/fontawesome/webfonts/fa-regular-400.ttf',
-  './assets/vendor/fontawesome/webfonts/fa-regular-400.woff2',
-  './assets/vendor/fontawesome/webfonts/fa-solid-900.ttf',
-  './assets/vendor/fontawesome/webfonts/fa-solid-900.woff2',
-  './assets/vendor/fontawesome/webfonts/fa-v4compatibility.ttf',
-  './assets/vendor/fontawesome/webfonts/fa-v4compatibility.woff2',
-  './assets/vendor/qrcodejs/qrcode.min.js',
   './Favicon/favicon.ico',
   './Favicon/favicon-32x32.png',
   './Favicon/favicon-16x16.png',
@@ -70,10 +60,9 @@ function esRecursoShellActualizable(request) {
     request.destination === 'style' ||
     request.destination === 'document' ||
     path.endsWith('/index.html') ||
-    path.endsWith('/script.js') ||
-    path.endsWith('/firebase-config.js') ||
+    path.endsWith('/script.min.js') ||
     path.endsWith('/lumina.css') ||
-    path.endsWith('/style.css') ||
+    path.endsWith('/style.min.css') ||
     path.endsWith('/manifest.json')
   );
 }
@@ -90,10 +79,10 @@ function obtenerCacheDestino(request) {
     request.destination === 'style' ||
     request.destination === 'document' ||
     path.endsWith('/index.html') ||
-    path.endsWith('/script.js') ||
+    path.endsWith('/script.min.js') ||
     path.endsWith('/firebase-config.js') ||
     path.endsWith('/lumina.css') ||
-    path.endsWith('/style.css') ||
+    path.endsWith('/style.min.css') ||
     path.endsWith('/manifest.json')
   ) {
     return CACHE_SHELL;

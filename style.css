@@ -1,6 +1,44 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap');
-
 /* TRANSICIONES GLOBALES */
+
+@font-face {
+    font-family: "Font Awesome 6 Free";
+    font-style: normal;
+    font-weight: 900;
+    font-display: swap;
+    src: url("assets/vendor/fontawesome/webfonts/fa-solid-900.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Font Awesome 6 Free";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("assets/vendor/fontawesome/webfonts/fa-regular-400.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Font Awesome 5 Free";
+    font-style: normal;
+    font-weight: 900;
+    font-display: swap;
+    src: url("assets/vendor/fontawesome/webfonts/fa-solid-900.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Font Awesome 5 Free";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("assets/vendor/fontawesome/webfonts/fa-regular-400.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "FontAwesome";
+    font-style: normal;
+    font-weight: 900;
+    font-display: swap;
+    src: url("assets/vendor/fontawesome/webfonts/fa-solid-900.woff2") format("woff2");
+}
 .vista {
     transition: opacity 0.3s ease;
 }
@@ -27,6 +65,27 @@ body {
     --lumina-shadow: 0 6px 18px rgba(78, 60, 33, 0.05);
     font-kerning: normal;
     text-rendering: optimizeLegibility;
+}
+
+body:not(.dark) .text-oro,
+body:not(.dark) .hover\:text-oro:hover,
+body:not(.dark) .group:hover .group-hover\:text-oro {
+    color: #936400 !important;
+}
+
+body:not(.dark) .border-oro,
+body:not(.dark) .hover\:border-oro:hover,
+body:not(.dark) .focus\:border-oro:focus {
+    border-color: #936400 !important;
+}
+
+body:not(.dark) .bg-oro,
+body:not(.dark) .hover\:bg-oro:hover {
+    background-color: #936400 !important;
+}
+
+body:not(.dark) .focus\:ring-oro:focus {
+    --tw-ring-color: rgb(147 100 0 / var(--tw-ring-opacity, 1)) !important;
 }
 
 :where(p, li, blockquote) {
@@ -4539,7 +4598,7 @@ body:not(.dark) .btn-audio-versiculo .audio-label {
     width: 100% !important;
 }
 
-#contenedor-libros>div>h3 {
+#contenedor-libros>div>h2 {
     width: 100% !important;
     text-align: center !important;
     margin-left: auto !important;
