@@ -4955,11 +4955,18 @@ body.dark.biblia-completa-activa .lectura-header-sticky {
     --tradicion-grupo-bg-fin: rgba(252, 250, 247, 0.96);
     --tradicion-grupo-texto: #6f4a00;
     --tradicion-grupo-sombra: rgba(184, 134, 11, 0.14);
+    --tradicion-grupo-borde-interno: rgba(184, 134, 11, 0.16);
+    --tradicion-grupo-badge-bg: rgba(184, 134, 11, 0.12);
+    --tradicion-grupo-badge-borde: rgba(184, 134, 11, 0.28);
+    --tradicion-grupo-extra-bg: rgba(184, 134, 11, 0.18);
+    --tradicion-grupo-numero-bg: rgba(184, 134, 11, 0.14);
+    --tradicion-grupo-texto-bg-inicio: rgba(184, 134, 11, 0.14);
+    --tradicion-grupo-texto-bg-fin: rgba(184, 134, 11, 0.06);
     background: linear-gradient(90deg, var(--tradicion-grupo-bg) 0%, var(--tradicion-grupo-bg-fin) 44%) !important;
     border-left-color: var(--tradicion-grupo-acento) !important;
     box-shadow:
         0 8px 22px rgba(35, 27, 19, 0.08),
-        inset 0 0 0 1px rgba(var(--tradicion-grupo-acento-rgb), 0.16) !important;
+        inset 0 0 0 1px var(--tradicion-grupo-borde-interno) !important;
 }
 
 .verse-card-tradicion-grupo::after {
@@ -4993,9 +5000,9 @@ body.dark.biblia-completa-activa .lectura-header-sticky {
     margin: -0.1rem 0 0.75rem 2.75rem;
     padding: 0.28rem 0.58rem;
     border-radius: 999px;
-    background: rgba(var(--tradicion-grupo-acento-rgb), 0.12);
+    background: var(--tradicion-grupo-badge-bg);
     color: var(--tradicion-grupo-texto);
-    border: 1px solid rgba(var(--tradicion-grupo-acento-rgb), 0.28);
+    border: 1px solid var(--tradicion-grupo-badge-borde);
     font-size: 0.73rem;
     font-weight: 800;
     line-height: 1.25;
@@ -5015,13 +5022,13 @@ body.dark.biblia-completa-activa .lectura-header-sticky {
     min-width: 1.25rem;
     padding: 0 0.35rem;
     border-radius: 999px;
-    background: rgba(var(--tradicion-grupo-acento-rgb), 0.18);
+    background: var(--tradicion-grupo-extra-bg);
     color: var(--tradicion-grupo-texto);
     text-align: center;
 }
 
 .verse-card-tradicion-grupo .verse-card-numero {
-    background: rgba(var(--tradicion-grupo-acento-rgb), 0.14) !important;
+    background: var(--tradicion-grupo-numero-bg) !important;
     color: var(--tradicion-grupo-texto) !important;
 }
 
@@ -5031,6 +5038,13 @@ body.dark.biblia-completa-activa .lectura-header-sticky {
     --tradicion-grupo-bg: rgba(15, 118, 110, 0.1);
     --tradicion-grupo-texto: #0b4f49;
     --tradicion-grupo-sombra: rgba(15, 118, 110, 0.13);
+    --tradicion-grupo-borde-interno: rgba(15, 118, 110, 0.16);
+    --tradicion-grupo-badge-bg: rgba(15, 118, 110, 0.12);
+    --tradicion-grupo-badge-borde: rgba(15, 118, 110, 0.28);
+    --tradicion-grupo-extra-bg: rgba(15, 118, 110, 0.18);
+    --tradicion-grupo-numero-bg: rgba(15, 118, 110, 0.14);
+    --tradicion-grupo-texto-bg-inicio: rgba(15, 118, 110, 0.14);
+    --tradicion-grupo-texto-bg-fin: rgba(15, 118, 110, 0.06);
 }
 
 .verse-card-tradicion-tono-3 {
@@ -5039,6 +5053,13 @@ body.dark.biblia-completa-activa .lectura-header-sticky {
     --tradicion-grupo-bg: rgba(159, 79, 105, 0.1);
     --tradicion-grupo-texto: #713349;
     --tradicion-grupo-sombra: rgba(159, 79, 105, 0.13);
+    --tradicion-grupo-borde-interno: rgba(159, 79, 105, 0.16);
+    --tradicion-grupo-badge-bg: rgba(159, 79, 105, 0.12);
+    --tradicion-grupo-badge-borde: rgba(159, 79, 105, 0.28);
+    --tradicion-grupo-extra-bg: rgba(159, 79, 105, 0.18);
+    --tradicion-grupo-numero-bg: rgba(159, 79, 105, 0.14);
+    --tradicion-grupo-texto-bg-inicio: rgba(159, 79, 105, 0.14);
+    --tradicion-grupo-texto-bg-fin: rgba(159, 79, 105, 0.06);
 }
 
 .verse-card-tradicion-tono-4 {
@@ -5047,6 +5068,13 @@ body.dark.biblia-completa-activa .lectura-header-sticky {
     --tradicion-grupo-bg: rgba(47, 111, 159, 0.1);
     --tradicion-grupo-texto: #204f73;
     --tradicion-grupo-sombra: rgba(47, 111, 159, 0.13);
+    --tradicion-grupo-borde-interno: rgba(47, 111, 159, 0.16);
+    --tradicion-grupo-badge-bg: rgba(47, 111, 159, 0.12);
+    --tradicion-grupo-badge-borde: rgba(47, 111, 159, 0.28);
+    --tradicion-grupo-extra-bg: rgba(47, 111, 159, 0.18);
+    --tradicion-grupo-numero-bg: rgba(47, 111, 159, 0.14);
+    --tradicion-grupo-texto-bg-inicio: rgba(47, 111, 159, 0.14);
+    --tradicion-grupo-texto-bg-fin: rgba(47, 111, 159, 0.06);
 }
 
 .verse-card-tradicion-tono-5 {
@@ -5055,6 +5083,13 @@ body.dark.biblia-completa-activa .lectura-header-sticky {
     --tradicion-grupo-bg: rgba(95, 127, 63, 0.11);
     --tradicion-grupo-texto: #42592d;
     --tradicion-grupo-sombra: rgba(95, 127, 63, 0.13);
+    --tradicion-grupo-borde-interno: rgba(95, 127, 63, 0.16);
+    --tradicion-grupo-badge-bg: rgba(95, 127, 63, 0.12);
+    --tradicion-grupo-badge-borde: rgba(95, 127, 63, 0.28);
+    --tradicion-grupo-extra-bg: rgba(95, 127, 63, 0.18);
+    --tradicion-grupo-numero-bg: rgba(95, 127, 63, 0.14);
+    --tradicion-grupo-texto-bg-inicio: rgba(95, 127, 63, 0.14);
+    --tradicion-grupo-texto-bg-fin: rgba(95, 127, 63, 0.06);
 }
 
 .verse-card-tradicion-tono-6 {
@@ -5063,6 +5098,13 @@ body.dark.biblia-completa-activa .lectura-header-sticky {
     --tradicion-grupo-bg: rgba(128, 100, 168, 0.1);
     --tradicion-grupo-texto: #594579;
     --tradicion-grupo-sombra: rgba(128, 100, 168, 0.13);
+    --tradicion-grupo-borde-interno: rgba(128, 100, 168, 0.16);
+    --tradicion-grupo-badge-bg: rgba(128, 100, 168, 0.12);
+    --tradicion-grupo-badge-borde: rgba(128, 100, 168, 0.28);
+    --tradicion-grupo-extra-bg: rgba(128, 100, 168, 0.18);
+    --tradicion-grupo-numero-bg: rgba(128, 100, 168, 0.14);
+    --tradicion-grupo-texto-bg-inicio: rgba(128, 100, 168, 0.14);
+    --tradicion-grupo-texto-bg-fin: rgba(128, 100, 168, 0.06);
 }
 
 body.dark .verse-card-tradicion-grupo {
@@ -5071,12 +5113,12 @@ body.dark .verse-card-tradicion-grupo {
     background: linear-gradient(90deg, var(--tradicion-grupo-bg) 0%, var(--tradicion-grupo-bg-fin) 48%) !important;
     box-shadow:
         0 10px 26px rgba(0, 0, 0, 0.26),
-        inset 0 0 0 1px rgba(var(--tradicion-grupo-acento-rgb), 0.2) !important;
+        inset 0 0 0 1px var(--tradicion-grupo-borde-interno) !important;
 }
 
 body.dark .verse-card-tradicion-badge {
-    background: rgba(var(--tradicion-grupo-acento-rgb), 0.18);
-    border-color: rgba(var(--tradicion-grupo-acento-rgb), 0.36);
+    background: var(--tradicion-grupo-badge-bg);
+    border-color: var(--tradicion-grupo-badge-borde);
 }
 
 body.dark .verse-card-tradicion-rango {
@@ -5084,7 +5126,7 @@ body.dark .verse-card-tradicion-rango {
 }
 
 body.dark .verse-card-tradicion-grupo .verse-card-numero {
-    background: rgba(var(--tradicion-grupo-acento-rgb), 0.18) !important;
+    background: var(--tradicion-grupo-numero-bg) !important;
     color: #f8fafc !important;
 }
 
@@ -5092,36 +5134,78 @@ body.dark .verse-card-tradicion-tono-1 {
     --tradicion-grupo-acento: #f3cf77;
     --tradicion-grupo-acento-rgb: 243, 207, 119;
     --tradicion-grupo-bg: rgba(243, 207, 119, 0.13);
+    --tradicion-grupo-borde-interno: rgba(243, 207, 119, 0.2);
+    --tradicion-grupo-badge-bg: rgba(243, 207, 119, 0.18);
+    --tradicion-grupo-badge-borde: rgba(243, 207, 119, 0.36);
+    --tradicion-grupo-extra-bg: rgba(243, 207, 119, 0.18);
+    --tradicion-grupo-numero-bg: rgba(243, 207, 119, 0.18);
+    --tradicion-grupo-texto-bg-inicio: rgba(243, 207, 119, 0.18);
+    --tradicion-grupo-texto-bg-fin: rgba(243, 207, 119, 0.08);
 }
 
 body.dark .verse-card-tradicion-tono-2 {
     --tradicion-grupo-acento: #5ccbc1;
     --tradicion-grupo-acento-rgb: 92, 203, 193;
     --tradicion-grupo-bg: rgba(92, 203, 193, 0.13);
+    --tradicion-grupo-borde-interno: rgba(92, 203, 193, 0.2);
+    --tradicion-grupo-badge-bg: rgba(92, 203, 193, 0.18);
+    --tradicion-grupo-badge-borde: rgba(92, 203, 193, 0.36);
+    --tradicion-grupo-extra-bg: rgba(92, 203, 193, 0.18);
+    --tradicion-grupo-numero-bg: rgba(92, 203, 193, 0.18);
+    --tradicion-grupo-texto-bg-inicio: rgba(92, 203, 193, 0.18);
+    --tradicion-grupo-texto-bg-fin: rgba(92, 203, 193, 0.08);
 }
 
 body.dark .verse-card-tradicion-tono-3 {
     --tradicion-grupo-acento: #e59ab1;
     --tradicion-grupo-acento-rgb: 229, 154, 177;
     --tradicion-grupo-bg: rgba(229, 154, 177, 0.13);
+    --tradicion-grupo-borde-interno: rgba(229, 154, 177, 0.2);
+    --tradicion-grupo-badge-bg: rgba(229, 154, 177, 0.18);
+    --tradicion-grupo-badge-borde: rgba(229, 154, 177, 0.36);
+    --tradicion-grupo-extra-bg: rgba(229, 154, 177, 0.18);
+    --tradicion-grupo-numero-bg: rgba(229, 154, 177, 0.18);
+    --tradicion-grupo-texto-bg-inicio: rgba(229, 154, 177, 0.18);
+    --tradicion-grupo-texto-bg-fin: rgba(229, 154, 177, 0.08);
 }
 
 body.dark .verse-card-tradicion-tono-4 {
     --tradicion-grupo-acento: #91bee0;
     --tradicion-grupo-acento-rgb: 145, 190, 224;
     --tradicion-grupo-bg: rgba(145, 190, 224, 0.13);
+    --tradicion-grupo-borde-interno: rgba(145, 190, 224, 0.2);
+    --tradicion-grupo-badge-bg: rgba(145, 190, 224, 0.18);
+    --tradicion-grupo-badge-borde: rgba(145, 190, 224, 0.36);
+    --tradicion-grupo-extra-bg: rgba(145, 190, 224, 0.18);
+    --tradicion-grupo-numero-bg: rgba(145, 190, 224, 0.18);
+    --tradicion-grupo-texto-bg-inicio: rgba(145, 190, 224, 0.18);
+    --tradicion-grupo-texto-bg-fin: rgba(145, 190, 224, 0.08);
 }
 
 body.dark .verse-card-tradicion-tono-5 {
     --tradicion-grupo-acento: #abc982;
     --tradicion-grupo-acento-rgb: 171, 201, 130;
     --tradicion-grupo-bg: rgba(171, 201, 130, 0.13);
+    --tradicion-grupo-borde-interno: rgba(171, 201, 130, 0.2);
+    --tradicion-grupo-badge-bg: rgba(171, 201, 130, 0.18);
+    --tradicion-grupo-badge-borde: rgba(171, 201, 130, 0.36);
+    --tradicion-grupo-extra-bg: rgba(171, 201, 130, 0.18);
+    --tradicion-grupo-numero-bg: rgba(171, 201, 130, 0.18);
+    --tradicion-grupo-texto-bg-inicio: rgba(171, 201, 130, 0.18);
+    --tradicion-grupo-texto-bg-fin: rgba(171, 201, 130, 0.08);
 }
 
 body.dark .verse-card-tradicion-tono-6 {
     --tradicion-grupo-acento: #bba5df;
     --tradicion-grupo-acento-rgb: 187, 165, 223;
     --tradicion-grupo-bg: rgba(187, 165, 223, 0.13);
+    --tradicion-grupo-borde-interno: rgba(187, 165, 223, 0.2);
+    --tradicion-grupo-badge-bg: rgba(187, 165, 223, 0.18);
+    --tradicion-grupo-badge-borde: rgba(187, 165, 223, 0.36);
+    --tradicion-grupo-extra-bg: rgba(187, 165, 223, 0.18);
+    --tradicion-grupo-numero-bg: rgba(187, 165, 223, 0.18);
+    --tradicion-grupo-texto-bg-inicio: rgba(187, 165, 223, 0.18);
+    --tradicion-grupo-texto-bg-fin: rgba(187, 165, 223, 0.08);
 }
 
 body.modo-desierto-texto-corrido #vista-lectura .verse-card-tradicion-grupo {
@@ -5142,16 +5226,16 @@ body.modo-desierto-texto-corrido #vista-lectura .verse-card-tradicion-grupo .tex
     padding: 0.18rem 0.65rem 0.2rem 0.85rem;
     border-radius: 0.45rem;
     background: linear-gradient(90deg,
-            rgba(var(--tradicion-grupo-acento-rgb), 0.14) 0%,
-            rgba(var(--tradicion-grupo-acento-rgb), 0.06) 70%,
+            var(--tradicion-grupo-texto-bg-inicio) 0%,
+            var(--tradicion-grupo-texto-bg-fin) 70%,
             transparent 100%) !important;
     box-shadow: inset 3px 0 0 var(--tradicion-grupo-acento);
 }
 
 body.dark.modo-desierto-texto-corrido #vista-lectura .verse-card-tradicion-grupo .texto-biblico {
     background: linear-gradient(90deg,
-            rgba(var(--tradicion-grupo-acento-rgb), 0.18) 0%,
-            rgba(var(--tradicion-grupo-acento-rgb), 0.08) 72%,
+            var(--tradicion-grupo-texto-bg-inicio) 0%,
+            var(--tradicion-grupo-texto-bg-fin) 72%,
             transparent 100%) !important;
 }
 
@@ -7616,8 +7700,6 @@ Comentarios compartir Lumina
     /* Se rellena un poco más al hover */
 }
 
-*/
-
 /* --- CORRECCIÓN DEL ÍCONO --- */
 /* Forzamos a que cualquier ícono (fas) dentro de .btn-compartir */
 /* mantenga su propia tipografía de íconos. */
@@ -7670,6 +7752,7 @@ body.dark .palabra-resaltada {
     background: linear-gradient(120deg, rgba(250, 204, 21, 0.38), rgba(212, 175, 55, 0.52));
     box-shadow: 0 0 16px rgba(250, 204, 21, 0.42), inset 0 0 10px rgba(255, 255, 200, 0.35);
     color: #fef3c7 !important;
+    animation-name: palabra-brillo-dark;
 }
 
 @keyframes palabra-brillo {
@@ -7692,7 +7775,7 @@ body.dark .palabra-resaltada {
     }
 }
 
-body.dark @keyframes palabra-brillo {
+@keyframes palabra-brillo-dark {
     0% {
         box-shadow: 0 0 0 rgba(250, 204, 21, 0), inset 0 0 0 rgba(255, 255, 200, 0);
         background: rgba(250, 204, 21, 0.1);
