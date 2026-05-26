@@ -2,7 +2,7 @@
   font-family: "Lumina Icons";
   font-style: normal;
   font-weight: 900;
-  font-display: swap;
+  font-display: block;
   src: url("../webfonts/lumina-icons-solid.woff2") format("woff2");
 }
 
@@ -10,7 +10,7 @@
   font-family: "Lumina Brands";
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("../webfonts/lumina-icons-brands.woff2") format("woff2");
 }
 
