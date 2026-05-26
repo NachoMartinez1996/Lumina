@@ -16789,11 +16789,21 @@ async function iniciarLumina() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    iniciarLumina().catch(error => {
+function iniciarLuminaCuandoDomEsteListo() {
+    if (window.luminaInicioPromise) return window.luminaInicioPromise;
+
+    window.luminaInicioPromise = iniciarLumina().catch(error => {
         console.error('No se pudo iniciar Lumina:', error);
     });
-});
+
+    return window.luminaInicioPromise;
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', iniciarLuminaCuandoDomEsteListo, { once: true });
+} else {
+    iniciarLuminaCuandoDomEsteListo();
+}
 
 // 1. Abre el modal y genera el QR
 async function abrirModalCompartir() {
