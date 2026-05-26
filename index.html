@@ -330,6 +330,20 @@
                         };
                         var completo = false;
 
+                        function abrirLibroPortadaRapida(libro) {
+                            window.__luminaLibroPendientePortada = libro;
+
+                            if (typeof window.abrirCapitulos !== 'function') return;
+
+                            window.__luminaLibroPendientePortada = '';
+                            window.abrirCapitulos(
+                                libro,
+                                typeof window.obtenerCantidadCapitulos === 'function'
+                                    ? window.obtenerCantidadCapitulos(libro)
+                                    : 1
+                            );
+                        }
+
                         function renderizarPortada() {
                             contenedor.textContent = '';
 
@@ -360,6 +374,9 @@
                                     boton.className = 'btn-libro-principal flex-1 flex items-center gap-3 text-left py-2 px-3 rounded text-lg transition-all bg-white border border-gray-100 shadow-sm';
                                     boton.dataset.luminaBook = libro;
                                     boton.textContent = libro;
+                                    boton.addEventListener('click', function () {
+                                        abrirLibroPortadaRapida(libro);
+                                    });
                                     fila.appendChild(boton);
                                     grilla.appendChild(fila);
                                 });
@@ -1972,7 +1989,7 @@
     <audio id="sonido-guardar" src="paperflip.wav" preload="none"></audio>
     <audio id="audio-celebracion-biblia" src="Crown_of_the_Altar.mp3" preload="none"></audio>
     <audio id="audio-celebracion-libro" src="Morning_in_the_Oratory.mp3" preload="none"></audio>
-    <script src="script.min.js?v=12" defer></script>
+    <script src="script.min.js?v=13" defer></script>
     <button type="button" id="aviso-nueva-version-lumina" class="aviso-nueva-version-lumina hidden" aria-live="polite">
         <span class="aviso-nueva-version-icon" aria-hidden="true">
             <i class="fas fa-arrows-rotate"></i>

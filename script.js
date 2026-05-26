@@ -14264,6 +14264,15 @@ function abrirCapitulos(nombreLibro, cantidadCapitulos) {
     return abrirCapitulosV2(nombreLibro, cantidadCapitulos);
 }
 
+function abrirLibroPendientePortadaRapida() {
+    const libroPendiente = String(window.__luminaLibroPendientePortada || '').trim();
+    if (!libroPendiente) return false;
+
+    window.__luminaLibroPendientePortada = '';
+    abrirCapitulos(libroPendiente, obtenerCantidadCapitulos(libroPendiente));
+    return true;
+}
+
 function volverAVistaCapitulosActual() {
     if (!libroActual) {
         mostrarVista('vista-libros');
@@ -16734,6 +16743,7 @@ async function iniciarLumina() {
     poblarSelectoresRapidos();
     mostrarVista('vista-libros');
     actualizarTabsPanelGuardados();
+    abrirLibroPendientePortadaRapida();
 
     await inicializarPersistenciaLumina();
     inicializarFirebaseLumina({ diferido: true });
