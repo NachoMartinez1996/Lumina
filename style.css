@@ -256,6 +256,14 @@ body:not(.dark) .titulo-libro {
 body.dark {
     background-color: #0d0f12;
     color: #e2e8f0;
+    --lumina-paper: #1a1d23;
+    --lumina-paper-soft: #111827;
+    --lumina-ink: #e5e7eb;
+    --lumina-muted: #cbd5e1;
+    --lumina-border: #2d3748;
+    --lumina-accent: #f3cf77;
+    --lumina-shadow: 0 10px 26px rgba(0, 0, 0, 0.26);
+    color-scheme: dark;
 }
 
 body.dark #vista-libros {
@@ -5659,6 +5667,14 @@ body.dark .panel-lumina {
     box-shadow: 18px 0 42px rgba(0, 0, 0, 0.34);
 }
 
+body.dark #panel-lumina {
+    background:
+        radial-gradient(circle at top left, rgba(212, 175, 55, 0.12), transparent 30%),
+        linear-gradient(180deg, rgba(17, 24, 39, 0.99), rgba(10, 14, 22, 0.99)) !important;
+    border-right-color: #2d3748 !important;
+    color: #e5e7eb;
+}
+
 .panel-lumina-header {
     background: linear-gradient(180deg, rgba(255, 250, 240, 0.96), rgba(252, 246, 231, 0.92));
     backdrop-filter: blur(12px);
@@ -5725,6 +5741,10 @@ body.dark .panel-lumina-contenido h3 {
     gap: 0.7rem;
     justify-content: center;
     margin: 0 0 1.35rem;
+}
+
+.panel-lumina-validaciones.hidden {
+    display: none;
 }
 
 .panel-lumina-validacion-css {
@@ -8031,6 +8051,19 @@ body.dark #busqueda-input {
 
 body.dark header .fa-search {
     color: #9ca3af !important;
+}
+
+body.dark .toggle-switch .slider {
+    background: #374151;
+    box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.14);
+}
+
+body.dark .toggle-switch .slider::before {
+    background: #e5e7eb;
+}
+
+body.dark #toggle-concordancia:checked+.slider {
+    background: #b8860b;
 }
 
 .header-favoritos-label {

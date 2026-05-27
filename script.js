@@ -15081,6 +15081,7 @@ function mostrarSeccionPanelLumina(seccion) {
     const contenidos = document.querySelectorAll('[data-lumina-contenido]');
     const enlaces = document.querySelectorAll('[data-lumina-seccion]');
     const placeholder = document.querySelector('[data-lumina-placeholder]');
+    const validaciones = document.querySelector('.panel-lumina-validaciones');
 
     contenidos.forEach(bloque => {
         bloque.classList.toggle('hidden', bloque.id !== `lumina-seccion-${seccion}`);
@@ -15095,6 +15096,10 @@ function mostrarSeccionPanelLumina(seccion) {
         placeholder.classList.add('hidden');
     }
 
+    if (validaciones) {
+        validaciones.classList.add('hidden');
+    }
+
     if (seccion === 'modos' || seccion === 'ajustes') {
         actualizarControlesVersiculoInicio();
     }
@@ -15104,11 +15109,15 @@ function resetPanelLumina() {
     const contenidos = document.querySelectorAll('[data-lumina-contenido]');
     const enlaces = document.querySelectorAll('[data-lumina-seccion]');
     const placeholder = document.querySelector('[data-lumina-placeholder]');
+    const validaciones = document.querySelector('.panel-lumina-validaciones');
 
     contenidos.forEach(bloque => bloque.classList.add('hidden'));
     enlaces.forEach(enlace => enlace.classList.remove('activa'));
     if (placeholder) {
         placeholder.classList.remove('hidden');
+    }
+    if (validaciones) {
+        validaciones.classList.remove('hidden');
     }
 }
 
