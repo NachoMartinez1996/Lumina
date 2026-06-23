@@ -16,6 +16,12 @@
         @page {
             size: A6;
             margin: 8mm;
+            @bottom-center {
+                content: counter(page);
+                font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+                font-size: 0.7rem;
+                color: #7b6a58;
+            }
         }
     </style>
     <style>
@@ -372,6 +378,10 @@
             line-height: 1.54;
         }
 
+        html[data-page-size="a6"] p {
+            line-height: 1.6;
+        }
+
         p {
             margin: 0;
         }
@@ -480,7 +490,8 @@
             height: 2.1rem;
             border-radius: 50%;
             background: var(--oro-suave);
-            color: var(--oro);
+            color: #8a6508;
+            border: 1px solid var(--oro);
             font-family: "Inter", "Segoe UI", system-ui, sans-serif;
             font-size: 0.82rem;
             font-weight: 800;
@@ -659,6 +670,10 @@
             line-height: 1.38;
         }
 
+        html[data-page-size="a6"] .litany p {
+            font-size: 0.9rem;
+        }
+
         .litany span:last-child {
             color: var(--muted);
             font-style: italic;
@@ -688,6 +703,50 @@
             text-transform: uppercase;
         }
 
+        .dedication-page {
+            break-after: page;
+            padding: 2rem 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .dedication-page h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .dedication-field {
+            margin-top: 1.5rem;
+        }
+
+        .dedication-field label {
+            display: block;
+            font-family: "Inter", sans-serif;
+            font-size: 0.8rem;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            color: var(--oro);
+            margin-bottom: 0.3rem;
+        }
+
+        .dedication-field .note-line {
+            height: 1.8rem;
+            border-bottom: 1px solid rgba(184, 134, 11, 0.4);
+            width: 100%;
+        }
+
+        /* Colofón */
+        .colophon-page {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 50vh;
+            text-align: center;
+            gap: 1.5rem;
+        }
+
         @media (min-width: 900px) {
             html[data-page-size="a4"] .prayer-grid,
             html[data-page-size="a3"] .prayer-grid,
@@ -711,25 +770,20 @@
                 align-items: stretch;
                 flex-direction: column;
             }
-
             .toolbar-actions {
                 justify-content: flex-start;
             }
-
             .size-picker {
                 max-width: 100%;
                 overflow-x: auto;
                 border-radius: 8px;
             }
-
             .status-pill {
                 max-width: none;
             }
-
             .book-shell {
                 padding-inline: 0.65rem;
             }
-
             .book {
                 padding-inline: 1rem;
             }
@@ -740,24 +794,20 @@
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
-
             html,
             body {
                 width: auto;
                 min-height: auto;
                 background: var(--papel);
             }
-
             .screen-toolbar {
                 display: none !important;
             }
-
             .book-shell {
                 width: auto;
                 margin: 0;
                 padding: 0;
             }
-
             .book {
                 width: auto;
                 margin: 0;
@@ -767,30 +817,24 @@
                 background: var(--papel);
                 box-shadow: none;
             }
-
             .cover {
                 min-height: 92vh;
             }
-
             .chapter {
                 break-before: page;
             }
-
             .chapter:first-of-type {
                 break-before: page;
             }
-
             .chapter + .chapter {
                 margin-top: 0;
             }
-
             .prayer-grid,
             .mystery-grid,
             .daily-grid,
             .reconciliation-grid {
                 display: block;
             }
-
             .prayer,
             .mystery-set,
             .callout,
@@ -798,11 +842,9 @@
             .commandment-list li {
                 break-inside: avoid;
             }
-
             .toc a {
                 color: inherit;
             }
-
             a[href]::after {
                 content: "";
             }
@@ -819,7 +861,6 @@
                 <span class="toolbar-subtitle">Lumina personal</span>
             </span>
         </a>
-
         <div class="toolbar-actions">
             <div class="size-picker" aria-label="Tamaño de página">
                 <button class="size-button" type="button" data-size="a6" aria-pressed="true">A6</button>
@@ -842,49 +883,95 @@
 
     <main class="book-shell">
         <article class="book" aria-label="Devocionario de bolsillo">
+
+            <!-- Portada -->
             <section class="cover" id="portada">
                 <div>
-                    <div class="cover-mark" aria-hidden="true">
-                        <i class="fas fa-cross"></i>
-                    </div>
+                    <div class="cover-mark" aria-hidden="true"><i class="fas fa-cross"></i></div>
                     <p class="cover-kicker">Oración cotidiana</p>
                     <h1>Devocionario de bolsillo</h1>
                     <p class="cover-subtitle">Oraciones principales, reconciliación, tiempos litúrgicos, Santo Rosario e intenciones para llevar al silencio.</p>
                 </div>
-
                 <div class="cover-footer">
-                    <div class="ornament-line" aria-hidden="true">
-                        <i class="fas fa-star-of-life"></i>
-                    </div>
+                    <div class="ornament-line" aria-hidden="true"><i class="fas fa-star-of-life"></i></div>
                     <span>Lumina - La Tradición iluminando la Palabra</span>
+                    <span style="font-style: italic; margin-top: 0.2rem;">Ora et labora</span>
                 </div>
             </section>
 
+            <!-- Página de dedicación personal -->
+            <section class="dedication-page" id="dedicatoria">
+                <div>
+                    <p class="section-kicker">Mi camino</p>
+                    <h2>Dedicación</h2>
+                    <p style="font-size: 1.1rem; margin-top: 0.5rem;">Este devocionario me acompañó en…</p>
+                    <div class="dedication-field">
+                        <div class="note-line"></div>
+                        <div class="note-line"></div>
+                        <div class="note-line"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="dedication-field">
+                        <label>Fecha</label>
+                        <div class="note-line"></div>
+                    </div>
+                    <div class="dedication-field">
+                        <label>Intención principal</label>
+                        <div class="note-line"></div>
+                        <div class="note-line"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- NUEVA SECCIÓN: Oración dedicatoria de san Alfonso (inicio) -->
+            <section class="chapter" id="oracion-inicial">
+                <header class="chapter-header">
+                    <p class="section-kicker">Pórtico del devocionario</p>
+                    <h2>Oración dedicatoria</h2>
+                </header>
+                <article class="prayer">
+                    <p class="prayer-label">San Alfonso María de Ligorio</p>
+                    <h3>A Jesús y a María</h3>
+                    <p class="inline-note" style="margin-bottom: 1rem;">Tomo prestada esta oración de san Alfonso, con la que inició y dedicó su libro «El gran medio de la oración», para consagrar también este devocionario.</p>
+                    <p>Oh Verbo encarnado,<br>Vos disteis la sangre y la vida para comunicar a nuestras plegarias,<br>según vuestra divina promesa, una eficacia tan poderosa<br>que alcancen todo lo que pidan;<br>mas nosotros, oh Dios mío, tan descuidados andamos en las cosas de nuestra eterna salvación,<br>que ni siquiera queremos pediros las gracias que necesitamos para salvarnos.</p>
+                    <p>Nos diste con el gran medio de la oración la llave de todos vuestros tesoros<br>y nosotros, por empeñarnos en no rezar,<br>vivimos siempre en la más grande miseria espiritual...</p>
+                    <p>¡Ay, Señor mío!, ilumínanos y haznos comprender lo mucho que valen<br>ante vuestro Eterno Padre las plegarias que le dirigimos<br>en vuestro nombre y por vuestros méritos.</p>
+                    <p>A Vos consagro esta humilde obra mía; bendícela,<br>y haga vuestra misericordia que cuantos la tomen en sus manos<br>se sientan movidos a orar y procurar que en todos prenda la llama de este mismo amor;<br>y así no haya uno solo que no acuda a este gran medio de salvación.</p>
+                    <p>A Vos encomiendo también esta obrita mía, oh excelsa Madre de Dios, Virgen María.<br>Protegela y entrégale a cuantos la lean el espíritu de la oración,<br>la gracia de recurrir en todas sus necesidades a vuestro divino Hijo...<br>y a Vos, que sos la dispensadora de las gracias y la Madre de las misericordias;<br>a Vos, que no podés consentir que nadie se retire de vuestra presencia triste y desesperado;<br>a Vos, Virgen poderosísima que obtienes cuanto deseás para vuestros siervos.</p>
+                </article>
+            </section>
+
+            <!-- Índice (actualizado) -->
             <section class="chapter" id="indice">
                 <header class="chapter-header">
                     <p class="section-kicker">Mapa de oración</p>
                     <h2>Índice</h2>
                 </header>
                 <nav class="toc" aria-label="Índice del devocionario">
+                    <a href="#oracion-inicial"><span>Oración dedicatoria</span><span>Inicio</span></a>
                     <a href="#oraciones-esenciales"><span>Oraciones y profesiones de fe</span><span>Base</span></a>
                     <a href="#reconciliacion"><span>Reconciliación y examen</span><span>Perdón</span></a>
                     <a href="#oraciones-marianas"><span>Oraciones marianas</span><span>María</span></a>
                     <a href="#devociones-liturgicas"><span>Devociones y tiempos litúrgicos</span><span>Fiestas</span></a>
+                    <a href="#ano-liturgico"><span>Guía del año litúrgico</span><span>Tiempos</span></a>
                     <a href="#vida-diaria"><span>Vida diaria y Eucaristía</span><span>Día</span></a>
                     <a href="#intercesores"><span>Santos e intercesores</span><span>Ayuda</span></a>
+                    <a href="#vocacion-apostolado"><span>Promesa Salesiana</span><span>Misión</span></a>
                     <a href="#santo-rosario"><span>Cómo rezar el Santo Rosario</span><span>Guía</span></a>
                     <a href="#misterios"><span>Misterios del Rosario</span><span>Meditar</span></a>
                     <a href="#letanias"><span>Letanías y cierre</span><span>Final</span></a>
                     <a href="#intenciones"><span>Intenciones y notas</span><span>Escribir</span></a>
+                    <a href="#colofon"><span>Fecha de edición</span><span>Final</span></a>
                 </nav>
             </section>
 
+            <!-- Oraciones esenciales -->
             <section class="chapter" id="oraciones-esenciales">
                 <header class="chapter-header">
                     <p class="section-kicker">Oraciones esenciales</p>
                     <h2>Oración básica y fe</h2>
                 </header>
-
                 <div class="prayer-grid">
                     <article class="prayer">
                         <p class="prayer-label">Señal de la Cruz</p>
@@ -892,28 +979,25 @@
                         <p>Por la señal de la santa Cruz, de nuestros enemigos líbranos, Señor, Dios nuestro.</p>
                         <p>En el nombre del Padre, y del Hijo, y del Espíritu Santo. Amén.</p>
                     </article>
-
                     <article class="prayer">
                         <p class="prayer-label">Padre Nuestro</p>
                         <h3>La oración del Señor</h3>
                         <p>Padre nuestro, que estás en el cielo, santificado sea tu Nombre; venga a nosotros tu Reino; hágase tu voluntad en la tierra como en el cielo.</p>
                         <p>Danos hoy nuestro pan de cada día; perdona nuestras ofensas, como también nosotros perdonamos a los que nos ofenden; no nos dejes caer en la tentación, y líbranos del mal. Amén.</p>
+                        <p class="inline-note">Mt 6, 9-13</p>
                     </article>
-
                     <article class="prayer">
                         <p class="prayer-label">Ave María</p>
                         <h3>Saludo a la Madre</h3>
                         <p>Dios te salve, María, llena eres de gracia; el Señor es contigo. Bendita tú eres entre todas las mujeres, y bendito es el fruto de tu vientre, Jesús.</p>
                         <p>Santa María, Madre de Dios, ruega por nosotros, pecadores, ahora y en la hora de nuestra muerte. Amén.</p>
                     </article>
-
                     <article class="prayer">
                         <p class="prayer-label">Gloria</p>
                         <h3>Gloria al Padre</h3>
                         <p>Gloria al Padre, y al Hijo, y al Espíritu Santo.</p>
                         <p>Como era en el principio, ahora y siempre, por los siglos de los siglos. Amén.</p>
                     </article>
-
                     <article class="prayer">
                         <p class="prayer-label">Himno litúrgico</p>
                         <h3>Gloria a Dios en el cielo</h3>
@@ -922,14 +1006,12 @@
                         <p>Señor, Hijo único, Jesucristo; Señor Dios, Cordero de Dios, Hijo del Padre; tú que quitas el pecado del mundo, ten piedad de nosotros; tú que quitas el pecado del mundo, atiende nuestra súplica; tú que estás sentado a la derecha del Padre, ten piedad de nosotros.</p>
                         <p>Porque sólo tú eres Santo, sólo tú Señor, sólo tú Altísimo, Jesucristo, con el Espíritu Santo en la gloria de Dios Padre. Amén.</p>
                     </article>
-
                     <article class="prayer">
                         <p class="prayer-label">Profesión de fe</p>
                         <h3>Símbolo de los Apóstoles</h3>
                         <p>Creo en Dios, Padre todopoderoso, Creador del cielo y de la tierra. Creo en Jesucristo, su único Hijo, Nuestro Señor, que fue concebido por obra y gracia del Espíritu Santo, nació de Santa María Virgen, padeció bajo el poder de Poncio Pilato, fue crucificado, muerto y sepultado, descendió a los infiernos; al tercer día resucitó de entre los muertos, subió a los cielos y está sentado a la derecha de Dios, Padre todopoderoso.</p>
                         <p>Desde allí ha de venir a juzgar a vivos y muertos. Creo en el Espíritu Santo, la santa Iglesia católica, la comunión de los santos, el perdón de los pecados, la resurrección de la carne y la vida eterna. Amén.</p>
                     </article>
-
                     <article class="prayer">
                         <p class="prayer-label">Profesión de fe</p>
                         <h3>Credo Niceno-Constantinopolitano</h3>
@@ -942,17 +1024,16 @@
                 </div>
             </section>
 
+            <!-- Reconciliación -->
             <section class="chapter" id="reconciliacion">
                 <header class="chapter-header">
                     <p class="section-kicker">Sacramento del perdón</p>
                     <h2>Reconciliación</h2>
                 </header>
-
                 <div class="callout">
                     <strong>Volver a casa</strong>
                     <p>La confesión no es una humillación estéril: es el lugar donde Cristo toma en serio la verdad de mi pecado y, más todavía, la verdad de su misericordia.</p>
                 </div>
-
                 <div class="reconciliation-grid">
                     <article class="prayer">
                         <p class="prayer-label">Acto penitencial</p>
@@ -960,21 +1041,18 @@
                         <p>Yo confieso ante Dios todopoderoso y ante ustedes, hermanos, que he pecado mucho de pensamiento, palabra, obra y omisión.</p>
                         <p>Por mi culpa, por mi culpa, por mi gran culpa. Por eso ruego a Santa María, siempre Virgen, a los ángeles, a los santos y a ustedes, hermanos, que intercedan por mí ante Dios, nuestro Señor. Amén.</p>
                     </article>
-
                     <article class="prayer">
                         <p class="prayer-label">Contrición</p>
                         <h3>Pésame</h3>
                         <p>Pésame, Dios mío, y me arrepiento de todo corazón de haberte ofendido. Pésame por el infierno que merecí y por el cielo que perdí; pero mucho más me pesa porque pecando ofendí a un Dios tan bueno y tan grande como Vos.</p>
                         <p>Antes querría haber muerto que haberte ofendido, y propongo firmemente no pecar más y evitar todas las ocasiones próximas de pecado. Amén.</p>
                     </article>
-
                     <article class="prayer">
                         <p class="prayer-label">Contrición</p>
                         <h3>Acto de contrición</h3>
                         <p>Señor mío Jesucristo, Dios y hombre verdadero, Creador, Padre y Redentor mío; por ser Tú quien eres, Bondad infinita, y porque te amo sobre todas las cosas, me pesa de todo corazón haberte ofendido.</p>
                         <p>También me pesa porque puedes castigarme con las penas del infierno. Ayudado de tu divina gracia, propongo firmemente nunca más pecar, confesarme y cumplir la penitencia que me fuere impuesta. Amén.</p>
                     </article>
-
                     <article class="prayer">
                         <p class="prayer-label">Preparación</p>
                         <h3>Pasos para confesarte</h3>
@@ -987,7 +1065,6 @@
                             <li><span class="step-number">6</span><span class="step-content"><strong>Cumplir la penitencia</strong><span>Hacela pronto, agradecé y retomá el camino con paz concreta.</span></span></li>
                         </ol>
                     </article>
-
                     <article class="prayer">
                         <p class="prayer-label">Dentro del confesionario</p>
                         <h3>Guía breve</h3>
@@ -995,7 +1072,6 @@
                         <p>Al terminar, podés decir: "Me arrepiento de estos pecados y de todos los que no recuerdo". Después rezá el acto de contrición que prefieras y recibí la absolución con fe.</p>
                     </article>
                 </div>
-
                 <article class="prayer">
                     <p class="prayer-label">Examen de conciencia</p>
                     <h3>Los Diez Mandamientos como espejo</h3>
@@ -1012,7 +1088,6 @@
                         <li><strong>10. No codiciarás los bienes ajenos</strong><span>¿Viví con envidia, comparación amarga, avaricia o falta de gratitud?</span></li>
                     </ol>
                 </article>
-
                 <ul class="small-list" aria-label="Ayudas para el examen de conciencia">
                     <li>Mirar los mandamientos ayuda, pero el centro es el amor: cómo amé a Dios, al prójimo y la misión que me fue confiada.</li>
                     <li>Conviene confesar pecados concretos, no solo estados generales. La vergüenza ofrecida con humildad suele ser puerta de libertad.</li>
@@ -1020,12 +1095,12 @@
                 </ul>
             </section>
 
+            <!-- Oraciones marianas -->
             <section class="chapter" id="oraciones-marianas">
                 <header class="chapter-header">
                     <p class="section-kicker">Con María</p>
                     <h2>Oraciones marianas</h2>
                 </header>
-
                 <div class="prayer-grid">
                     <article class="prayer">
                         <p class="prayer-label">Salve</p>
@@ -1034,27 +1109,23 @@
                         <p>A ti clamamos los desterrados hijos de Eva; a ti suspiramos, gimiendo y llorando en este valle de lágrimas. Ea, pues, Señora, abogada nuestra, vuelve a nosotros esos tus ojos misericordiosos; y después de este destierro muéstranos a Jesús, fruto bendito de tu vientre.</p>
                         <p>Oh clemente, oh piadosa, oh dulce Virgen María. Ruega por nosotros, santa Madre de Dios, para que seamos dignos de alcanzar las promesas de Nuestro Señor Jesucristo. Amén.</p>
                     </article>
-
                     <article class="prayer">
                         <p class="prayer-label">Bajo tu amparo</p>
                         <h3>Sub tuum praesidium</h3>
                         <p>Bajo tu amparo nos acogemos, Santa Madre de Dios; no desprecies las súplicas que te dirigimos en nuestras necesidades; antes bien, líbranos siempre de todo peligro, oh Virgen gloriosa y bendita. Amén.</p>
                     </article>
-
                     <article class="prayer">
                         <p class="prayer-label">Acordaos</p>
                         <h3>Memorare</h3>
                         <p>Acordaos, oh piadosísima Virgen María, que jamás se oyó decir que ninguno de los que han acudido a vuestra protección, implorado vuestro auxilio y reclamado vuestra asistencia haya sido abandonado de vos.</p>
                         <p>Animado con esta confianza, a vos también acudo, oh Madre, Virgen de las vírgenes; y gimiendo bajo el peso de mis pecados, me atrevo a comparecer ante vuestra presencia soberana. No desechéis mis súplicas, oh Madre del Verbo divino; antes bien, escuchadlas y acogedlas benignamente. Amén.</p>
                     </article>
-
                     <article class="prayer">
                         <p class="prayer-label">Pureza</p>
                         <h3>Bendita sea tu pureza</h3>
                         <p>Bendita sea tu pureza y eternamente lo sea, pues todo un Dios se recrea en tan graciosa belleza.</p>
                         <p>A ti, celestial Princesa, Virgen sagrada María, te ofrezco en este día alma, vida y corazón. Mírame con compasión; no me dejes, Madre mía. Amén.</p>
                     </article>
-
                     <article class="prayer">
                         <p class="prayer-label">Ángelus</p>
                         <h3>El Ángel del Señor</h3>
@@ -1067,7 +1138,6 @@
                         <p><strong>V.</strong> Ruega por nosotros, santa Madre de Dios. <br><strong>R.</strong> Para que seamos dignos de alcanzar las promesas de Nuestro Señor Jesucristo.</p>
                         <p>Infunde, Señor, tu gracia en nuestras almas, para que quienes hemos conocido, por el anuncio del Ángel, la encarnación de tu Hijo Jesucristo, lleguemos por su pasión y su cruz a la gloria de la resurrección. Por Jesucristo, nuestro Señor. Amén.</p>
                     </article>
-
                     <article class="prayer">
                         <p class="prayer-label">Cántico evangélico</p>
                         <h3>Magnificat</h3>
@@ -1075,8 +1145,8 @@
                         <p>Desde ahora me felicitarán todas las generaciones, porque el Poderoso ha hecho obras grandes por mí: su nombre es santo, y su misericordia llega a sus fieles de generación en generación.</p>
                         <p>Él hace proezas con su brazo: dispersa a los soberbios de corazón, derriba del trono a los poderosos y enaltece a los humildes; a los hambrientos los colma de bienes y a los ricos los despide vacíos.</p>
                         <p>Auxilia a Israel, su siervo, acordándose de la misericordia, como lo había prometido a nuestros padres, en favor de Abraham y su descendencia por siempre. Amén.</p>
+                        <p class="inline-note">Lc 1, 46-55</p>
                     </article>
-
                     <article class="prayer">
                         <p class="prayer-label">Pascua</p>
                         <h3>Regina caeli</h3>
@@ -1087,12 +1157,12 @@
                 </div>
             </section>
 
+            <!-- Devociones y tiempos litúrgicos -->
             <section class="chapter" id="devociones-liturgicas">
                 <header class="chapter-header">
                     <p class="section-kicker">Fiestas y devociones</p>
                     <h2>Devociones y tiempos litúrgicos</h2>
                 </header>
-
                 <div class="prayer-grid">
                     <article class="prayer">
                         <p class="prayer-label">Virgen del Rosario</p>
@@ -1108,7 +1178,6 @@
                         <p>Así sea.</p>
                         <p>Reina del Santísimo Rosario, nuestra Fundadora y Patrona, ruega por nosotros.</p>
                     </article>
-
                     <article class="prayer">
                         <p class="prayer-label">Natividad del Señor</p>
                         <h3>Oración de la Natividad</h3>
@@ -1123,7 +1192,6 @@
                         <p class="inline-note">Pedir por las intenciones particulares. En silencio, rezar un Padre Nuestro, un Ave María y un Gloria.</p>
                         <p class="inline-note">Rvdo. Padre Ignacio Peries.</p>
                     </article>
-
                     <article class="prayer">
                         <p class="prayer-label">Pentecostés</p>
                         <h3>Secuencia: Ven, Espíritu Santo</h3>
@@ -1142,19 +1210,38 @@
                 </div>
             </section>
 
+            <!-- Guía del Año Litúrgico -->
+            <section class="chapter" id="ano-liturgico">
+                <header class="chapter-header">
+                    <p class="section-kicker">Ritmo de la Iglesia</p>
+                    <h2>Guía del año litúrgico</h2>
+                </header>
+                <div class="callout">
+                    <strong>El tiempo de Dios</strong>
+                    <p>El año cristiano nos sumerge en los misterios de Cristo. Cada tiempo nos invita a un movimiento interior.</p>
+                </div>
+                <ul class="commandment-list" style="margin-top: 1.5rem;">
+                    <li><strong>Adviento</strong><span>→ Esperanza.</span></li>
+                    <li><strong>Navidad</strong><span>→ Encarnación.</span></li>
+                    <li><strong>Cuaresma</strong><span>→ Conversión.</span></li>
+                    <li><strong>Pascua</strong><span>→ Alegría.</span></li>
+                    <li><strong>Tiempo Ordinario</strong><span>→ Seguimiento.</span></li>
+                </ul>
+                <p class="inline-note" style="margin-top: 1.5rem;">Vivir el año litúrgico es dejar que la Palabra modele nuestro corazón al ritmo de la gracia.</p>
+            </section>
+
+            <!-- Vida diaria y Eucaristía -->
             <section class="chapter" id="vida-diaria">
                 <header class="chapter-header">
                     <p class="section-kicker">Para cada jornada</p>
                     <h2>Vida diaria y Eucaristía</h2>
                 </header>
-
                 <div class="daily-grid">
                     <article class="prayer compact">
                         <p class="prayer-label">Mañana</p>
                         <h3>Ofrecimiento del día</h3>
                         <p>Señor, te ofrezco este día: mis pensamientos, palabras, obras, alegrías y sufrimientos. Que todo sea para tu gloria, para bien de la Iglesia y por las intenciones que llevo en el corazón. Amén.</p>
                     </article>
-
                     <article class="prayer compact">
                         <p class="prayer-label">Espíritu Santo</p>
                         <h3>Ven, Espíritu Santo</h3>
@@ -1162,21 +1249,19 @@
                         <p>Envía tu Espíritu y todo será creado. Y renovarás la faz de la tierra.</p>
                         <p>Oh Dios, que has instruido los corazones de tus fieles con la luz del Espíritu Santo, concédenos, según el mismo Espíritu, conocer lo que es recto y gozar siempre de sus consuelos. Por Jesucristo, nuestro Señor. Amén.</p>
                     </article>
-
                     <article class="prayer compact">
                         <p class="prayer-label">Eucaristía</p>
                         <h3>Alma de Cristo</h3>
                         <p>Alma de Cristo, santifícame. Cuerpo de Cristo, sálvame. Sangre de Cristo, embriágame. Agua del costado de Cristo, lávame. Pasión de Cristo, confórtame.</p>
                         <p>Oh buen Jesús, óyeme. Dentro de tus llagas, escóndeme. No permitas que me aparte de ti. Del maligno enemigo, defiéndeme. En la hora de mi muerte, llámame y mándame ir a ti, para que con tus santos te alabe por los siglos de los siglos. Amén.</p>
+                        <p class="inline-note">Tradición ignaciana</p>
                     </article>
-
                     <article class="prayer compact">
                         <p class="prayer-label">Comunión espiritual</p>
                         <h3>Cuando no puedo comulgar</h3>
                         <p>Creo, Jesús mío, que estás real y verdaderamente en el Santísimo Sacramento del Altar. Te amo sobre todas las cosas y deseo recibirte en mi alma.</p>
                         <p>Pero como ahora no puedo recibirte sacramentalmente, ven al menos espiritualmente a mi corazón. Y como si ya te hubiese recibido, te abrazo y me uno del todo a ti. Señor, no permitas que jamás me aparte de ti. Amén.</p>
                     </article>
-
                     <article class="prayer compact">
                         <p class="prayer-label">Noche</p>
                         <h3>Antes de dormir</h3>
@@ -1185,12 +1270,12 @@
                 </div>
             </section>
 
+            <!-- Santos e intercesores -->
             <section class="chapter" id="intercesores">
                 <header class="chapter-header">
                     <p class="section-kicker">Compañeros del camino</p>
                     <h2>Santos e intercesores</h2>
                 </header>
-
                 <div class="daily-grid">
                     <article class="prayer compact">
                         <p class="prayer-label">Protección</p>
@@ -1198,14 +1283,12 @@
                         <p>San Miguel Arcángel, defiéndenos en la batalla. Sé nuestro amparo contra la perversidad y asechanzas del demonio.</p>
                         <p>Reprímale Dios, pedimos suplicantes; y tú, Príncipe de la Milicia Celestial, arroja al infierno con el divino poder a Satanás y a los demás espíritus malignos que andan dispersos por el mundo para la perdición de las almas. Amén.</p>
                     </article>
-
                     <article class="prayer compact">
                         <p class="prayer-label">Santo educador</p>
                         <h3>Oración a San Juan Bosco</h3>
                         <p>Padre y Maestro de la juventud, San Juan Bosco, que trabajaste con tanto celo por la salvación de las almas, sé nuestro guía y protector.</p>
                         <p>Enséñanos a amar a Jesús Sacramentado y a María Auxiliadora, y alcánzanos de Dios la gracia de vivir y morir en su santo amor, para gozar juntos de la patria celestial. Amén.</p>
                     </article>
-
                     <article class="prayer compact">
                         <p class="prayer-label">Padre de los migrantes</p>
                         <h3>Oración a San Juan Bautista Scalabrini</h3>
@@ -1214,83 +1297,74 @@
                         <p>Por tu intercesión, Dios, que es Padre, Hijo y Espíritu Santo, conceda la paz a toda la humanidad, proteja a quienes atraviesan mares y fronteras sostenidos por la esperanza, bendiga a nosotros y a nuestros seres queridos, y nos conceda la gracia que confiamos a tu corazón de padre. Amén.</p>
                         <p class="inline-note">Tres Glorias al Padre en honor a la Santísima Trinidad.</p>
                     </article>
+                    <article class="prayer compact">
+                        <p class="prayer-label">Para pedir el pan del trabajo y el don de la fe</p>
+                        <h3>San José Obrero</h3>
+                        <p>San José Obrero,<br>custodio de la fidelidad del Dios Uno y trino,<br>te agradezco todo lo que has hecho por Jesús y María;</p>
+                        <p>y te pido que nunca me dejes sin trabajo,<br>que intercedas siempre por mí ante tu Santísima Esposa y tu Santísimo Hijo,<br>para que tampoco me falte el preciosísimo don de la fe,<br>fundamento de todo caminar en la vida,<br>tanto en soledad como en comunidad.</p>
+                        <p>Amén.</p>
+                        <p class="inline-note">Por Ignacio Ariel Martinez</p>
+                    </article>
                 </div>
             </section>
 
+            <!-- SECCIÓN RENOMBRADA: Promesa Salesiana (solo la Fórmula) -->
+            <section class="chapter" id="vocacion-apostolado">
+                <header class="chapter-header">
+                    <p class="section-kicker">Respuesta y misión</p>
+                    <h2>Promesa Salesiana</h2>
+                </header>
+                <div class="prayer-grid">
+                    <article class="prayer">
+                        <p class="prayer-label">Fórmula de la Promesa</p>
+                        <h3>Asociación de Salesianos Cooperadores</h3>
+                        <p>Oh Padre, Te adoro porque eres bueno y amas a todos.<br>Te doy gracias por haberme creado y redimido,<br>por haberme llamado a formar parte de tu Iglesia<br>y en Ella me has hecho conocer a la Familia apostólica de Don Bosco,<br>que vive por Ti al servicio de los jóvenes y de las clases populares.</p>
+                        <p>Atraído por tu Amor misericordioso,<br>quiero corresponderte practicando el bien.</p>
+                        <p>Por esto,<br><strong>PROMETO</strong><br>comprometerme a vivir el Proyecto de Vida Apostólica<br>de la Asociación de los Salesianos Cooperadores, esto es:</p>
+                        <p>Ser fiel discípulo de Cristo en la Iglesia católica;<br>Trabajar por tu Reino, especialmente por la promoción y la salvación de los jóvenes;<br>Profundizar y dar testimonio del espíritu salesiano;<br>Colaborar, en comunión de Familia, en las iniciativas apostólicas de la Iglesia local.</p>
+                        <p>Dame, Padre, la fuerza de tu Espíritu,<br>para que sepa ser testigo fiel a este propósito de vida.</p>
+                        <p>Que María Auxiliadora, Madre de la Iglesia, me acompañe y me guíe en este camino de vida.</p>
+                        <p>Amén.</p>
+                    </article>
+                </div>
+                <p class="footer-mark">Ad maiorem Dei gloriam</p>
+            </section>
+
+            <!-- Santo Rosario -->
             <section class="chapter" id="santo-rosario">
                 <header class="chapter-header">
                     <p class="section-kicker">Santo Rosario</p>
                     <h2>Cómo rezarlo</h2>
                 </header>
-
                 <div class="callout">
                     <strong>Intención</strong>
                     <p>Antes de empezar, presentá al Señor una intención concreta: una persona, una decisión, una herida, una acción de gracias o una necesidad de la Iglesia.</p>
                 </div>
-
                 <ol class="rosary-steps">
-                    <li>
-                        <span class="step-number">1</span>
-                        <span class="step-content">
-                            <strong>En la cruz</strong>
-                            <span>Hacé la Señal de la Cruz y rezá el Símbolo de los Apóstoles como profesión de fe.</span>
-                        </span>
-                    </li>
-                    <li>
-                        <span class="step-number">2</span>
-                        <span class="step-content">
-                            <strong>Primera cuenta grande</strong>
-                            <span>Rezá un Padre Nuestro.</span>
-                        </span>
-                    </li>
-                    <li>
-                        <span class="step-number">3</span>
-                        <span class="step-content">
-                            <strong>Tres cuentas pequeñas</strong>
-                            <span>Rezá tres Ave Marías, tradicionalmente pidiendo crecer en fe, esperanza y caridad.</span>
-                        </span>
-                    </li>
-                    <li>
-                        <span class="step-number">4</span>
-                        <span class="step-content">
-                            <strong>Antes de los misterios</strong>
-                            <span>Rezá el Gloria. Podés añadir: "Oh Jesús mío, perdona nuestros pecados, líbranos del fuego del infierno, lleva al cielo a todas las almas, especialmente a las más necesitadas de tu divina misericordia. Amén".</span>
-                        </span>
-                    </li>
-                    <li>
-                        <span class="step-number">5</span>
-                        <span class="step-content">
-                            <strong>Cada decena</strong>
-                            <span>Anunciá el misterio, guardá un instante de silencio, rezá un Padre Nuestro, diez Ave Marías y el Gloria. Luego podés repetir la jaculatoria de Fátima.</span>
-                        </span>
-                    </li>
-                    <li>
-                        <span class="step-number">6</span>
-                        <span class="step-content">
-                            <strong>Al terminar las cinco decenas</strong>
-                            <span>Rezá la Salve, las Letanías Lauretanas, la oración final del Rosario y la Señal de la Cruz.</span>
-                        </span>
-                    </li>
+                    <li><span class="step-number">1</span><span class="step-content"><strong>En la cruz</strong><span>Hacé la Señal de la Cruz y rezá el Símbolo de los Apóstoles como profesión de fe.</span></span></li>
+                    <li><span class="step-number">2</span><span class="step-content"><strong>Primera cuenta grande</strong><span>Rezá un Padre Nuestro.</span></span></li>
+                    <li><span class="step-number">3</span><span class="step-content"><strong>Tres cuentas pequeñas</strong><span>Rezá tres Ave Marías, tradicionalmente pidiendo crecer en fe, esperanza y caridad.</span></span></li>
+                    <li><span class="step-number">4</span><span class="step-content"><strong>Antes de los misterios</strong><span>Rezá el Gloria. Podés añadir: "Oh Jesús mío, perdona nuestros pecados, líbranos del fuego del infierno, lleva al cielo a todas las almas, especialmente a las más necesitadas de tu divina misericordia. Amén".</span></span></li>
+                    <li><span class="step-number">5</span><span class="step-content"><strong>Cada decena</strong><span>Anunciá el misterio, guardá un instante de silencio, rezá un Padre Nuestro, diez Ave Marías y el Gloria. Luego podés repetir la jaculatoria de Fátima.</span></span></li>
+                    <li><span class="step-number">6</span><span class="step-content"><strong>Al terminar las cinco decenas</strong><span>Rezá la Salve, las Letanías Lauretanas, la oración final del Rosario y la Señal de la Cruz.</span></span></li>
                 </ol>
-
                 <article class="prayer">
                     <p class="prayer-label">Oración final</p>
                     <h3>Después de la Salve</h3>
                     <p>Oh Dios, cuyo Hijo Unigénito, por su vida, muerte y resurrección, nos alcanzó el premio de la vida eterna: concédenos que, meditando estos misterios del santísimo Rosario de la Virgen María, imitemos lo que contienen y alcancemos lo que prometen. Por Jesucristo, nuestro Señor. Amén.</p>
                 </article>
-
                 <div class="callout">
                     <strong>Ritmo simple</strong>
                     <p>Si tenés poco tiempo, rezá una sola decena con calma: misterio, Padre Nuestro, diez Ave Marías, Gloria y una intención clara.</p>
                 </div>
             </section>
 
+            <!-- Misterios del Rosario -->
             <section class="chapter" id="misterios">
                 <header class="chapter-header">
                     <p class="section-kicker">Meditación</p>
                     <h2>Misterios del Rosario</h2>
                 </header>
-
                 <div class="mystery-grid">
                     <section class="mystery-set">
                         <h3>Gozosos <span>Lunes y sábado</span></h3>
@@ -1302,7 +1376,6 @@
                             <li>El Niño Jesús perdido y hallado en el Templo. <span class="mystery-fruit">Lc 2, 41-52 · Búsqueda fiel de Cristo.</span><p class="scripture-text">Jesús dijo a María y José: "¿No sabían que yo debo ocuparme de los asuntos de mi Padre?". Después volvió con ellos a Nazaret, y su Madre conservaba estas cosas en su corazón.</p></li>
                         </ol>
                     </section>
-
                     <section class="mystery-set">
                         <h3>Luminosos <span>Jueves</span></h3>
                         <ol>
@@ -1313,7 +1386,6 @@
                             <li>La institución de la Sagrada Eucaristía. <span class="mystery-fruit">Lc 22, 19 · Amor sacramental.</span><p class="scripture-text">Jesús tomó el pan, dio gracias, lo partió y lo dio a sus discípulos diciendo: "Esto es mi Cuerpo, que se entrega por ustedes. Hagan esto en memoria mía".</p></li>
                         </ol>
                     </section>
-
                     <section class="mystery-set">
                         <h3>Dolorosos <span>Martes y viernes</span></h3>
                         <ol>
@@ -1324,7 +1396,6 @@
                             <li>La crucifixión y muerte de Nuestro Señor Jesucristo. <span class="mystery-fruit">Lc 23, 33-46 · Entrega, perdón y redención.</span><p class="scripture-text">Jesús decía: "Padre, perdónalos, porque no saben lo que hacen". Y al final exclamó: "Padre, en tus manos encomiendo mi espíritu".</p></li>
                         </ol>
                     </section>
-
                     <section class="mystery-set">
                         <h3>Gloriosos <span>Miércoles y domingo</span></h3>
                         <ol>
@@ -1336,7 +1407,6 @@
                         </ol>
                     </section>
                 </div>
-
                 <ul class="small-list" aria-label="Notas sobre los días del Rosario">
                     <li>En Adviento y Navidad puede rezarse el domingo con los misterios gozosos.</li>
                     <li>En Cuaresma puede rezarse el domingo con los misterios dolorosos.</li>
@@ -1344,12 +1414,12 @@
                 </ul>
             </section>
 
+            <!-- Letanías -->
             <section class="chapter" id="letanias">
                 <header class="chapter-header">
                     <p class="section-kicker">Cierre solemne</p>
                     <h2>Letanías marianas</h2>
                 </header>
-
                 <article class="prayer">
                     <p class="prayer-label">Letanías Lauretanas</p>
                     <h3>Súplicas de alabanza e intercesión</h3>
@@ -1370,6 +1440,7 @@
                         <p><span>Madre de la Iglesia</span><span>ruega por nosotros</span></p>
                         <p><span>Madre de misericordia</span><span>ruega por nosotros</span></p>
                         <p><span>Madre de la divina gracia</span><span>ruega por nosotros</span></p>
+                        <p><span>Madre de la esperanza</span><span>ruega por nosotros</span></p>
                         <p><span>Madre purísima</span><span>ruega por nosotros</span></p>
                         <p><span>Madre castísima</span><span>ruega por nosotros</span></p>
                         <p><span>Madre siempre virgen</span><span>ruega por nosotros</span></p>
@@ -1379,7 +1450,6 @@
                         <p><span>Madre del buen consejo</span><span>ruega por nosotros</span></p>
                         <p><span>Madre del Creador</span><span>ruega por nosotros</span></p>
                         <p><span>Madre del Salvador</span><span>ruega por nosotros</span></p>
-                        <p><span>Madre de la esperanza</span><span>ruega por nosotros</span></p>
                         <p><span>Virgen prudentísima</span><span>ruega por nosotros</span></p>
                         <p><span>Virgen digna de veneración</span><span>ruega por nosotros</span></p>
                         <p><span>Virgen digna de alabanza</span><span>ruega por nosotros</span></p>
@@ -1401,6 +1471,7 @@
                         <p><span>Estrella de la mañana</span><span>ruega por nosotros</span></p>
                         <p><span>Salud de los enfermos</span><span>ruega por nosotros</span></p>
                         <p><span>Refugio de los pecadores</span><span>ruega por nosotros</span></p>
+                        <p><span>Consuelo de los migrantes</span><span>ruega por nosotros</span></p>
                         <p><span>Consuelo de los afligidos</span><span>ruega por nosotros</span></p>
                         <p><span>Auxilio de los cristianos</span><span>ruega por nosotros</span></p>
                         <p><span>Reina de los Ángeles</span><span>ruega por nosotros</span></p>
@@ -1418,7 +1489,6 @@
                         <p><span>Reina de la paz</span><span>ruega por nosotros</span></p>
                     </div>
                 </article>
-
                 <article class="prayer">
                     <p class="prayer-label">Cordero de Dios</p>
                     <h3>Súplica final</h3>
@@ -1430,39 +1500,55 @@
                 </article>
             </section>
 
+            <!-- Intenciones -->
             <section class="chapter" id="intenciones">
                 <header class="chapter-header">
                     <p class="section-kicker">Cuaderno interior</p>
                     <h2>Intenciones y luces</h2>
                 </header>
-
-                <article class="prayer">
+                <article class="prayer" style="break-after: page;">
                     <p class="prayer-label">Hoy rezo por</p>
                     <div class="note-lines" aria-hidden="true">
-                        <div class="note-line"></div>
-                        <div class="note-line"></div>
-                        <div class="note-line"></div>
-                        <div class="note-line"></div>
-                        <div class="note-line"></div>
-                        <div class="note-line"></div>
+                        <div class="note-line"></div><div class="note-line"></div><div class="note-line"></div>
+                        <div class="note-line"></div><div class="note-line"></div><div class="note-line"></div>
+                        <div class="note-line"></div><div class="note-line"></div><div class="note-line"></div>
+                        <div class="note-line"></div><div class="note-line"></div><div class="note-line"></div>
                     </div>
                 </article>
-
-                <article class="prayer">
+                <article class="prayer" style="break-after: page;">
                     <p class="prayer-label">Luces recibidas</p>
                     <div class="note-lines" aria-hidden="true">
-                        <div class="note-line"></div>
-                        <div class="note-line"></div>
-                        <div class="note-line"></div>
-                        <div class="note-line"></div>
-                        <div class="note-line"></div>
-                        <div class="note-line"></div>
-                        <div class="note-line"></div>
-                        <div class="note-line"></div>
+                        <div class="note-line"></div><div class="note-line"></div><div class="note-line"></div>
+                        <div class="note-line"></div><div class="note-line"></div><div class="note-line"></div>
+                        <div class="note-line"></div><div class="note-line"></div><div class="note-line"></div>
+                        <div class="note-line"></div><div class="note-line"></div><div class="note-line"></div>
                     </div>
                 </article>
-
+                <article class="prayer">
+                    <p class="prayer-label">Propósitos y gracias</p>
+                    <div class="note-lines" aria-hidden="true">
+                        <div class="note-line"></div><div class="note-line"></div><div class="note-line"></div>
+                        <div class="note-line"></div><div class="note-line"></div><div class="note-line"></div>
+                        <div class="note-line"></div><div class="note-line"></div><div class="note-line"></div>
+                        <div class="note-line"></div><div class="note-line"></div><div class="note-line"></div>
+                    </div>
+                </article>
                 <p class="footer-mark">Ad maiorem Dei gloriam</p>
+            </section>
+
+            <!-- NUEVA SECCIÓN: Colofón con fecha de edición automática -->
+            <section class="chapter" id="colofon">
+                <div class="colophon-page">
+                    <p class="section-kicker" style="margin-bottom: 1rem;">Edición</p>
+                    <p style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.3rem; font-weight: 600;">
+                        Primera edición<br>
+                        <span id="fecha-edicion" style="color: var(--muted);">Junio de 2026</span>
+                    </p>
+                    <div class="ornament-line" style="margin-top: 2rem;" aria-hidden="true">
+                        <i class="fas fa-feather-alt"></i>
+                    </div>
+                    <p style="font-size: 0.9rem; color: var(--muted); margin-top: 1rem;">Impreso con cuidado y oración</p>
+                </div>
             </section>
         </article>
     </main>
@@ -1476,7 +1562,6 @@
                 a3: { css: 'A3', margin: '18mm', label: 'A3 pliego grande' },
                 a2: { css: 'A2', margin: '24mm', label: 'A2 mural' }
             };
-
             const html = document.documentElement;
             const printStyle = document.getElementById('print-size-style');
             const status = document.getElementById('size-status');
@@ -1487,7 +1572,7 @@
                 const size = sizes[sizeKey] || sizes.a6;
                 activeSize = sizes[sizeKey] ? sizeKey : 'a6';
                 html.dataset.pageSize = activeSize;
-                printStyle.textContent = `@page { size: ${size.css}; margin: ${size.margin}; }`;
+                printStyle.textContent = `@page { size: ${size.css}; margin: ${size.margin}; @bottom-center { content: counter(page); font-family: "Inter", "Segoe UI", system-ui, sans-serif; font-size: 0.7rem; color: #7b6a58; } }`;
                 status.textContent = size.label;
                 document.querySelectorAll('.size-button').forEach((button) => {
                     button.setAttribute('aria-pressed', String(button.dataset.size === activeSize));
@@ -1497,19 +1582,29 @@
             function printWithTitle(prefix) {
                 document.title = `${prefix}-${activeSize}-lumina`;
                 window.print();
-                window.setTimeout(() => {
-                    document.title = originalTitle;
-                }, 600);
+                window.setTimeout(() => { document.title = originalTitle; }, 600);
+            }
+
+            // Insertar fecha actual automáticamente
+            function actualizarFechaEdicion() {
+                const fechaSpan = document.getElementById('fecha-edicion');
+                if (fechaSpan) {
+                    const ahora = new Date();
+                    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                    const mes = meses[ahora.getMonth()];
+                    const año = ahora.getFullYear();
+                    fechaSpan.textContent = `${mes} de ${año}`;
+                }
             }
 
             document.querySelectorAll('.size-button').forEach((button) => {
                 button.addEventListener('click', () => applySize(button.dataset.size));
             });
-
             document.getElementById('print-button')?.addEventListener('click', () => printWithTitle('devocionario'));
             document.getElementById('print-only-button')?.addEventListener('click', () => printWithTitle('devocionario-impresion'));
 
             applySize(activeSize);
+            actualizarFechaEdicion();
         })();
     </script>
 </body>
