@@ -239,7 +239,6 @@
             justify-content: space-between;
             gap: 3rem;
             padding: clamp(1rem, 4vw, 2rem) 0;
-            break-after: page;
         }
 
         .cover-mark {
@@ -324,12 +323,24 @@
             background: rgba(184, 134, 11, 0.32);
         }
 
+        /* Capítulo normal: sin salto de página, flujo continuo, pero sin dividir la sección */
         .chapter {
-            break-before: page;
             padding-top: 0.2rem;
+            break-inside: avoid; /* Mantiene la sección completa pegada */
         }
 
         .chapter + .chapter {
+            margin-top: 2.8rem;
+        }
+
+        /* Capítulo con salto de página: solo para Índice, Intenciones y Colofón */
+        .chapter-break {
+            break-before: page;
+            padding-top: 0.2rem;
+            break-inside: avoid;
+        }
+
+        .chapter-break + .chapter-break {
             margin-top: 2.8rem;
         }
 
@@ -337,6 +348,7 @@
             margin-bottom: 1.25rem;
             padding-bottom: 0.85rem;
             border-bottom: 2px solid rgba(184, 134, 11, 0.2);
+            break-after: avoid; /* Evita título huérfano */
         }
 
         .section-kicker {
@@ -704,7 +716,6 @@
         }
 
         .dedication-page {
-            break-after: page;
             padding: 2rem 0;
             display: flex;
             flex-direction: column;
@@ -820,15 +831,6 @@
             .cover {
                 min-height: 92vh;
             }
-            .chapter {
-                break-before: page;
-            }
-            .chapter:first-of-type {
-                break-before: page;
-            }
-            .chapter + .chapter {
-                margin-top: 0;
-            }
             .prayer-grid,
             .mystery-grid,
             .daily-grid,
@@ -847,6 +849,9 @@
             }
             a[href]::after {
                 content: "";
+            }
+            .chapter-break {
+                break-before: page;
             }
         }
     </style>
@@ -924,7 +929,7 @@
                 </div>
             </section>
 
-            <!-- NUEVA SECCIÓN: Oración dedicatoria de san Alfonso (inicio) -->
+            <!-- Oración dedicatoria de san Alfonso (inicio) -->
             <section class="chapter" id="oracion-inicial">
                 <header class="chapter-header">
                     <p class="section-kicker">Pórtico del devocionario</p>
@@ -942,8 +947,8 @@
                 </article>
             </section>
 
-            <!-- Índice (actualizado) -->
-            <section class="chapter" id="indice">
+            <!-- Índice (empieza en página nueva) -->
+            <section class="chapter-break" id="indice">
                 <header class="chapter-header">
                     <p class="section-kicker">Mapa de oración</p>
                     <h2>Índice</h2>
@@ -966,7 +971,7 @@
                 </nav>
             </section>
 
-            <!-- Oraciones esenciales -->
+            <!-- Oraciones esenciales (sección unida, sin salto forzado) -->
             <section class="chapter" id="oraciones-esenciales">
                 <header class="chapter-header">
                     <p class="section-kicker">Oraciones esenciales</p>
@@ -1024,7 +1029,7 @@
                 </div>
             </section>
 
-            <!-- Reconciliación -->
+            <!-- Reconciliación (sección unida) -->
             <section class="chapter" id="reconciliacion">
                 <header class="chapter-header">
                     <p class="section-kicker">Sacramento del perdón</p>
@@ -1095,7 +1100,7 @@
                 </ul>
             </section>
 
-            <!-- Oraciones marianas -->
+            <!-- Oraciones marianas (sección unida) -->
             <section class="chapter" id="oraciones-marianas">
                 <header class="chapter-header">
                     <p class="section-kicker">Con María</p>
@@ -1157,7 +1162,7 @@
                 </div>
             </section>
 
-            <!-- Devociones y tiempos litúrgicos -->
+            <!-- Devociones y tiempos litúrgicos (sección unida) -->
             <section class="chapter" id="devociones-liturgicas">
                 <header class="chapter-header">
                     <p class="section-kicker">Fiestas y devociones</p>
@@ -1210,7 +1215,7 @@
                 </div>
             </section>
 
-            <!-- Guía del Año Litúrgico -->
+            <!-- Guía del Año Litúrgico (sección unida) -->
             <section class="chapter" id="ano-liturgico">
                 <header class="chapter-header">
                     <p class="section-kicker">Ritmo de la Iglesia</p>
@@ -1230,7 +1235,7 @@
                 <p class="inline-note" style="margin-top: 1.5rem;">Vivir el año litúrgico es dejar que la Palabra modele nuestro corazón al ritmo de la gracia.</p>
             </section>
 
-            <!-- Vida diaria y Eucaristía -->
+            <!-- Vida diaria y Eucaristía (sección unida) -->
             <section class="chapter" id="vida-diaria">
                 <header class="chapter-header">
                     <p class="section-kicker">Para cada jornada</p>
@@ -1270,7 +1275,7 @@
                 </div>
             </section>
 
-            <!-- Santos e intercesores -->
+            <!-- Santos e intercesores (sección unida) -->
             <section class="chapter" id="intercesores">
                 <header class="chapter-header">
                     <p class="section-kicker">Compañeros del camino</p>
@@ -1308,7 +1313,7 @@
                 </div>
             </section>
 
-            <!-- SECCIÓN RENOMBRADA: Promesa Salesiana (solo la Fórmula) -->
+            <!-- Promesa Salesiana (sección unida) -->
             <section class="chapter" id="vocacion-apostolado">
                 <header class="chapter-header">
                     <p class="section-kicker">Respuesta y misión</p>
@@ -1330,7 +1335,7 @@
                 <p class="footer-mark">Ad maiorem Dei gloriam</p>
             </section>
 
-            <!-- Santo Rosario -->
+            <!-- Santo Rosario (sección unida) -->
             <section class="chapter" id="santo-rosario">
                 <header class="chapter-header">
                     <p class="section-kicker">Santo Rosario</p>
@@ -1359,7 +1364,7 @@
                 </div>
             </section>
 
-            <!-- Misterios del Rosario -->
+            <!-- Misterios del Rosario (sección unida) -->
             <section class="chapter" id="misterios">
                 <header class="chapter-header">
                     <p class="section-kicker">Meditación</p>
@@ -1414,7 +1419,7 @@
                 </ul>
             </section>
 
-            <!-- Letanías -->
+            <!-- Letanías (sección unida) -->
             <section class="chapter" id="letanias">
                 <header class="chapter-header">
                     <p class="section-kicker">Cierre solemne</p>
@@ -1500,13 +1505,13 @@
                 </article>
             </section>
 
-            <!-- Intenciones -->
-            <section class="chapter" id="intenciones">
+            <!-- Intenciones (empieza en página nueva) -->
+            <section class="chapter-break" id="intenciones">
                 <header class="chapter-header">
                     <p class="section-kicker">Cuaderno interior</p>
                     <h2>Intenciones y luces</h2>
                 </header>
-                <article class="prayer" style="break-after: page;">
+                <article class="prayer">
                     <p class="prayer-label">Hoy rezo por</p>
                     <div class="note-lines" aria-hidden="true">
                         <div class="note-line"></div><div class="note-line"></div><div class="note-line"></div>
@@ -1515,7 +1520,7 @@
                         <div class="note-line"></div><div class="note-line"></div><div class="note-line"></div>
                     </div>
                 </article>
-                <article class="prayer" style="break-after: page;">
+                <article class="prayer">
                     <p class="prayer-label">Luces recibidas</p>
                     <div class="note-lines" aria-hidden="true">
                         <div class="note-line"></div><div class="note-line"></div><div class="note-line"></div>
@@ -1536,8 +1541,8 @@
                 <p class="footer-mark">Ad maiorem Dei gloriam</p>
             </section>
 
-            <!-- NUEVA SECCIÓN: Colofón con fecha de edición automática -->
-            <section class="chapter" id="colofon">
+            <!-- Colofón (empieza en página nueva, queda solo al final) -->
+            <section class="chapter-break" id="colofon">
                 <div class="colophon-page">
                     <p class="section-kicker" style="margin-bottom: 1rem;">Edición</p>
                     <p style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.3rem; font-weight: 600;">
@@ -1585,7 +1590,6 @@
                 window.setTimeout(() => { document.title = originalTitle; }, 600);
             }
 
-            // Insertar fecha actual automáticamente
             function actualizarFechaEdicion() {
                 const fechaSpan = document.getElementById('fecha-edicion');
                 if (fechaSpan) {
