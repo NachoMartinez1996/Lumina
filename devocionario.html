@@ -323,17 +323,15 @@
             background: rgba(184, 134, 11, 0.32);
         }
 
-        /* Capítulo normal: sin salto de página, flujo continuo, pero sin dividir la sección */
         .chapter {
             padding-top: 0.2rem;
-            break-inside: avoid; /* Mantiene la sección completa pegada */
+            break-inside: avoid;
         }
 
         .chapter + .chapter {
             margin-top: 2.8rem;
         }
 
-        /* Capítulo con salto de página: solo para Índice, Intenciones y Colofón */
         .chapter-break {
             break-before: page;
             padding-top: 0.2rem;
@@ -348,7 +346,7 @@
             margin-bottom: 1.25rem;
             padding-bottom: 0.85rem;
             border-bottom: 2px solid rgba(184, 134, 11, 0.2);
-            break-after: avoid; /* Evita título huérfano */
+            break-after: avoid;
         }
 
         .section-kicker {
@@ -747,7 +745,6 @@
             width: 100%;
         }
 
-        /* Colofón */
         .colophon-page {
             display: flex;
             flex-direction: column;
@@ -929,26 +926,8 @@
                 </div>
             </section>
 
-            <!-- Oración dedicatoria de san Alfonso (inicio) -->
-            <section class="chapter" id="oracion-inicial">
-                <header class="chapter-header">
-                    <p class="section-kicker">Pórtico del devocionario</p>
-                    <h2>Oración dedicatoria</h2>
-                </header>
-                <article class="prayer">
-                    <p class="prayer-label">San Alfonso María de Ligorio</p>
-                    <h3>A Jesús y a María</h3>
-                    <p class="inline-note" style="margin-bottom: 1rem;">Tomo prestada esta oración de san Alfonso, con la que inició y dedicó su libro «El gran medio de la oración», para consagrar también este devocionario.</p>
-                    <p>Oh Verbo encarnado,<br>Vos disteis la sangre y la vida para comunicar a nuestras plegarias,<br>según vuestra divina promesa, una eficacia tan poderosa<br>que alcancen todo lo que pidan;<br>mas nosotros, oh Dios mío, tan descuidados andamos en las cosas de nuestra eterna salvación,<br>que ni siquiera queremos pediros las gracias que necesitamos para salvarnos.</p>
-                    <p>Nos diste con el gran medio de la oración la llave de todos vuestros tesoros<br>y nosotros, por empeñarnos en no rezar,<br>vivimos siempre en la más grande miseria espiritual...</p>
-                    <p>¡Ay, Señor mío!, ilumínanos y haznos comprender lo mucho que valen<br>ante vuestro Eterno Padre las plegarias que le dirigimos<br>en vuestro nombre y por vuestros méritos.</p>
-                    <p>A Vos consagro esta humilde obra mía; bendícela,<br>y haga vuestra misericordia que cuantos la tomen en sus manos<br>se sientan movidos a orar y procurar que en todos prenda la llama de este mismo amor;<br>y así no haya uno solo que no acuda a este gran medio de salvación.</p>
-                    <p>A Vos encomiendo también esta obrita mía, oh excelsa Madre de Dios, Virgen María.<br>Protegela y entrégale a cuantos la lean el espíritu de la oración,<br>la gracia de recurrir en todas sus necesidades a vuestro divino Hijo...<br>y a Vos, que sos la dispensadora de las gracias y la Madre de las misericordias;<br>a Vos, que no podés consentir que nadie se retire de vuestra presencia triste y desesperado;<br>a Vos, Virgen poderosísima que obtienes cuanto deseás para vuestros siervos.</p>
-                </article>
-            </section>
-
-            <!-- Índice (empieza en página nueva) -->
-            <section class="chapter-break" id="indice">
+            <!-- Índice (ahora al inicio, antes de la oración dedicatoria) -->
+            <section class="chapter" id="indice">
                 <header class="chapter-header">
                     <p class="section-kicker">Mapa de oración</p>
                     <h2>Índice</h2>
@@ -971,7 +950,25 @@
                 </nav>
             </section>
 
-            <!-- Oraciones esenciales (sección unida, sin salto forzado) -->
+            <!-- Oración dedicatoria de san Alfonso (después del índice) -->
+            <section class="chapter" id="oracion-inicial">
+                <header class="chapter-header">
+                    <p class="section-kicker">Pórtico del devocionario</p>
+                    <h2>Oración dedicatoria</h2>
+                </header>
+                <article class="prayer">
+                    <p class="prayer-label">San Alfonso María de Ligorio</p>
+                    <h3>A Jesús y a María</h3>
+                    <p class="inline-note" style="margin-bottom: 1rem;">Tomo prestada esta oración de san Alfonso, con la que inició y dedicó su libro «El gran medio de la oración», para consagrar también este devocionario.</p>
+                    <p>Oh Verbo encarnado,<br>Vos disteis la sangre y la vida para comunicar a nuestras plegarias,<br>según vuestra divina promesa, una eficacia tan poderosa<br>que alcancen todo lo que pidan;<br>mas nosotros, oh Dios mío, tan descuidados andamos en las cosas de nuestra eterna salvación,<br>que ni siquiera queremos pediros las gracias que necesitamos para salvarnos.</p>
+                    <p>Nos diste con el gran medio de la oración la llave de todos vuestros tesoros<br>y nosotros, por empeñarnos en no rezar,<br>vivimos siempre en la más grande miseria espiritual...</p>
+                    <p>¡Ay, Señor mío!, ilumínanos y haznos comprender lo mucho que valen<br>ante vuestro Eterno Padre las plegarias que le dirigimos<br>en vuestro nombre y por vuestros méritos.</p>
+                    <p>A Vos consagro esta humilde obra mía; bendícela,<br>y haga vuestra misericordia que cuantos la tomen en sus manos<br>se sientan movidos a orar y procurar que en todos prenda la llama de este mismo amor;<br>y así no haya uno solo que no acuda a este gran medio de salvación.</p>
+                    <p>A Vos encomiendo también esta obrita mía, oh excelsa Madre de Dios, Virgen María.<br>Protegela y entrégale a cuantos la lean el espíritu de la oración,<br>la gracia de recurrir en todas sus necesidades a vuestro divino Hijo...<br>y a Vos, que sos la dispensadora de las gracias y la Madre de las misericordias;<br>a Vos, que no podés consentir que nadie se retire de vuestra presencia triste y desesperado;<br>a Vos, Virgen poderosísima que obtienes cuanto deseás para vuestros siervos.</p>
+                </article>
+            </section>
+
+            <!-- Oraciones esenciales -->
             <section class="chapter" id="oraciones-esenciales">
                 <header class="chapter-header">
                     <p class="section-kicker">Oraciones esenciales</p>
@@ -1029,7 +1026,7 @@
                 </div>
             </section>
 
-            <!-- Reconciliación (sección unida) -->
+            <!-- Reconciliación -->
             <section class="chapter" id="reconciliacion">
                 <header class="chapter-header">
                     <p class="section-kicker">Sacramento del perdón</p>
@@ -1100,7 +1097,7 @@
                 </ul>
             </section>
 
-            <!-- Oraciones marianas (sección unida) -->
+            <!-- Oraciones marianas -->
             <section class="chapter" id="oraciones-marianas">
                 <header class="chapter-header">
                     <p class="section-kicker">Con María</p>
@@ -1211,6 +1208,18 @@
                         <p>Suaviza nuestra dureza, elimina con tu calor nuestra frialdad, corrige nuestros desvíos.</p>
                         <p>Concede a tus fieles, que confían en Ti, tus siete dones sagrados.</p>
                         <p>Premia nuestra virtud, salva nuestras almas, danos la eterna alegría. Amén.</p>
+                    </article>
+                    <!-- Oración por la Patria -->
+                    <article class="prayer">
+                        <p class="prayer-label">Por nuestra tierra</p>
+                        <h3>Oración por la Patria</h3>
+                        <p>Jesucristo, Señor de la historia, te necesitamos.<br>Nos sentimos heridos y agobiados.<br>Precisamos tu alivio y fortaleza.</p>
+                        <p>Queremos ser nación,<br>una nación cuya identidad<br>sea la pasión por la verdad<br>y el compromiso por el bien común.</p>
+                        <p>Danos la valentía de la libertad<br>de los hijos de Dios<br>para amar a todos sin excluir a nadie,<br>privilegiando a los pobres<br>y perdonando a los que nos ofenden,<br>aborreciendo el odio y construyendo la paz.</p>
+                        <p>Concédenos la sabiduría del diálogo<br>y la alegría de la esperanza que no defrauda.</p>
+                        <p>Tú nos convocas. Aquí estamos, Señor,<br>cercanos a María, que desde Luján nos dice:<br>¡Argentina! ¡Canta y camina!</p>
+                        <p>Jesucristo, Señor de la historia, te necesitamos. Amén.</p>
+                        <p class="inline-note">Conferencia Episcopal Argentina</p>
                     </article>
                 </div>
             </section>
