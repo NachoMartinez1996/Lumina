@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es-AR" data-page-size="a6">
+<html lang="es-AR" data-page-size="a5">
 
 <head>
     <meta charset="UTF-8">
@@ -14,8 +14,8 @@
     <meta name="theme-color" content="#b8860b">
     <style id="print-size-style">
         @page {
-            size: A6;
-            margin: 8mm;
+            size: A5;
+            margin: 10mm;
             @bottom-center {
                 content: counter(page);
                 font-family: "Inter", "Segoe UI", system-ui, sans-serif;
@@ -44,6 +44,126 @@
 
         html[data-page-size="a5"] {
             --preview-width: 620px;
+            --font-size-base: 0.98rem;
+            --line-height-base: 1.44;
+        }
+
+        html[data-page-size="a5"] .book {
+            padding: 1.15rem 1.2rem 1.35rem;
+        }
+
+        html[data-page-size="a5"] .cover {
+            min-height: 74vh;
+            gap: 1.6rem;
+        }
+
+        html[data-page-size="a5"] .cover h1 {
+            font-size: clamp(2rem, 5.2vw, 2.75rem);
+        }
+
+        html[data-page-size="a5"] .cover-subtitle {
+            font-size: 1rem;
+            max-width: 24rem;
+        }
+
+        html[data-page-size="a5"] .chapter-header {
+            margin-bottom: 0.7rem;
+            padding-bottom: 0.55rem;
+        }
+
+        html[data-page-size="a5"] .chapter + .chapter {
+            margin-top: 1.35rem;
+        }
+
+        html[data-page-size="a5"] .section-kicker,
+        html[data-page-size="a5"] .prayer-label {
+            font-size: 0.63rem;
+            letter-spacing: 0.18em;
+        }
+
+        html[data-page-size="a5"] h2 {
+            font-size: clamp(1.45rem, 4.2vw, 1.95rem);
+        }
+
+        html[data-page-size="a5"] h3 {
+            font-size: 1.08rem;
+        }
+
+        html[data-page-size="a5"] .prayer {
+            padding: 0.72rem 0 0.86rem;
+        }
+
+        html[data-page-size="a5"] .prayer p + p {
+            margin-top: 0.48rem;
+        }
+
+        html[data-page-size="a5"] .prayer-grid,
+        html[data-page-size="a5"] .mystery-grid,
+        html[data-page-size="a5"] .daily-grid,
+        html[data-page-size="a5"] .reconciliation-grid {
+            gap: 0.9rem;
+        }
+
+        html[data-page-size="a5"] .rosary-steps {
+            gap: 0.62rem;
+            margin-top: 0.8rem;
+        }
+
+        html[data-page-size="a5"] .rosary-steps li {
+            grid-template-columns: 1.45rem 1fr;
+            gap: 0.55rem;
+        }
+
+        html[data-page-size="a5"] .step-number {
+            width: 1.45rem;
+            height: 1.45rem;
+            font-size: 0.74rem;
+        }
+
+        html[data-page-size="a5"] .step-content strong {
+            font-size: 0.8rem;
+        }
+
+        html[data-page-size="a5"] .step-content span {
+            font-size: 0.94rem;
+            line-height: 1.4;
+        }
+
+        html[data-page-size="a5"] .mystery-set {
+            padding: 0.8rem 0 0.95rem;
+        }
+
+        html[data-page-size="a5"] .mystery-set h3 {
+            margin-bottom: 0.52rem;
+        }
+
+        html[data-page-size="a5"] .mystery-set ol {
+            gap: 0.42rem;
+        }
+
+        html[data-page-size="a5"] .scripture-text {
+            margin-top: 0.35rem;
+            padding-left: 0.65rem;
+            font-size: 0.93rem;
+            line-height: 1.38;
+        }
+
+        html[data-page-size="a5"] .callout {
+            margin: 0.9rem 0;
+            padding: 0.8rem 0.95rem;
+        }
+
+        html[data-page-size="a5"] .litany p {
+            font-size: 0.9rem;
+            line-height: 1.34;
+        }
+
+        html[data-page-size="a5"] .toc a {
+            padding: 0.54rem 0;
+        }
+
+        html[data-page-size="a5"] .toc span:first-child {
+            font-size: 1rem;
         }
 
         html[data-page-size="a4"] {
@@ -220,10 +340,10 @@
             padding: clamp(1rem, 3vw, 2rem) 1rem 4rem;
         }
 
-        .book {
+                .book {
             width: min(100%, var(--preview-width));
             margin: 0 auto;
-            padding: clamp(1.15rem, 4vw, 2rem);
+            padding: clamp(1.5rem, 5vw, 2.5rem);
             border: 1px solid rgba(184, 134, 11, 0.28);
             border-radius: 8px;
             background:
@@ -271,13 +391,13 @@
             text-align: center;
         }
 
-        .cover h1 {
+                .cover h1 {
             margin: 0 auto;
             max-width: 100%;
             font-family: "Cormorant Garamond", Georgia, serif;
-            font-size: clamp(2.7rem, 9vw, 4.45rem);
+            font-size: clamp(2.5rem, 8vw, 4rem);
             font-weight: 700;
-            line-height: 0.9;
+            line-height: 1.1;
             text-align: center;
         }
 
@@ -285,14 +405,14 @@
             font-size: clamp(2.55rem, 7vw, 3.45rem);
         }
 
-        .cover-subtitle {
+                .cover-subtitle {
             max-width: 28rem;
             margin: 1rem auto 0;
             color: var(--muted);
             font-family: "Cormorant Garamond", Georgia, serif;
-            font-size: 1.35rem;
+            font-size: 1.2rem;
             font-weight: 600;
-            line-height: 1.28;
+            line-height: 1.3;
             text-align: center;
         }
 
@@ -315,6 +435,7 @@
             color: var(--oro);
         }
 
+        
         .ornament-line::before,
         .ornament-line::after {
             content: "";
@@ -327,8 +448,8 @@
             padding-top: 0.2rem;
         }
 
-        .chapter+.chapter {
-            margin-top: 2.8rem;
+                .chapter+.chapter {
+            margin-top: 3rem;
         }
 
         .chapter-break {
@@ -358,11 +479,11 @@
             color: var(--tinta);
         }
 
-        h2 {
+                h2 {
             margin: 0;
-            font-size: clamp(2rem, 7vw, 3.1rem);
+            font-size: clamp(2rem, 6vw, 2.8rem);
             font-weight: 700;
-            line-height: 0.96;
+            line-height: 1.1;
         }
 
         h3 {
@@ -379,11 +500,11 @@
             line-height: 1.16;
         }
 
-        p,
+                p,
         li {
             font-family: "Cormorant Garamond", Georgia, serif;
-            font-size: 1.1rem;
-            line-height: 1.54;
+            font-size: var(--font-size-base, 1.1rem);
+            line-height: var(--line-height-base, 1.54);
         }
 
         html[data-page-size="a6"] p {
@@ -400,41 +521,41 @@
             margin-top: 1rem;
         }
 
-        .toc a {
+                .toc a {
             display: flex;
             justify-content: space-between;
-            gap: 1rem;
-            padding: 0.6rem 0;
+            gap: 1.2rem;
+            padding: 0.7rem 0;
             border-bottom: 1px solid rgba(184, 134, 11, 0.15);
             color: inherit;
             text-decoration: none;
         }
 
-        .toc span:first-child {
+                .toc span:first-child {
             font-family: "Cormorant Garamond", Georgia, serif;
-            font-size: 1.18rem;
+            font-size: 1.15rem;
             font-weight: 700;
         }
 
-        .toc span:last-child {
+                .toc span:last-child {
             color: var(--oro);
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             font-weight: 800;
             letter-spacing: 0.16em;
             text-transform: uppercase;
         }
 
-        .prayer-grid,
+                .prayer-grid,
         .mystery-grid,
         .daily-grid,
         .reconciliation-grid {
             display: grid;
-            gap: 1rem;
+            gap: 1.2rem;
         }
 
-        .prayer {
+                .prayer {
             position: relative;
-            padding: 1rem 0 1.1rem;
+            padding: 1.2rem 0 1.3rem;
             border-bottom: 1px solid rgba(184, 134, 11, 0.15);
             break-inside: avoid;
         }
@@ -457,21 +578,21 @@
             margin-top: 0.62rem;
         }
 
-        .response {
+                .response {
             color: var(--muted);
             font-family: "Inter", "Segoe UI", system-ui, sans-serif;
-            font-size: 0.82rem;
+            font-size: 0.85rem;
             font-weight: 700;
-            line-height: 1.55;
+            line-height: 1.6;
         }
 
-        .inline-note {
-            margin-top: 0.55rem;
+                .inline-note {
+            margin-top: 0.65rem;
             color: var(--muted);
             font-family: "Inter", "Segoe UI", system-ui, sans-serif;
-            font-size: 0.82rem;
+            font-size: 0.85rem;
             font-weight: 700;
-            line-height: 1.55;
+            line-height: 1.6;
         }
 
         .rosary-steps {
@@ -482,10 +603,10 @@
             list-style: none;
         }
 
-        .rosary-steps li {
+                .rosary-steps li {
             display: grid;
             grid-template-columns: 2.1rem 1fr;
-            gap: 0.75rem;
+            gap: 0.85rem;
             align-items: start;
             break-inside: avoid;
         }
@@ -505,52 +626,52 @@
             font-weight: 800;
         }
 
-        .step-content strong {
+                .step-content strong {
             display: block;
-            margin-bottom: 0.14rem;
+            margin-bottom: 0.2rem;
             color: var(--tinta);
             font-family: "Inter", "Segoe UI", system-ui, sans-serif;
-            font-size: 0.9rem;
-            line-height: 1.35;
+            font-size: 0.92rem;
+            line-height: 1.4;
         }
 
-        .step-content span {
+                .step-content span {
             display: block;
             color: var(--muted);
             font-family: "Cormorant Garamond", Georgia, serif;
-            font-size: 1.03rem;
-            line-height: 1.45;
+            font-size: 1.05rem;
+            line-height: 1.5;
         }
 
-        .mystery-set {
-            padding: 1rem 0 1.1rem;
+                .mystery-set {
+            padding: 1.2rem 0 1.3rem;
             border-bottom: 1px solid rgba(184, 134, 11, 0.15);
             break-inside: avoid;
         }
 
-        .mystery-set h3 {
+                .mystery-set h3 {
             display: flex;
             align-items: baseline;
             justify-content: space-between;
-            gap: 1rem;
-            margin-bottom: 0.65rem;
+            gap: 1.1rem;
+            margin-bottom: 0.75rem;
         }
 
-        .mystery-set h3 span {
+                .mystery-set h3 span {
             color: var(--oro);
             font-family: "Inter", "Segoe UI", system-ui, sans-serif;
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             font-weight: 800;
             letter-spacing: 0.12em;
             text-transform: uppercase;
             white-space: nowrap;
         }
 
-        .mystery-set ol {
+                .mystery-set ol {
             display: grid;
-            gap: 0.45rem;
+            gap: 0.55rem;
             margin: 0;
-            padding-left: 1.25rem;
+            padding-left: 1.35rem;
         }
 
         .mystery-set li {
@@ -563,29 +684,29 @@
             font-weight: 800;
         }
 
-        .mystery-fruit {
+                .mystery-fruit {
             display: block;
             color: var(--muted);
             font-family: "Inter", "Segoe UI", system-ui, sans-serif;
-            font-size: 0.78rem;
+            font-size: 0.8rem;
             font-weight: 700;
-            line-height: 1.45;
+            line-height: 1.5;
         }
 
-        .scripture-text {
-            margin-top: 0.45rem;
-            padding-left: 0.75rem;
+                .scripture-text {
+            margin-top: 0.55rem;
+            padding-left: 0.85rem;
             border-left: 2px solid rgba(184, 134, 11, 0.24);
             color: #3b3026;
             font-family: "Cormorant Garamond", Georgia, serif;
-            font-size: 0.98rem;
+            font-size: 1rem;
             font-style: italic;
-            line-height: 1.42;
+            line-height: 1.5;
         }
 
-        .callout {
-            margin: 1rem 0;
-            padding: 0.9rem 1rem;
+                .callout {
+            margin: 1.2rem 0;
+            padding: 1rem 1.1rem;
             border: 1px solid rgba(47, 93, 80, 0.22);
             border-left: 4px solid var(--verde);
             border-radius: 8px;
@@ -593,20 +714,20 @@
             break-inside: avoid;
         }
 
-        .callout strong {
+                .callout strong {
             display: block;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.3rem;
             color: var(--verde);
             font-family: "Inter", "Segoe UI", system-ui, sans-serif;
-            font-size: 0.78rem;
+            font-size: 0.8rem;
             font-weight: 800;
             letter-spacing: 0.14em;
             text-transform: uppercase;
         }
 
-        .callout p {
+                .callout p {
             color: var(--tinta);
-            font-size: 1.02rem;
+            font-size: 1.05rem;
         }
 
         .small-list {
@@ -617,14 +738,14 @@
             list-style: none;
         }
 
-        .small-list li {
-            padding-left: 1rem;
+                .small-list li {
+            padding-left: 1.1rem;
             border-left: 2px solid rgba(184, 134, 11, 0.22);
             color: var(--muted);
             font-family: "Inter", "Segoe UI", system-ui, sans-serif;
-            font-size: 0.82rem;
+            font-size: 0.85rem;
             font-weight: 700;
-            line-height: 1.55;
+            line-height: 1.6;
         }
 
         .commandment-list {
@@ -635,8 +756,8 @@
             list-style: none;
         }
 
-        .commandment-list li {
-            padding: 0.76rem 0.85rem;
+                .commandment-list li {
+            padding: 0.86rem 0.95rem;
             border: 1px solid rgba(184, 134, 11, 0.16);
             border-left: 4px solid rgba(184, 134, 11, 0.36);
             border-radius: 8px;
@@ -644,23 +765,23 @@
             break-inside: avoid;
         }
 
-        .commandment-list strong {
+                .commandment-list strong {
             display: block;
-            margin-bottom: 0.2rem;
+            margin-bottom: 0.3rem;
             color: var(--tinta);
             font-family: "Inter", "Segoe UI", system-ui, sans-serif;
-            font-size: 0.78rem;
+            font-size: 0.8rem;
             font-weight: 800;
             letter-spacing: 0.08em;
-            line-height: 1.35;
+            line-height: 1.4;
             text-transform: uppercase;
         }
 
-        .commandment-list span {
+                .commandment-list span {
             color: var(--muted);
             font-family: "Cormorant Garamond", Georgia, serif;
-            font-size: 1rem;
-            line-height: 1.42;
+            font-size: 1.05rem;
+            line-height: 1.5;
         }
 
         .litany {
@@ -669,13 +790,13 @@
             margin-top: 0.9rem;
         }
 
-        .litany p {
+                .litany p {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.6rem;
             justify-content: space-between;
             border-bottom: 1px dotted rgba(184, 134, 11, 0.24);
             font-size: 1rem;
-            line-height: 1.38;
+            line-height: 1.45;
         }
 
         html[data-page-size="a6"] .litany p {
@@ -694,63 +815,63 @@
             margin-top: 1rem;
         }
 
-        .note-line {
-            height: 1.65rem;
+                .note-line {
+            height: 1.8rem;
             border-bottom: 1px solid rgba(184, 134, 11, 0.32);
         }
 
-        .footer-mark {
-            margin-top: 2.5rem;
-            padding-top: 1rem;
+                .footer-mark {
+            margin-top: 2.8rem;
+            padding-top: 1.2rem;
             border-top: 1px solid rgba(184, 134, 11, 0.18);
             color: var(--muted);
-            font-size: 0.78rem;
+            font-size: 0.8rem;
             font-weight: 800;
             letter-spacing: 0.18em;
             text-align: center;
             text-transform: uppercase;
         }
 
-        .dedication-page {
-            padding: 2rem 0;
+                .dedication-page {
+            padding: 2.2rem 0;
             display: flex;
             flex-direction: column;
-            gap: 2rem;
+            gap: 2.2rem;
         }
 
-        .dedication-page h2 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
+                .dedication-page h2 {
+            font-size: 1.9rem;
+            margin-bottom: 1.2rem;
         }
 
         .dedication-field {
             margin-top: 1.5rem;
         }
 
-        .dedication-field label {
+                .dedication-field label {
             display: block;
             font-family: "Inter", sans-serif;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             font-weight: 800;
             letter-spacing: 0.1em;
             color: var(--oro);
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.4rem;
         }
 
-        .dedication-field .note-line {
-            height: 1.8rem;
+                .dedication-field .note-line {
+            height: 2rem;
             border-bottom: 1px solid rgba(184, 134, 11, 0.4);
             width: 100%;
         }
 
-        .colophon-page {
+                .colophon-page {
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             min-height: 50vh;
             text-align: center;
-            gap: 1.5rem;
+            gap: 1.8rem;
         }
 
         @media (min-width: 900px) {
@@ -802,9 +923,14 @@
             }
             html,
             body {
-                width: auto;
+                width: 100%;
                 min-height: auto;
-                background: var(--papel);
+                margin: 0;
+                background: #fff;
+                font-size: 10.6pt;
+            }
+            body {
+                overflow: visible;
             }
             .screen-toolbar {
                 display: none !important;
@@ -816,15 +942,27 @@
             }
             .book {
                 width: auto;
+                max-width: none;
                 margin: 0;
-                padding: 0;
+                padding: 0 0 6mm;
                 border: 0;
                 border-radius: 0;
-                background: var(--papel);
+                background: #fff;
                 box-shadow: none;
             }
             .cover {
-                min-height: 92vh;
+                min-height: auto;
+                padding: 8mm 0 6mm;
+            }
+            .chapter,
+            .chapter-break,
+            .cover,
+            .dedication-page,
+            .colophon-page {
+                break-inside: auto;
+            }
+            .chapter-header {
+                page-break-after: avoid;
             }
             .prayer-grid,
             .mystery-grid,
@@ -836,17 +974,42 @@
             .mystery-set,
             .callout,
             .rosary-steps li,
-            .commandment-list li {
+            .commandment-list li,
+            .toc a {
                 break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            .cover + .dedication-page,
+            .dedication-page + .chapter,
+            .chapter + .chapter,
+            .chapter + .chapter-break,
+            .chapter-break + .chapter,
+            .chapter-break + .dedication-page {
+                break-before: page;
+                page-break-before: always;
+            }
+            .chapter-break {
+                break-before: page;
+                page-break-before: always;
             }
             .toc a {
                 color: inherit;
             }
+            .toc span:first-child,
+            .toc span:last-child {
+                font-size: inherit;
+            }
+            h1,
+            h2,
+            h3,
+            h4,
+            p,
+            li {
+                orphans: 3;
+                widows: 3;
+            }
             a[href]::after {
                 content: "";
-            }
-            .chapter-break {
-                break-before: page;
             }
         }
     </style>
@@ -863,13 +1026,13 @@
         </a>
         <div class="toolbar-actions">
             <div class="size-picker" aria-label="Tamaño de página">
-                <button class="size-button" type="button" data-size="a6" aria-pressed="true">A6</button>
-                <button class="size-button" type="button" data-size="a5" aria-pressed="false">A5</button>
+                <button class="size-button" type="button" data-size="a6" aria-pressed="false">A6</button>
+                <button class="size-button" type="button" data-size="a5" aria-pressed="true">A5</button>
                 <button class="size-button" type="button" data-size="a4" aria-pressed="false">A4</button>
                 <button class="size-button" type="button" data-size="a3" aria-pressed="false">A3</button>
                 <button class="size-button" type="button" data-size="a2" aria-pressed="false">A2</button>
             </div>
-            <span id="size-status" class="status-pill" aria-live="polite">A6 bolsillo</span>
+            <span id="size-status" class="status-pill" aria-live="polite">A5 devocionario</span>
             <button id="print-button" class="action-button" type="button">
                 <i class="fas fa-file-pdf" aria-hidden="true"></i>
                 <span>Descargar PDF</span>
@@ -1029,7 +1192,16 @@
                         <p class="prayer-label">Adoración trinitaria</p>
                         <h3>Acto de Adoración a la Trinidad</h3>
                         <p class="inline-note">Oración tradicional de piedad popular.</p>
-                        <p>Te adoro, Dios mío, Trinidad de personas y unidad de esencia. Te adoro, Padre, porque me creaste; te adoro, Hijo, porque me redimiste; te adoro, Espíritu Santo, porque me santificas. Concédeme conocerte, amarte y servirte en esta vida, para gozarte eternamente en la otra. Amén.</p>
+                        <p>
+                            Te adoro, Dios mío,<br>
+                            Trinidad de personas y unidad de esencia.<br>
+                            Te adoro, Padre, porque me creaste;<br>
+                            te adoro, Hijo, porque me redimiste;<br>
+                            te adoro, Espíritu Santo, porque me santificas.<br>
+                            Concédeme conocerte, amarte y servirte en esta vida,<br>
+                            para gozarte eternamente en la otra.<br>
+                            Amén.
+                        </p>
                     </article>
                     <article class="prayer">
                         <p class="prayer-label">Virtudes teologales</p>
@@ -1049,7 +1221,45 @@
                     <h2>Te Deum</h2>
                 </header>
                 <article class="prayer">
-                    <p>A ti, oh Dios, te alabamos, a ti, Señor, te reconocemos. A ti, eterno Padre, te venera toda la creación. Los ángeles todos, los cielos y todas las potestades te honran. Los querubines y serafines te cantan sin cesar: Santo, Santo, Santo es el Señor, Dios del universo. Los cielos y la tierra están llenos de la majestad de tu gloria. A ti te ensalza el glorioso coro de los Apóstoles, la multitud admirable de los Profetas, el blanco ejército de los mártires. A ti la Iglesia santa, extendida por toda la tierra, te proclama: Padre de inmensa majestad, Hijo único y verdadero, digno de adoración, Espíritu Santo, Defensor. Tú eres el Rey de la gloria, Cristo. Tú eres el Hijo único del Padre. Tú, para liberar al hombre, aceptaste la condición humana sin desdeñar el seno de la Virgen. Tú, rotas las cadenas de la muerte, abriste a los creyentes el reino del cielo. Tú te sientas a la derecha de Dios en la gloria del Padre. Creemos que un día has de venir como juez. Te rogamos, pues, que vengas en ayuda de tus siervos, a quienes redimiste con tu preciosa sangre. Haz que en la gloria eterna nos asociemos a tus santos. Salva a tu pueblo, Señor, y bendice tu heredad. Sé su pastor y ensálzalo eternamente. Día tras día te bendecimos y alabamos tu nombre para siempre, por eternidad de eternidades. Dígnate, Señor, en este día guardarnos del pecado. Ten piedad de nosotros, Señor, ten piedad de nosotros. Que tu misericordia, Señor, venga sobre nosotros, como lo esperamos de ti. En ti, Señor, confié, no me veré defraudado para siempre.</p>
+                    <p>
+                        A ti, oh Dios, te alabamos,<br>
+                        a ti, Señor, te reconocemos.<br>
+                        A ti, eterno Padre,<br>
+                        te venera toda la creación.<br>
+                        Los ángeles todos, los cielos y todas las potestades te honran.<br>
+                        Los querubines y serafines te cantan sin cesar:<br>
+                        Santo, Santo, Santo es el Señor, Dios del universo.<br>
+                        Los cielos y la tierra están llenos de la majestad de tu gloria.<br>
+                        A ti te ensalza el glorioso coro de los Apóstoles,<br>
+                        la multitud admirable de los Profetas,<br>
+                        el blanco ejército de los mártires.<br>
+                        A ti la Iglesia santa, extendida por toda la tierra, te proclama:<br>
+                        Padre de inmensa majestad,<br>
+                        Hijo único y verdadero, digno de adoración,<br>
+                        Espíritu Santo, Defensor.<br>
+                        Tú eres el Rey de la gloria, Cristo.<br>
+                        Tú eres el Hijo único del Padre.<br>
+                        Tú, para liberar al hombre,<br>
+                        aceptaste la condición humana<br>
+                        sin desdeñar el seno de la Virgen.<br>
+                        Tú, rotas las cadenas de la muerte,<br>
+                        abriste a los creyentes el reino del cielo.<br>
+                        Tú te sientas a la derecha de Dios en la gloria del Padre.<br>
+                        Creemos que un día has de venir como juez.<br>
+                        Te rogamos, pues, que vengas en ayuda de tus siervos,<br>
+                        a quienes redimiste con tu preciosa sangre.<br>
+                        Haz que en la gloria eterna nos asociemos a tus santos.<br>
+                        Salva a tu pueblo, Señor, y bendice tu heredad.<br>
+                        Sé su pastor y ensálzalo eternamente.<br>
+                        Día tras día te bendecimos<br>
+                        y alabamos tu nombre para siempre,<br>
+                        por eternidad de eternidades.<br>
+                        Dígnate, Señor, en este día guardarnos del pecado.<br>
+                        Ten piedad de nosotros, Señor, ten piedad de nosotros.<br>
+                        Que tu misericordia, Señor, venga sobre nosotros,<br>
+                        como lo esperamos de ti.<br>
+                        En ti, Señor, confié, no me veré defraudado para siempre.
+                    </p>
                 </article>
             </section>
 
@@ -1082,7 +1292,22 @@
                         <p class="prayer-label">Guía en la oscuridad</p>
                         <h3>Guíame, Luz bondadosa</h3>
                         <p class="inline-note">John Henry Newman</p>
-                        <p>Guíame, Luz bondadosa, en medio de la oscuridad circundante, ¡guíame Tú! La noche es oscura, y estoy lejos del hogar – ¡guíame Tú! Dirige Tú mis pies; no pido ver la escena distante – un paso es suficiente para mí. Yo no siempre fui así, ni rogaba que Tú me guiases. Yo amaba elegir y ver mi sendero; pero ahora, ¡guíame Tú! Yo amaba el día deslumbrante, y, a pesar de los temores, el orgullo dominaba mi voluntad: no recuerdes los años pasados. Hasta aquí Tu poder me ha bendecido, ciertamente aún me guiará, sobre el páramo y el pantano, sobre el risco y el torrente, hasta que la noche pase; y en la mañana sonrían esos rostros de ángeles que he amado desde hace mucho tiempo, y perdido por un rato.</p>
+                        <p>
+                            Guíame, Luz bondadosa, en medio de la oscuridad circundante, ¡guíame Tú!<br>
+                            La noche es oscura, y estoy lejos del hogar – ¡guíame Tú!<br>
+                            Dirige Tú mis pies; no pido ver la escena distante – un paso es suficiente para mí.<br>
+                            <br>
+                            Yo no siempre fui así, ni rogaba que Tú me guiases.<br>
+                            Yo amaba elegir y ver mi sendero; pero ahora, ¡guíame Tú!<br>
+                            Yo amaba el día deslumbrante, y, a pesar de los temores,<br>
+                            el orgullo dominaba mi voluntad: no recuerdes los años pasados.<br>
+                            <br>
+                            Hasta aquí Tu poder me ha bendecido, ciertamente aún me guiará,<br>
+                            sobre el páramo y el pantano, sobre el risco y el torrente,<br>
+                            hasta que la noche pase;<br>
+                            y en la mañana sonrían esos rostros de ángeles<br>
+                            que he amado desde hace mucho tiempo, y perdido por un rato.
+                        </p>
                     </article>
                     <article class="prayer compact">
                         <p class="prayer-label">Eucaristía</p>
@@ -1106,49 +1331,114 @@
                     <article class="prayer compact">
                         <p class="prayer-label">Después de la Comunión</p>
                         <h3>Oración de Santo Tomás de Aquino</h3>
-                        <p>Gracias te doy, Señor Dios Padre todopoderoso, por todos los beneficios y señaladamente porque has querido admitirme a la participación del sacratísimo Cuerpo y Sangre de tu Unigénito Hijo. Suplícote, Padre clementísimo, que esta sagrada Comunión no sea para mi alma lazo ni ocasión de castigo, sino intercesión saludable para el perdón; sea armadura de mi fe, escudo de mi buena voluntad, muerte de todos mis vicios, exterminio de todos mis carnales apetitos y aumento de caridad, paciencia y verdadera humildad y de todas las virtudes; sea perfecto sosiego de mi cuerpo y de mi espíritu, firme defensa contra todos mis enemigos visibles e invisibles, perpetua unión contigo sólo, mi verdadero Dios y Señor, y sello feliz de mi dichosa muerte. Y te ruego que tengas por bien llevarme a mí pecador, a aquel convite inefable, donde Tú con tu Hijo y el Espíritu Santo, eres para tus santos luz verdadera, satisfacción cumplida y gozo perdurable, dicha completa, y felicidad perfecta. Por el mismo Cristo nuestro Señor. Amén.</p>
+                        <p>
+                            Gracias te doy, Señor Dios Padre todopoderoso,<br>
+                            por todos los beneficios<br>
+                            y señaladamente porque has querido admitirme<br>
+                            a la participación del sacratísimo Cuerpo y Sangre de tu Unigénito Hijo.<br>
+                            Suplícote, Padre clementísimo,<br>
+                            que esta sagrada Comunión no sea para mi alma lazo ni ocasión de castigo,<br>
+                            sino intercesión saludable para el perdón;<br>
+                            sea armadura de mi fe, escudo de mi buena voluntad,<br>
+                            muerte de todos mis vicios,<br>
+                            exterminio de todos mis carnales apetitos<br>
+                            y aumento de caridad, paciencia y verdadera humildad y de todas las virtudes;<br>
+                            sea perfecto sosiego de mi cuerpo y de mi espíritu,<br>
+                            firme defensa contra todos mis enemigos visibles e invisibles,<br>
+                            perpetua unión contigo sólo, mi verdadero Dios y Señor,<br>
+                            y sello feliz de mi dichosa muerte.<br>
+                            Y te ruego que tengas por bien llevarme a mí pecador,<br>
+                            a aquel convite inefable,<br>
+                            donde Tú con tu Hijo y el Espíritu Santo,<br>
+                            eres para tus santos luz verdadera,<br>
+                            satisfacción cumplida y gozo perdurable,<br>
+                            dicha completa, y felicidad perfecta.<br>
+                            Por el mismo Cristo nuestro Señor. Amén.
+                        </p>
                     </article>
                     <article class="prayer compact">
                         <p class="prayer-label">Por la familia</p>
                         <h3>Jesús, María y José</h3>
                         <p class="inline-note">Inspirada en la espiritualidad de la Sagrada Familia.</p>
-                        <p>Jesús, María y José, en vosotros contemplamos el modelo de la familia santa. Os pedimos que bendigáis nuestro hogar: que reine en él la paz, el amor sincero, el respeto mutuo y la fe viva. Proteged a los padres, a los hijos, a los abuelos y a todos los que forman parte de nuestra casa. Que en las pruebas no falte la esperanza, y en las alegrías siempre demos gracias a Dios. Amén.</p>
+                        <p>
+                            Jesús, María y José,<br>
+                            en vosotros contemplamos el modelo de la familia santa.<br>
+                            Os pedimos que bendigáis nuestro hogar:<br>
+                            que reine en él la paz, el amor sincero,<br>
+                            el respeto mutuo y la fe viva.<br>
+                            Proteged a los padres, a los hijos, a los abuelos<br>
+                            y a todos los que forman parte de nuestra casa.<br>
+                            Que en las pruebas no falte la esperanza,<br>
+                            y en las alegrías siempre demos gracias a Dios.<br>
+                            Amén.
+                        </p>
                     </article>
                     <article class="prayer compact">
                         <p class="prayer-label">Paz</p>
                         <h3>Haz de mí un instrumento de tu paz</h3>
                         <p class="inline-note">Atribuida tradicionalmente a San Francisco de Asís (siglo XX).</p>
-                        <p>Señor, haz de mí un instrumento de tu paz.<br>
-                        Que allá donde hay odio, yo ponga el amor.<br>
-                        Que allá donde hay ofensa, yo ponga el perdón.<br>
-                        Que allá donde hay discordia, yo ponga la unión.<br>
-                        Que allá donde hay error, yo ponga la verdad.<br>
-                        Que allá donde hay duda, yo ponga la Fe.<br>
-                        Que allá donde hay desesperación, yo ponga la esperanza.<br>
-                        Que allá donde hay tinieblas, yo ponga la luz.<br>
-                        Que allá donde hay tristeza, yo ponga la alegría.</p>
-                        <p>Oh Señor, que yo no busque tanto<br>
-                        ser consolado, cuanto consolar,<br>
-                        ser comprendido, cuanto comprender,<br>
-                        ser amado, cuanto amar.</p>
-                        <p>Porque es dándose como se recibe,<br>
-                        es olvidándose de sí mismo como uno se encuentra a sí mismo,<br>
-                        es perdonando, como se es perdonado,<br>
-                        es muriendo como se resucita a la vida eterna.</p>
+                        <p>
+                            Señor, haz de mí un instrumento de tu paz.<br>
+                            Que allá donde hay odio, yo ponga el amor.<br>
+                            Que allá donde hay ofensa, yo ponga el perdón.<br>
+                            Que allá donde hay discordia, yo ponga la unión.<br>
+                            Que allá donde hay error, yo ponga la verdad.<br>
+                            Que allá donde hay duda, yo ponga la Fe.<br>
+                            Que allá donde hay desesperación, yo ponga la esperanza.<br>
+                            Que allá donde hay tinieblas, yo ponga la luz.<br>
+                            Que allá donde hay tristeza, yo ponga la alegría.
+                        </p>
+                        <p>
+                            Oh Señor, que yo no busque tanto<br>
+                            ser consolado, cuanto consolar,<br>
+                            ser comprendido, cuanto comprender,<br>
+                            ser amado, cuanto amar.
+                        </p>
+                        <p>
+                            Porque es dándose como se recibe,<br>
+                            es olvidándose de sí mismo como uno se encuentra a sí mismo,<br>
+                            es perdonando, como se es perdonado,<br>
+                            es muriendo como se resucita a la vida eterna.
+                        </p>
                     </article>
                     <article class="prayer compact">
                         <p class="prayer-label">Compromiso social</p>
                         <h3>Señor, perdóname</h3>
                         <p class="inline-note">Padre Carlos Mugica (1930-1974), sacerdote argentino, mártir de los pobres.</p>
-                        <p>Señor, perdóname por haberme acostumbrado a ver que los chicos, que parecen tener ocho años, tengan trece.</p>
-                        <p>Señor, perdóname por haberme acostumbrado a chapotear por el barro; yo me puedo ir, ellos no.</p>
-                        <p>Señor, perdóname por haber aprendido a soportar el olor de las aguas servidas, de las que me puedo ir y ellos no.</p>
-                        <p>Señor, perdóname por encender la luz y olvidarme de que ellos no pueden hacerlo.</p>
-                        <p>Señor, yo puedo hacer huelga de hambre y ellos no; porque nadie hace huelga con su hambre.</p>
-                        <p>Señor, perdóname por decirles «no sólo de pan vive el hombre» y no luchar con todo para que rescaten su pan.</p>
-                        <p>Señor, quiero quererlos por ellos y no por mí. Ayúdame.</p>
-                        <p>Señor, sueño con morir por ellos, ayúdame a vivir para ellos.</p>
-                        <p>Señor, quiero estar con ellos a la hora de la luz. Ayúdame.</p>
+                        <p>
+                            Señor, perdóname por haberme acostumbrado<br>
+                            a ver que los chicos, que parecen tener ocho años, tengan trece.
+                        </p>
+                        <p>
+                            Señor, perdóname por haberme acostumbrado<br>
+                            a chapotear por el barro; yo me puedo ir, ellos no.
+                        </p>
+                        <p>
+                            Señor, perdóname por haber aprendido<br>
+                            a soportar el olor de las aguas servidas,<br>
+                            de las que me puedo ir y ellos no.
+                        </p>
+                        <p>
+                            Señor, perdóname por encender la luz<br>
+                            y olvidarme de que ellos no pueden hacerlo.
+                        </p>
+                        <p>
+                            Señor, yo puedo hacer huelga de hambre y ellos no;<br>
+                            porque nadie hace huelga con su hambre.
+                        </p>
+                        <p>
+                            Señor, perdóname por decirles «no sólo de pan vive el hombre»<br>
+                            y no luchar con todo para que rescaten su pan.
+                        </p>
+                        <p>
+                            Señor, quiero quererlos por ellos y no por mí. Ayúdame.
+                        </p>
+                        <p>
+                            Señor, sueño con morir por ellos, ayúdame a vivir para ellos.
+                        </p>
+                        <p>
+                            Señor, quiero estar con ellos a la hora de la luz. Ayúdame.
+                        </p>
                     </article>
                     <article class="prayer compact">
                         <p class="prayer-label">Noche</p>
@@ -1202,6 +1492,7 @@
                     <article class="prayer">
                         <p class="prayer-label">Dentro del confesionario</p>
                         <h3>Guía breve</h3>
+                        <!-- Esta sección debe permanecer en prosa porque es una explicación -->
                         <p>Podés comenzar así: «Bendígame, padre, porque he pecado. Hace aproximadamente... que no me confieso». Luego decí tus pecados con sobriedad, sin justificarte y sin entrar en detalles innecesarios.</p>
                         <p>Al terminar, podés decir: «Me arrepiento de estos pecados y de todos los que no recuerdo». Después rezá el acto de contrición que prefieras y recibí la absolución con fe.</p>
                     </article>
@@ -1337,13 +1628,47 @@
                     <article class="prayer">
                         <p class="prayer-label">Estrella del mar</p>
                         <h3>Ave Maris Stella</h3>
-                        <p>Ave, estrella del mar, Madre santa de Dios y siempre Virgen, feliz puerta del cielo.</p>
-                        <p>Tú que recibiste el Ave de labios de Gabriel, cámbianos el nombre de Eva y danos paz.</p>
-                        <p>Suelta las cadenas del culpable, da luz a los ciegos, aleja de nosotros los males y alcánzanos todos los bienes.</p>
-                        <p>Muestra que eres Madre: que Él reciba por tu medio nuestras súplicas, el que naciendo por nosotros se dignó ser tuyo.</p>
-                        <p>Virgen singular, dulce entre todos, líbranos del pecado y danos un corazón manso y puro.</p>
-                        <p>Concédenos una vida pura, asegúranos un camino seguro para que, viendo a Jesús, contigo nos gocemos eternamente.</p>
-                        <p>Alabanza a Dios Padre, gloria a Cristo el Altísimo, y al Espíritu Santo: a los tres un solo honor. Amén.</p>
+                        <p>
+                            Ave, estrella del mar,<br>
+                            Madre santa de Dios<br>
+                            y siempre Virgen,<br>
+                            feliz puerta del cielo.
+                        </p>
+                        <p>
+                            Tú que recibiste el Ave<br>
+                            de labios de Gabriel,<br>
+                            cámbianos el nombre de Eva<br>
+                            y danos paz.
+                        </p>
+                        <p>
+                            Suelta las cadenas del culpable,<br>
+                            da luz a los ciegos,<br>
+                            aleja de nosotros los males<br>
+                            y alcánzanos todos los bienes.
+                        </p>
+                        <p>
+                            Muestra que eres Madre:<br>
+                            que Él reciba por tu medio nuestras súplicas,<br>
+                            el que naciendo por nosotros<br>
+                            se dignó ser tuyo.
+                        </p>
+                        <p>
+                            Virgen singular, dulce entre todos,<br>
+                            líbranos del pecado<br>
+                            y danos un corazón manso y puro.
+                        </p>
+                        <p>
+                            Concédenos una vida pura,<br>
+                            asegúranos un camino seguro<br>
+                            para que, viendo a Jesús,<br>
+                            contigo nos gocemos eternamente.
+                        </p>
+                        <p>
+                            Alabanza a Dios Padre,<br>
+                            gloria a Cristo el Altísimo,<br>
+                            y al Espíritu Santo:<br>
+                            a los tres un solo honor. Amén.
+                        </p>
                     </article>
                     <article class="prayer">
                         <p class="prayer-label">Patrona de Argentina</p>
@@ -1354,7 +1679,21 @@
                     <article class="prayer">
                         <p class="prayer-label">Virgen del Rosario</p>
                         <h3>Súplica a la Virgen del Rosario</h3>
-                        <p>Reina del Santísimo Rosario, Dueña, Señora y Madre nuestra; Virgen de nuestros mayores, tesoro de nuestras tradiciones. Fundadora de la ciudad, a la cual honraste con tu nombre, salvaste en la peste, protegiste en las sequías y escudaste contra los ataques de los indios enemigos. Tú eres la gloria, la alegría y toda la honra de nuestros corazones. Bendice, Madre dulcísima, a todos los que te acompañamos como hijos y juramos como vasallos. Cobija bajo tu manto a la ciudad que fue toda tuya y será siempre la «Ilustre y fiel»; ilustre en la integridad de su fe y fiel en el cumplimiento de sus santos deberes. Bendice a nuestra querida Diócesis que se consagra enteramente a Vos. Estrecha sobre tu pecho nuestra bandera «azul y blanca», para que sean siempre inmarcesibles sus triunfos. Guíanos a Cristo para que sea nuestra luz, nuestra verdad y nuestro camino hacia el eterno triunfo en la gloria. Así sea. Reina del Santísimo Rosario, nuestra Fundadora y Patrona, ruega por nosotros.</p>
+                        <p>
+                            «Reina del Santísimo Rosario, Dueña, Señora y Madre Nuestra!»<br>
+                            Virgen de nuestros mayores.<br>
+                            Tesoro de nuestras tradiciones.<br>
+                            Fundadora de la ciudad, a la cual honraste con tu nombre, salvaste en la peste, protegiste en las sequías y escudaste contra los ataques de los indios enemigos.<br>
+                            Tú eres la gloria, la alegría y toda la honra de nuestros corazones.<br>
+                            Bendice, Madre dulcísima, a todos los que te acompañamos como hijos y juramos como vasallos.<br>
+                            Cobija bajo tu manto a la ciudad que fue toda tuya y será siempre la «Ilustre y fiel»; ilustre en la integridad de su fe y fiel en el cumplimiento de sus santos deberes.<br>
+                            Bendice a nuestra querida Diócesis que se consagra enteramente a Vos.<br>
+                            Estrecha sobre tu pecho nuestra bandera «azul y blanca», para que sean siempre inmarcesibles sus triunfos.<br>
+                            Guíanos a Cristo para que sea nuestra luz, nuestra verdad y nuestro camino hacia el eterno triunfo en la gloria.<br>
+                            Así sea.<br>
+                            ¡Reina del Santísimo Rosario, nuestra Fundadora y Patrona!<br>
+                            Ruega por nosotros.
+                        </p>
                     </article>
                 </div>
             </section>
@@ -1442,7 +1781,19 @@
                         <p class="prayer-label">Abandono en Dios</p>
                         <h3>Tomad, Señor, y recibid</h3>
                         <p class="inline-note">San Ignacio de Loyola (1491-1556). Oración del «Suscipe».</p>
-                        <p>Tomad, Señor, y recibid toda mi libertad, mi memoria, mi entendimiento y toda mi voluntad, todo mi haber y poseer. Vos me lo disteis, a vos, Señor, lo devuelvo; todo es vuestro: disponed de ello según vuestra voluntad. Dadme solamente vuestro amor y gracia, que eso me basta. Amén.</p>
+                        <p>
+                            Tomad, Señor, y recibid<br>
+                            toda mi libertad,<br>
+                            mi memoria, mi entendimiento<br>
+                            y toda mi voluntad,<br>
+                            todo mi haber y poseer.<br>
+                            Vos me lo disteis,<br>
+                            a vos, Señor, lo devuelvo;<br>
+                            todo es vuestro:<br>
+                            disponed de ello según vuestra voluntad.<br>
+                            Dadme solamente vuestro amor y gracia,<br>
+                            que eso me basta. Amén.
+                        </p>
                     </article>
                     <article class="prayer compact">
                         <p class="prayer-label">Para pedir una gracia especial</p>
@@ -1512,7 +1863,23 @@
                         <p class="prayer-label">Antes de servir</p>
                         <h3>Instrumento de la Palabra</h3>
                         <p class="inline-note">USCCB (Conferencia de Obispos de EE.UU.)</p>
-                        <p>Amado Padre, derrama tu Espíritu Santo sobre mí para que pueda servir fielmente anunciando tu Palabra, tu Hijo Jesucristo. Haz que mi mente y mi corazón sean tan abiertos, dóciles y receptivos a tu Espíritu Santo que, como María, pueda convertirme en un instrumento vivo de tu Palabra para los demás. Ayúdame a ser un testigo fiel de la vida del Evangelio para que tu Iglesia pueda estar cada vez más viva. Deja que el fuego de tu amor encienda mi corazón, para que pueda ser un instrumento que atraiga a otros a amarte en la Iglesia de tu Hijo. Que todas mis palabras y acciones reflejen tu amor. Te lo pido por Cristo nuestro Señor. Amén.</p>
+                        <p>
+                            Amado Padre,<br>
+                            derrama tu Espíritu Santo sobre mí<br>
+                            para que pueda servir fielmente anunciando tu Palabra,<br>
+                            tu Hijo Jesucristo.<br>
+                            Haz que mi mente y mi corazón sean tan abiertos,<br>
+                            dóciles y receptivos a tu Espíritu Santo<br>
+                            que, como María,<br>
+                            pueda convertirme en un instrumento vivo de tu Palabra para los demás.<br>
+                            Ayúdame a ser un testigo fiel de la vida del Evangelio<br>
+                            para que tu Iglesia pueda estar cada vez más viva.<br>
+                            Deja que el fuego de tu amor encienda mi corazón,<br>
+                            para que pueda ser un instrumento<br>
+                            que atraiga a otros a amarte en la Iglesia de tu Hijo.<br>
+                            Que todas mis palabras y acciones reflejen tu amor.<br>
+                            Te lo pido por Cristo nuestro Señor. Amén.
+                        </p>
                     </article>
                     <article class="prayer">
                         <p class="prayer-label">Antes de leer la Escritura</p>
@@ -1523,7 +1890,28 @@
                     <article class="prayer">
                         <p class="prayer-label">Antes de estudiar</p>
                         <h3>Oración de Santo Tomás</h3>
-                        <p>¡Creador Inefable! Tú, que eres la verdadera fuente de luz y de sabiduría, y el principio supremo, dígnate infundir sobre las tinieblas de mi inteligencia el resplandor de tu claridad, apartando de mí la doble oscuridad en que he nacido: el pecado y la ignorancia. Tú, que haces elocuente la lengua de los niños, educa también la mía, e infunde en mis labios la gracia de tu bendición. Dame agudeza para entender, capacidad para asimilar, método y facilidad para aprender, ingenio para interpretar y gracia copiosa para hablar. Dame acierto al empezar, dirección al progresar y perfección al acabar. Tú, que eres verdadero Dios y Hombre, que vives y reinas por los siglos de los siglos. Amén.</p>
+                        <p>
+                            ¡Creador Inefable!<br>
+                            Tú, que eres la verdadera fuente de luz y de sabiduría,<br>
+                            y el principio supremo,<br>
+                            dígnate infundir sobre las tinieblas de mi inteligencia<br>
+                            el resplandor de tu claridad,<br>
+                            apartando de mí la doble oscuridad en que he nacido:<br>
+                            el pecado y la ignorancia.<br>
+                            Tú, que haces elocuente la lengua de los niños,<br>
+                            educa también la mía,<br>
+                            e infunde en mis labios la gracia de tu bendición.<br>
+                            Dame agudeza para entender,<br>
+                            capacidad para asimilar,<br>
+                            método y facilidad para aprender,<br>
+                            ingenio para interpretar<br>
+                            y gracia copiosa para hablar.<br>
+                            Dame acierto al empezar,<br>
+                            dirección al progresar<br>
+                            y perfección al acabar.<br>
+                            Tú, que eres verdadero Dios y Hombre,<br>
+                            que vives y reinas por los siglos de los siglos. Amén.
+                        </p>
                     </article>
                 </div>
             </section>
@@ -1538,7 +1926,51 @@
                     <article class="prayer">
                         <p class="prayer-label">Por los enfermos</p>
                         <h3>Oración del P. Emiliano Tardif</h3>
-                        <p>Señor Jesús, creemos que estás vivo y resucitado. Creemos que estás realmente presente en el Santísimo Sacramento del altar y en cada uno de nosotros. Te alabamos y te adoramos, por venir hasta nosotros como pan vivo bajado del cielo. Tú eres la plenitud de la vida. Tú eres la resurrección y la vida. Tú eres, Señor, la salud de los enfermos. Hoy queremos presentarte a todos los enfermos, porque para Ti no hay distancia ni en el tiempo ni en el espacio. Tú eres el eterno presente y Tú los conoces. Ahora, Señor, te pedimos que tengas compasión de ellos, para que todos reconozcan que Tú estás vivo en tu Iglesia hoy; y que se renueve su fe y su confianza en Ti; te lo suplicamos, Jesús. Ten compasión de los que sufren en su cuerpo, de los que sufren en su corazón y de los que sufren en su alma que están orando y oyendo los testimonios de lo que Tú estás haciendo por tu Espíritu renovador en el mundo entero. Ten compasión de ellos, Señor. Desde ahora te lo pedimos. Bendícelos a todos y haz que muchos vuelvan a encontrar la salud, que su fe crezca y se vayan abriendo a las maravillas de tu amor, para que también ellos sean testigos de tu poder y de tu compasión. Te lo pedimos, Jesús, por el poder de tus santas llagas, por tu santa cruz y por tu preciosa sangre. Sánalos, Señor. Sánalos en su cuerpo, sánalos en su corazón, sánalos en su alma. Dales vida y vida en abundancia. Todo esto te lo pedimos Jesús, porque Tú eres Jesús, Tú eres el Buen Pastor y todos somos ovejas de tu rebaño.</p>
+                        <p>
+                            Señor Jesús,<br>
+                            creemos que estás vivo y resucitado.<br>
+                            Creemos que estás realmente presente<br>
+                            en el Santísimo Sacramento del altar<br>
+                            y en cada uno de nosotros.<br>
+                            Te alabamos y te adoramos,<br>
+                            por venir hasta nosotros como pan vivo bajado del cielo.<br>
+                            Tú eres la plenitud de la vida.<br>
+                            Tú eres la resurrección y la vida.<br>
+                            Tú eres, Señor, la salud de los enfermos.<br>
+                            Hoy queremos presentarte a todos los enfermos,<br>
+                            porque para Ti no hay distancia ni en el tiempo ni en el espacio.<br>
+                            Tú eres el eterno presente y Tú los conoces.<br>
+                            Ahora, Señor, te pedimos que tengas compasión de ellos,<br>
+                            para que todos reconozcan que Tú estás vivo en tu Iglesia hoy;<br>
+                            y que se renueve su fe y su confianza en Ti;<br>
+                            te lo suplicamos, Jesús.<br>
+                            Ten compasión de los que sufren en su cuerpo,<br>
+                            de los que sufren en su corazón<br>
+                            y de los que sufren en su alma<br>
+                            que están orando y oyendo los testimonios<br>
+                            de lo que Tú estás haciendo por tu Espíritu renovador<br>
+                            en el mundo entero.<br>
+                            Ten compasión de ellos, Señor.<br>
+                            Desde ahora te lo pedimos.<br>
+                            Bendícelos a todos<br>
+                            y haz que muchos vuelvan a encontrar la salud,<br>
+                            que su fe crezca<br>
+                            y se vayan abriendo a las maravillas de tu amor,<br>
+                            para que también ellos sean testigos de tu poder y de tu compasión.<br>
+                            Te lo pedimos, Jesús,<br>
+                            por el poder de tus santas llagas,<br>
+                            por tu santa cruz<br>
+                            y por tu preciosa sangre.<br>
+                            Sánalos, Señor.<br>
+                            Sánalos en su cuerpo,<br>
+                            sánalos en su corazón,<br>
+                            sánalos en su alma.<br>
+                            Dales vida y vida en abundancia.<br>
+                            Todo esto te lo pedimos Jesús,<br>
+                            porque Tú eres Jesús,<br>
+                            Tú eres el Buen Pastor<br>
+                            y todos somos ovejas de tu rebaño.
+                        </p>
                     </article>
                     <article class="prayer">
                         <p class="prayer-label">Por los sacerdotes</p>
@@ -1803,8 +2235,8 @@
     <script>
         (() => {
             const sizes = {
-                a6: { css: 'A6', margin: '8mm', label: 'A6 bolsillo' },
-                a5: { css: 'A5', margin: '10mm', label: 'A5 devocionario' },
+                                a6: { css: 'A6', margin: '8mm', label: 'A6 bolsillo' },
+                a5: { css: 'A5', margin: '12mm', label: 'A5 devocionario' },
                 a4: { css: 'A4', margin: '14mm', label: 'A4 lectura' },
                 a3: { css: 'A3', margin: '18mm', label: 'A3 pliego grande' },
                 a2: { css: 'A2', margin: '24mm', label: 'A2 mural' }
@@ -1813,7 +2245,7 @@
             const printStyle = document.getElementById('print-size-style');
             const status = document.getElementById('size-status');
             const originalTitle = document.title;
-            let activeSize = 'a6';
+            let activeSize = 'a5';
 
             function applySize(sizeKey) {
                 const size = sizes[sizeKey] || sizes.a6;

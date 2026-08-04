@@ -1,4 +1,4 @@
-const VERSION_CACHE = '4.296.042';
+const VERSION_CACHE = '4.296.043';
 // Bump this only when Biblia/Catena/Agustin JSON files change.
 const VERSION_CACHE_DATA = '2026-05-14.1';
 const CACHE_SHELL = `lumina-shell-${VERSION_CACHE}`;
@@ -11,6 +11,7 @@ const archivosShellCore = [
   './index.html',
   './lumina.css',
   './style.min.css',
+  './script.js',
   './script.min.js'
 ];
 
@@ -65,6 +66,7 @@ function esRecursoShellActualizable(request) {
     request.destination === 'style' ||
     request.destination === 'document' ||
     path.endsWith('/index.html') ||
+    path.endsWith('/script.js') ||
     path.endsWith('/script.min.js') ||
     path.endsWith('/lumina.css') ||
     path.endsWith('/style.min.css') ||
@@ -85,6 +87,7 @@ function obtenerCacheDestino(request) {
     request.destination === 'style' ||
     request.destination === 'document' ||
     path.endsWith('/index.html') ||
+    path.endsWith('/script.js') ||
     path.endsWith('/script.min.js') ||
     path.endsWith('/firebase-config.js') ||
     path.endsWith('/lumina.css') ||
